@@ -1,3 +1,7 @@
+/* ============================================================
+   FICHA (Tablet Check-in) — Estilo Padrão Mural (PROATI)
+   ============================================================ */
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6,7 +10,7 @@
 
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
-  background: #f0f0f0;
+  background: #f0f2f5;
   min-height: 100vh;
   padding: 32px 16px;
 }
@@ -15,12 +19,12 @@ form {
   max-width: 680px;
   margin: 0 auto;
   background: white;
-  border-radius: 10px;
-  border: 1px solid #d0d0d0;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
   overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 
-/* Título principal — faixa verde escura */
 h1 {
   background: #1e3a5f;
   color: white;
@@ -31,12 +35,10 @@ h1 {
   line-height: 1.4;
 }
 
-/* Container da lista de alunos */
 .lista-alunos {
   padding: 0;
 }
 
-/* Cabeçalho da tabela — verde médio */
 .lista-alunos::before {
   content: 'Aluno(a)';
   display: block;
@@ -48,7 +50,6 @@ h1 {
   letter-spacing: 0.4px;
 }
 
-/* Cada linha de aluno */
 .item-aluno {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -66,14 +67,12 @@ h1 {
   border-bottom: none;
 }
 
-/* Nome do aluno */
 .item-aluno label {
   font-size: 14px;
   color: #222;
   font-weight: 500;
 }
 
-/* Campo de número do notebook */
 .item-aluno input[type="number"] {
   border: 1px solid #c0c0c0;
   border-radius: 6px;
@@ -88,17 +87,15 @@ h1 {
 
 .item-aluno input[type="number"]:focus {
   border-color: #1e3a5f;
-  box-shadow: 0 0 0 3px rgba(26, 92, 42, 0.15);
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
 }
 
-/* Remove setas do input number */
 .item-aluno input[type="number"]::-webkit-inner-spin-button,
 .item-aluno input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* Botão enviar */
 button[type="submit"] {
   display: block;
   width: calc(100% - 48px);
@@ -106,7 +103,7 @@ button[type="submit"] {
   padding: 14px !important;
   font-size: 15px !important;
   font-weight: 600;
-  background: #1e3a5f;
+  background: #28a745;
   color: white;
   border: none;
   border-radius: 8px;
@@ -116,12 +113,13 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-  background: #0716bc;
+  background: #218838;
 }
 
 button[type="submit"]:active {
   transform: scale(0.99);
 }
+
 .header-right {
     display: flex;
     align-items: center;
@@ -138,7 +136,6 @@ button[type="submit"]:active {
     letter-spacing: 1px;
 }
 
-/* Mensagens (alertas do Django) */
 .mensagens-fixas {
     position: fixed;
     top: 16px;
@@ -164,20 +161,20 @@ button[type="submit"]:active {
 
 .alert-success {
     background: #e6f4ea;
-    border: 1px solid #34a853;
+    border: 1px solid #28a745;
     color: #1e7e34;
 }
 
 .alert-error {
     background: #fdecea;
-    border: 1px solid #ea4335;
+    border: 1px solid #dc3545;
     color: #b3261e;
 }
 
 .alert-warning {
     background: #fff8e1;
-    border: 1px solid #fbbc04;
-    color: #8a6d00;
+    border: 1px solid #ffc107;
+    color: #856404;
 }
 
 .alert-info,
@@ -197,18 +194,171 @@ button[type="submit"]:active {
     line-height: 1;
     padding: 0 4px;
 }
-
 .fechar-alert:hover {
     opacity: 1;
 }
 
 @keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(40px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
 }
+
+/* Modal de Confirmação PIN */
+.modal-confirmacao-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-confirmacao-box {
+    background: white;
+    border-radius: 12px;
+    width: 420px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    animation: slideUp 0.25s ease-out;
+}
+
+.modal-confirmacao-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #1e3a5f;
+    color: white;
+}
+
+.modal-confirmacao-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.modal-confirmacao-fechar {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+    line-height: 1;
+}
+.modal-confirmacao-fechar:hover {
+    opacity: 1;
+}
+
+.modal-confirmacao-body {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.modal-confirmacao-contagem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.modal-confirmacao-icone {
+    font-size: 36px;
+}
+
+.modal-confirmacao-numero {
+    font-size: 48px;
+    font-weight: 700;
+    color: #1e3a5f;
+    line-height: 1;
+}
+
+.modal-confirmacao-label {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.modal-confirmacao-instrucao {
+    margin: 0;
+    font-size: 14px;
+    color: #444;
+    text-align: center;
+}
+
+.modal-confirmacao-pin {
+    width: 200px;
+    padding: 14px 16px;
+    font-size: 32px;
+    letter-spacing: 12px;
+    text-align: center;
+    border: 2px solid #c0c0c0;
+    border-radius: 8px;
+    outline: none;
+    font-family: 'Courier New', monospace;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.modal-confirmacao-pin:focus {
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
+
+.modal-confirmacao-footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    border-top: 1px solid #ebebeb;
+    justify-content: flex-end;
+}
+
+.modal-confirmacao-btn-cancelar {
+    padding: 10px 20px;
+    border: 1px solid #c0c0c0;
+    background: white;
+    color: #444;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.modal-confirmacao-btn-cancelar:hover {
+    background: #f5f5f5;
+}
+
+.modal-confirmacao-btn-confirmar {
+    padding: 10px 24px;
+    border: none;
+    background: #28a745;
+    color: white;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.modal-confirmacao-btn-confirmar:hover {
+    background: #218838;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+

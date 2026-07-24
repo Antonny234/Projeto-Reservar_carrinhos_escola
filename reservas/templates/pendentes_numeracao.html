@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numerações Pendentes - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/preencher_pendentes.css' %}">
+</head>
+<body data-pagina="pendentes-numeracao">
+
+    <div class="header">
+        <h1>GTREP - Manoel Martins</h1>
+        <div class="header-right">
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mensagens-fixas">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+            <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="container" style="flex-direction:column;">
+        <div class="painel-admin" style="width:100%; box-sizing:border-box;">
+            <h3>📋 Reservas por quantidade aguardando numeração <span class="badge-count">{{ pendentes|length }}</span></h3>
+            <table class="tabela-admin">
+                <tr>
+                    <th>Professor</th>
+                    <th>Equipamento</th>
+                    <th>Sala</th>
+                    <th>Data</th>
+                    <th>Horário</th>
+                    <th>Qtd.</th>
+                    <th>Ação</th>
+                </tr>
+                {% for r in pendentes %}
+                <tr>
+                    <td data-label="Professor:">{{ r.professor.get_full_name|default:r.professor.username }}</td>
+                    <td data-label="Equipamento:">{{ r.equipamento.nome }}</td>
+                    <td data-label="Sala:">{{ r.sala }}</td>
+                    <td data-label="Data:">{{ r.data_uso|date:"d/m/Y" }}</td>
+                    <td data-label="Horário:">{{ r.horario_inicio|time:"H:i" }} - {{ r.horario_fim|time:"H:i" }}</td>
+                    <td data-label="Qtd:">{{ r.quantidade }}</td>
+                    <td data-label="Ação:"><a href="{% url 'preencher_numeracao_quantidade' r.id %}" class="btn-salvar" style="text-decoration:none;">Preencher</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" style="color:#888;">Nenhuma pendência 🎉</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

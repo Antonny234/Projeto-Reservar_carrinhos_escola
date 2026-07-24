@@ -11,7 +11,7 @@ urlpatterns = [
     path('carregar-mural-publico/', views.carregar_mural_publico, name='carregar_mural_publico'),
     path('ajax/disponiveis/', views.listar_disponiveis, name='ajax_disponiveis'),
     #mural publico
-    path('painel/', views.mural_principal, name='mural_consulta'),
+    path('painel/', views.carrinho_principal, name='mural_consulta'),
     path('carregar-mural/', views.carregar_mural, name='carregar_mural'),
     path('excluir-reserva/<int:reserva_id>/', views.excluir_reserva, name='excluir_reserva'),
     path('atualizar-quantidade/', views.atualizar_quantidade, name='atualizar_quantidade'),
@@ -38,4 +38,13 @@ urlpatterns = [
     path('painel-reservas/', views.painel_reservas_dia, name='painel_reservas_dia'),
     path('fichas/analisar-foto/', views.analisar_foto, name='analisar_foto'),
     path('camera/', views.camera_contagem, name='camera_contagem'),
+    #numeração dos notebooks
+    path('ajax/numeros-disponiveis/', views.numeros_disponiveis, name='numeros_disponiveis'),
+    path('unico/', views.pagina_unico, name='unico'),
+    path('reserva-quantidade/', views.reserva_quantidade, name='reserva_quantidade'),
+    path('reserva/<int:reserva_id>/numeracao/', views.preencher_numeracao_quantidade, name='preencher_numeracao_quantidade'),
+    path('painel/pendentes-numeracao/', views.pendentes_numeracao, name='pendentes_numeracao'),
+    path('painel/reservas-quantidade/', views.painel_reservas_quantidade, name='painel_reservas_quantidade'),
+    path("ajax/menu/",views.menu_ajax,name="menu_ajax"),
+    path('criar-pin/', views.criar_pin, name='criar_pin'),
 ]

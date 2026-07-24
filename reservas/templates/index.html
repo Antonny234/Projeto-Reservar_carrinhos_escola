@@ -33,11 +33,15 @@
 
         <!-- Espaço para mensagens de erro -->
         {% if messages %}
-        <div style="margin-top: 15px; color: red; text-align: center;">
           {% for message in messages %}
-          {{ message }}
+            {% if message.tags == 'success' %}
+              <div class="message-success">{{ message }}</div>
+            {% else %}
+              <div style="margin-top: 15px; color: red; text-align: center;">
+                {{ message }}
+              </div>
+            {% endif %}
           {% endfor %}
-        </div>
       {% endif %}
     </div> <!-- Fechamento correto da container -->
 </body>

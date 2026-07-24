@@ -1,23 +1,21 @@
-  /* ==========================================================================
-   CONFIGURAÇÕES GERAIS E RESET (REMOÇÃO DE ESPAÇOS EM BRANCO)
-   ========================================================================== */
+/* ============================================================
+   PAINEL — Estilo Padrão Mural (PROATI)
+   (Antigo painel de controle, agora padronizado)
+   ============================================================ */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-
 }
 
 body {
-    background-color: #f4f6f9;
+    background-color: #f0f2f5;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-
-/* ==========================================================================
-   CABEÇALHO (OCUPA 100% DA LARGURA SEM BORDAS VAZIAS)
-   ========================================================================== */
 
 .header {
     width: 100%;
@@ -27,10 +25,12 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
-.header-consulta, .header {
+
+.header-consulta {
     width: 100%;
-    background-color: #1e3a5f; /* Azul escuro idêntico ao seu print */
+    background-color: #1e3a5f;
     color: #ffffff;
     padding: 15px 30px;
     display: flex;
@@ -44,43 +44,22 @@ body {
     font-weight: 600;
 }
 
-/* Botão de Voltar no Cabeçalho */
-.btn-voltar {
-    display: inline-block;
-    background-color: #4a5568;
-    color: #ffffff;
-    padding: 10px 20px;
-    text-decoration: none;
-    border-radius: 6px;
-    font-weight: bold;
-    font-size: 14px;
-    transition: background-color 0.2s ease;
-}
-
-.btn-voltar:hover {
-    background-color: #2d3748;
-}
-
-/* ==========================================================================
-   CONTAINER PRINCIPAL (FORÇADO PARA TELA CHEIA)
-   ========================================================================== */
 .container {
     width: 100% !important;
-    max-width: 100% !important; /* Remove qualquer limitação de pixels (ex: 1200px) */
+    max-width: 100% !important;
     padding: 20px;
     display: flex;
-    flex-direction: row; /* Organiza os blocos um abaixo do outro se necessário */
+    flex-direction: row;
     align-items: center;
     flex: 1;
 }
 
-/* O bloco branco interno do Mural */
 .mural {
-    width: 100% !important; /* Obriga o quadro branco a colar nas bordas do container */
+    width: 100% !important;
     background-color: #ffffff;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 30px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     margin-top: 10px;
 }
 
@@ -92,23 +71,16 @@ body {
     padding-bottom: 10px;
 }
 
-/* ==========================================================================
-   GRID DE CARTÕES (COMPACTO E RESPONSIVO)
-   ========================================================================== */
 .grid-mural {
     display: grid;
-    /* Divide o espaço total em colunas iguais de no mínimo 320px */
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 25px;
     width: 100%;
 }
 
-/* ==========================================================================
-   ESTILIZAÇÃO DOS CARDs DE RESERVA (IGUAL AOS SEUS PRINTS)
-   ========================================================================== */
 .card-reserva, .reserva-box-card {
-    background-color: #fffdf6; /* Fundo levemente amarelado/creme do print */
-    border-left: 5px solid #ecc94b; /* Borda amarela lateral esquerda */
+    background-color: #fffdf6;
+    border-left: 5px solid #ffc107;
     border-top: 1px solid #edf2f7;
     border-right: 1px solid #edf2f7;
     border-bottom: 1px solid #edf2f7;
@@ -138,11 +110,10 @@ body {
     font-weight: 500;
 }
 
-/* Botão Excluir Vermelho dentro do Card */
 .btn-excluir, .btn-excluir-reserva {
     margin-top: 15px;
     align-self: flex-start;
-    background-color: #e53e3e;
+    background-color: #dc3545;
     color: white;
     border: none;
     padding: 8px 16px;
@@ -155,10 +126,9 @@ body {
 }
 
 .btn-excluir:hover {
-    background-color: #c53030;
+    background-color: #c82333;
 }
 
-/* Mensagem de quando não há registros */
 .sem-reservas {
     grid-column: 1 / -1;
     text-align: center;
@@ -166,3 +136,146 @@ body {
     font-size: 16px;
     color: #718096;
 }
+
+/* ============================================================
+   BOTÕES PADRÃO (compatível com estiloMural.css)
+   ============================================================ */
+
+/* Botão Voltar Verde — mesmo estilo do estiloMural.css */
+.btn-voltar-verde {
+    display: inline-block;
+    background-color: #28a745;
+    color: #ffffff;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.2s ease, transform 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 2px solid #1e7e34;
+}
+.btn-voltar-verde:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+.btn-voltar-verde:active {
+    transform: translateY(0);
+}
+
+/* Botão Exportar */
+.btn-exportar {
+    background-color: #28a745;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    display: inline-block;
+    transition: background-color 0.3s, transform 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.btn-exportar:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+/* ── Responsivo para tablets (≤ 850px) ── */
+@media (max-width: 850px) {
+    .header {
+        padding: 14px 20px;
+        gap: 10px;
+    }
+
+    .header h1 {
+        font-size: 18px;
+    }
+
+    .header-consulta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px 20px;
+    }
+
+    .btn-voltar-verde,
+    .btn-exportar {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .mural {
+        padding: 20px;
+    }
+
+    .grid-mural {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+/* ── Responsivo para celular (≤ 600px) ── */
+@media (max-width: 600px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 16px;
+    }
+
+    .header h1 {
+        font-size: 16px;
+        width: 100%;
+    }
+
+    .header-consulta {
+        padding: 12px 16px;
+    }
+
+    .header-consulta h1 {
+        font-size: 16px;
+    }
+
+    .btn-voltar-verde {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .btn-exportar {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .container {
+        padding: 12px;
+        flex-direction: column;
+    }
+
+    .mural {
+        padding: 16px;
+    }
+
+    .mural h2 {
+        font-size: 18px;
+    }
+
+    .card-reserva {
+        padding: 14px;
+        gap: 8px;
+    }
+
+    .prof-nome {
+        font-size: 14px;
+    }
+
+    .equipamento-nome {
+        font-size: 14px;
+    }
+
+    .badge-horario {
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+}
+

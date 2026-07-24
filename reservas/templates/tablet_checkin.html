@@ -43,13 +43,42 @@
     {% endfor %}
     </div>
 
-    <button type="submit">ENVIAR FICHA</button>
+    <button type="submit" data-minimo="{{ minimo_alunos }}">ENVIAR FICHA</button>
+
 </form>
 
+<!-- Modal de Confirmação PIN -->
+<div class="modal-confirmacao-overlay" id="modal-confirmacao" style="display:none;">
+    <div class="modal-confirmacao-box">
+        <div class="modal-confirmacao-header">
+            <h2>📋 Confirmar Envio da Ficha</h2>
+            <button onclick="fecharModalConfirmacao()" class="modal-confirmacao-fechar" title="Cancelar">✕</button>
+        </div>
+        <div class="modal-confirmacao-body">
+            <div class="modal-confirmacao-contagem">
+                <span class="modal-confirmacao-icone">👨‍🎓</span>
+                <span class="modal-confirmacao-numero" id="qtd-alunos">0</span>
+                <span class="modal-confirmacao-label">alunos preenchidos</span>
+            </div>
+            <p class="modal-confirmacao-instrucao">Digite seu PIN de 4 dígitos para enviar a ficha:</p>
+            <input type="password" id="pin-confirmacao" maxlength="4" pattern="\d{4}" inputmode="numeric"
+                   placeholder="• • • •" class="modal-confirmacao-pin" autocomplete="off">
+            <p id="erro-pin" style="color:red; display:none; font-weight:bold; margin:0;"></p>
+        </div>
+        <div class="modal-confirmacao-footer">
+            <button onclick="fecharModalConfirmacao()" class="modal-confirmacao-btn-cancelar">Cancelar</button>
+            <button onclick="confirmarEnvio()" class="modal-confirmacao-btn-confirmar">✓ Confirmar Envio</button>
+        </div>
+    </div>
+</div>
+
 <script>
-  const MINIMO = 5;
+  const MINIMO = parseInt(document.querySelector('button[type="submit"]').dataset.minimo) || 5;
+  let formularioPronto = false;
 
   document.getElementById('form-ficha').addEventListener('submit', function (e) {
+    e.preventDefault(); // Sempre previne o envio direto
+
     const campos = document.querySelectorAll('.campo-notebook');
     let preenchidos = 0;
 
@@ -62,12 +91,62 @@
     const erro = document.getElementById('erro-minimo');
 
     if (preenchidos < MINIMO) {
-      e.preventDefault();
       erro.textContent = `Preencha pelo menos ${MINIMO} campos. Você preencheu ${preenchidos}.`;
       erro.style.display = 'block';
       erro.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      erro.style.display = 'none';
+      return;
+    }
+
+    erro.style.display = 'none';
+
+    // Abre o modal de confirmação com PIN
+    document.getElementById('qtd-alunos').textContent = preenchidos;
+    document.getElementById('pin-confirmacao').value = '';
+    document.getElementById('erro-pin').style.display = 'none';
+    document.getElementById('modal-confirmacao').style.display = 'flex';
+    setTimeout(() => document.getElementById('pin-confirmacao').focus(), 200);
+  });
+
+  function fecharModalConfirmacao() {
+    document.getElementById('modal-confirmacao').style.display = 'none';
+  }
+
+  function confirmarEnvio() {
+    const pin = document.getElementById('pin-confirmacao').value.trim();
+    const erroPin = document.getElementById('erro-pin');
+
+    if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      erroPin.textContent = 'Digite um PIN válido de 4 dígitos.';
+      erroPin.style.display = 'block';
+      return;
+    }
+
+    erroPin.style.display = 'none';
+
+    // Adiciona o PIN como campo oculto no formulário e envia
+    const form = document.getElementById('form-ficha');
+    const inputPin = document.createElement('input');
+    inputPin.type = 'hidden';
+    inputPin.name = 'pin_envio';
+    inputPin.value = pin;
+    form.appendChild(inputPin);
+
+    // Remove o event listener para não loopar, e submete
+    form.submit();
+  }
+
+  // Fecha modal com ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      fecharModalConfirmacao();
+    }
+  });
+
+  // ENTER no campo de PIN confirma o envio
+  document.getElementById('pin-confirmacao').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmarEnvio();
     }
   });
 </script>

@@ -6,14 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fichas dos Alunos - PROATI</title>
     <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/painelestudante.css' %}">
 </head>
 <body data-pagina="painel-fichas">
 
     <div class="header">
-        <h1>📋 Fichas Preenchidas pelos Alunos</h1>
+        <h1>Fichas Preenchidas pelos Alunos - GTREP</h1>
         <div class="header-right">
             <span>Olá, <strong>{{ user.username }}</strong></span>
-            <a href="{% url 'mural' %}" class="btn-exportar">⬅ Voltar ao Mural</a>
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
             {% if user.is_staff %}
                 <span class="badge-admin">ADM</span>
             {% endif %}
@@ -53,32 +54,32 @@
                 <div class="painel-admin">
                     <h3>🗂️ Reservas com Fichas Preenchidas</h3>
                     {% if reservas %}
-                    <table class="tabela-admin">
-                    <tr>
-                        <th>Data</th>
-                        <th>Professor</th>
-                        <th>Sala</th>
-                        <th>Equipamento</th>
-                        <th>Alunos Registrados</th>
-                        <th>Ações</th>
-                    </tr>
-                    {% for r in reservas %}
-                    <tr>
-                        <td>{{ r.data_uso|date:"d/m/Y" }}</td>
-                        <td>{{ r.professor.get_full_name|default:r.professor.username }}</td>
-                        <td>{{ r.sala.nome }}</td>
-                        <td>{{ r.equipamento.nome }}</td>
-                        <td>{{ r.registrouso_set.all|length }}</td>
-                        <td>
-                            <button type="button" class="btn-exportar" onclick="abrirFicha('{{ r.id }}')">
-                                👁️ Ver Ficha
-                            </button>
-                            <a href="{% url 'exportar_ficha_excel' r.id %}" class="btn-exportar">
-                                ⬇️ Excel
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                <table class="tabela-admin">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Professor</th>
+                            <th>Sala</th>
+                            <th>Equipamento</th>
+                            <th>Alunos</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reservas %}
+                        <tr>
+                            <td data-label="Data:">{{ r.data_uso|date:"d/m/Y" }}</td>
+                            <td data-label="Professor:">{{ r.professor.get_full_name|default:r.professor.username }}</td>
+                            <td data-label="Sala:">{{ r.sala.nome }}</td>
+                            <td data-label="Equipamento:">{{ r.equipamento.nome }}</td>
+                            <td data-label="Alunos:">{{ r.registrouso_set.all|length }}</td>
+                            <td data-label="Ações:">
+                                <button type="button" class="btn-exportar" onclick="abrirFicha('{{ r.id }}')">Ver</button>
+                                <a href="{% url 'exportar_ficha_excel' r.id %}" class="btn-exportar">Excel</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
                 {% else %}
                 <p>Nenhuma ficha preenchida ainda.</p>

@@ -1,101 +1,133 @@
-  /* Garante que os paddings não quebrem o tamanho total dos elementos */
-    * {
-      box-sizing: border-box;
-    }
+/* ============================================================
+   LOGIN — Estilo Padrão Mural (PROATI)
+   ============================================================ */
 
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #4facfe, #00f2fe);
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-    .login-box {
-      background: white;
-      padding: 40px;
-      border-radius: 15px;
-      width: 340px; /* Um pouquinho mais largo para acomodar bem o layout */
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-    .login-box h2 {
-      text-align: center;
-      margin-bottom: 25px;
-      color: #333;
-    }
+.login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    width: 360px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid #e0e0e0;
+}
 
-    .input-box {
-      margin-bottom: 20px;
-    }
+.login-box h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #1e3a5f;
+    font-size: 24px;
+    font-weight: 600;
+}
 
-    .input-box input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      outline: none;
-      font-size: 16px;
-    }
+.input-box {
+    margin-bottom: 20px;
+}
 
-    .login-btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      background: #4facfe;
-      color: white;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
+.input-box input {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid #dce1e7;
+    border-radius: 8px;
+    outline: none;
+    font-size: 16px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
 
-    .login-btn:hover {
-      background: #2196f3;
-    }
+.input-box input:focus {
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
 
-    /* Divisor visual elegante entre o Login e o Acesso ao Mural */
-    .divisor {
-      margin: 20px 0;
-      text-align: center;
-      border-bottom: 1px solid #eee;
-      line-height: 0.1em;
-    }
-    .divisor span {
-      background: #fff;
-      padding: 0 10px;
-      color: #999;
-      font-size: 13px;
-    }
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    background: #1e3a5f;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
 
-    /* Botão de Acesso ao Mural Público */
-    .btn-mural {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      background-color: #2ec4b6; /* Cor verde/turquesa de destaque */
-      color: white;
-      text-decoration: none;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 16px;
-      font-weight: bold;
-      transition: 0.3s;
-    }
-    .btn-mural:hover {
-      background-color: #20a498;
-    }
+.login-btn:hover {
+    background: #16304f;
+}
 
-    .footer {
-      text-align: center;
-      margin-top: 15px;
-      font-size: 14px;
-    }
+.login-btn:active {
+    transform: scale(0.99);
+}
 
-    .footer a {
-      text-decoration: none;
-      color: #2196f3;
-    }
+/* Divisor visual entre o Login e o Acesso ao Mural */
+.divisor {
+    margin: 20px 0;
+    text-align: center;
+    border-bottom: 1px solid #e0e0e0;
+    line-height: 0.1em;
+}
+
+.divisor span {
+    background: #fff;
+    padding: 0 10px;
+    color: #888;
+    font-size: 13px;
+}
+
+/* Botão de Acesso ao Mural Público — estilo verde padrão PROATI */
+.btn-mural {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background 0.2s, transform 0.1s;
+    border: 2px solid #1e7e34;
+}
+.btn-mural:hover {
+    background-color: #218838;
+}
+.btn-mural:active {
+    transform: scale(0.99);
+}
+
+.footer {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.footer a {
+    text-decoration: none;
+    color: #1e3a5f;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.footer a:hover {
+    color: #16304f;
+    text-decoration: underline;
+}

@@ -4,11 +4,14 @@ from django.contrib.auth.models import User
 
 
 class PerfilAdm(models.Model):
-    """Contas marcadas como 'requer aprovação de ADM para confirmar reservas'"""
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_adm')
     requer_aprovacao = models.BooleanField(
         default=False,
         verbose_name="Reservas requerem aprovação de ADM"
+    )
+    pin_envio = models.CharField(
+        "PIN de envio (4 dígitos)", max_length=4, blank=True, null=True,
+        help_text="Senha de 4 dígitos para enviar fichas no tablet"
     )
 
     def __str__(self):
@@ -44,6 +47,16 @@ class Equipamento(models.Model):
         """Retorna a lista ORDENADA de números (para exibir no template)."""
         return sorted(self.faixa_numeros())
 
+    def quantidade_ativa(self):
+        """Retorna a quantidade de notebooks ativos (não marcados como quebrados)."""
+        if self.numero_inicial is None or self.numero_final is None:
+            return 0
+        total = self.numero_final - self.numero_inicial + 1
+        inativos = Notebook.objects.filter(
+            equipamento=self, ativo=False
+        ).count()
+        return total - inativos
+
     def status_numeros(self):
         """Retorna uma lista de dicts {numero, ativo} para cada número da faixa,
         cruzando com os registros de Notebook marcados manualmente como quebrados."""
@@ -57,9 +70,6 @@ class Equipamento(models.Model):
 
 
 class Notebook(models.Model):
-    """Status individual (ativo/quebrado) de um número de notebook dentro de um carrinho.
-    Só existe um registro aqui quando alguém marcou manualmente o status pelo menos uma vez
-    — por padrão, todo número é considerado ativo até ser marcado como quebrado."""
     equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name='notebooks')
     numero = models.PositiveIntegerField()
     ativo = models.BooleanField(default=True, verbose_name="Está funcionando")
@@ -78,7 +88,6 @@ class Sala(models.Model):
     def __str__(self):
         return self.nome
 
-
 class Reserva(models.Model):
     STATUS_CHOICES = [
         ('confirmada', 'Confirmada'),
@@ -93,11 +102,38 @@ class Reserva(models.Model):
     horario_fim = models.TimeField()
     sala = models.ForeignKey('Sala', on_delete=models.PROTECT, verbose_name="Sala")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmada')
+    numero_notebook_unico = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name="Nº do notebook (reserva individual)"
+    )
+    quantidade = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name="Quantidade reservada",
+        help_text="Preenchido apenas nas reservas por quantidade específica."
+    )
 
+    numeracao_preenchida = models.BooleanField(
+        default=False,
+        verbose_name="Numeração dos notebooks preenchida"
+    )
+    
     def __str__(self):
         return f"{self.professor.username} - {self.equipamento.nome} [{self.status}]"
 
 
+
+
+class NumeroReservaQuantidade(models.Model):
+    reserva = models.ForeignKey(
+        Reserva, on_delete=models.CASCADE, related_name='numeros_quantidade'
+    )
+    numero = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ('reserva', 'numero')
+
+    def __str__(self):
+        return f"Reserva #{self.reserva_id} - Notebook {self.numero}"
 
 class Aluno(models.Model):
     nome = models.CharField(max_length=100)
@@ -117,7 +153,6 @@ class RegistroUso(models.Model):
 
 
 class NotificacaoFichaAusente(models.Model):
-    """Registro de notificações enviadas para admins sobre fichas não preenchidas"""
     reserva = models.ForeignKey(Reserva, on_delete=models.CASCADE)
     enviada_em = models.DateTimeField(auto_now_add=True)
 

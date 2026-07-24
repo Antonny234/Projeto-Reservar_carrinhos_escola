@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservas por Quantidade - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/painel_reserva_quantidade.css' %}">
+</head>
+<body>
+    <div class="header">
+        <h1>GTREP Manoel Martins - Notebooks Avulsos</h1>
+        <div class="header-right">
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
+        </div>
+    </div>
+
+    <div class="painel-reservas">
+        <div class="painel-topo">
+            <h2>🔢 Reservas de Notebooks Separados — {{ data_exibicao }}</h2>
+            <div class="filtro-data">
+                <label for="filtro-data">Ver outra data:</label>
+                <input type="date" id="filtro-data" value="{{ data_atual }}"
+                    onchange="window.location.href='?data=' + this.value">
+            </div>
+        </div>
+
+        <div class="cards-reservas">
+            {% for reserva in reservas %}
+                {% with prof_nome=reserva.professor.get_full_name|default:reserva.professor.username %}
+                <div class="card-reserva {{ reserva.status }} card-quantidade-vermelha">
+                    <div class="reserva-info">
+                        <span class="reserva-equipamento">{{ reserva.equipamento.nome }}</span>
+                        <span class="reserva-professor"> {{ prof_nome }}</span>
+                        <span class="reserva-detalhe"> Sala {{ reserva.sala.nome }}</span>
+                        <span class="reserva-detalhe">H: {{ reserva.horario_inicio|time:"H:i" }} - {{ reserva.horario_fim|time:"H:i" }}</span>
+                        <span class="reserva-detalhe">Q: {{ reserva.quantidade }} unidade{{ reserva.quantidade|pluralize }} reservada{{ reserva.quantidade|pluralize }}</span>
+
+                        {% if reserva.numeros_quantidade.all %}
+                            <span class="reserva-detalhe">
+                                <strong>Números:</strong>
+                                {% for n in reserva.numeros_quantidade.all %}{{ n.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            </span>
+                        {% else %}
+                            <span class="tag-pendente">⏳ Numeração não preenchida</span>
+                        {% endif %}
+
+                        <span class="reserva-status status-{{ reserva.status }}">
+                            {% if reserva.status == 'confirmada' %}✓ Confirmada
+                            {% elif reserva.status == 'pendente' %}⏳ Pendente
+                            {% else %}✗ Recusada{% endif %}
+                        </span>
+
+                        {% if not reserva.numeros_quantidade.all %}
+                            <a href="{% url 'preencher_numeracao_quantidade' reserva.id %}" class="btn-numeracao">Preencher numeração</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endwith %}
+            {% empty %}
+                <p class="vazio">Nenhuma reserva por quantidade para esta data.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

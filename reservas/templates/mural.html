@@ -7,185 +7,176 @@
     <title>Reserva de Carrinhos - PROATI</title>
     <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    {{ form.media }}
+{{ form.media }}
+
 </head>
-<body data-pagina="professor">
 
-    <div class="header">
-        <h1>PROATI 2026 - Gestão de Equipamentos</h1>
-        <div class="header-right">
-            <span>Olá, <strong id="nome-professor">{{ user.username }}</strong></span>
-            {% if user.is_staff %}
-                <span class="badge-admin">ADM</span>
-            {% endif %}
-        </div>
+{% if user.is_staff %}
+<body class="tem-sidebar" data-pagina="professor">
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    </div>
-    <div class="acoes-admin">
-        <a href="{% url 'exportar_excel' %}" class="admin">
-            Reservas (Excel)
-        </a>
-        <a href="{% url 'exportar_todas_excel' %}" class="admin">
-            Fichas (Excel)
-        </a>
-        <a href="{% url 'verificar_carrinho' %}" class="admin">
-            Verificar Carrinhos
-        </a>
-        <a href="{% url 'painel_fichas' %}" class="admin">
-            Estudantes
-        </a>
-        <a href="{% url 'painel_reservas_dia' %}" class="admin">
-            Ver Reservas do Dia
-        </a>
-        <a href="{% url 'camera_contagem' %}" class="admin">
-            camera
-        </a>
-    </div>
+    <aside class="sidebar" id="sidebar">
+        {% include 'partials/menu.html' %}
+    </aside>
+{% endif %}
 
-    {% if messages %}
-    <div class="mensagens-fixas">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            {{ message }}
-            <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
-    <!-- Notificação de fichas ausentes (só admins) -->
-    {% if user.is_staff %}
-    <div id="notif-fichas-ausentes" class="notif-fichas" style="display:none">
-        <div class="notif-header">
-            <span>⚠️ <strong>Fichas não enviadas após encerramento do horário:</strong></span>
-            <button onclick="document.getElementById('notif-fichas-ausentes').style.display='none'" class="fechar-notif">✕</button>
-        </div>
-        <ul id="lista-ausentes"></ul>
-    </div>
-    {% endif %}
+    <div class="layout-principal">
+        <div class="conteudo-principal">
 
-    <div class="container">
-        {% if user.is_staff %}
-
-        <div class="container-export">
-
-            <!-- Linha de ações rápidas -->
-
-            <!-- Reservas pendentes de aprovação -->
-            {% if reservas_pendentes %}
-            <div class="painel-pendentes">
-                <h3>🔔 Reservas Aguardando Aprovação <span class="badge-count">{{ reservas_pendentes|length }}</span></h3>
-                <div class="lista-pendentes">
-                    {% for r in reservas_pendentes %}
-                    <div class="card-pendente">
-                        <div class="pendente-info">
-                            <span class="pendente-prof">👤 {{ r.professor.get_full_name|default:r.professor.username }}</span>
-                            <span class="pendente-det">{{ r.equipamento.nome }} · Sala {{ r.sala }} · {{ r.data_uso|date:"d/m/Y" }} · {{ r.horario_inicio|time:"H:i" }}–{{ r.horario_fim|time:"H:i" }}</span>
-                        </div>
-                        <div class="pendente-acoes">
-                            <a href="{% url 'aprovar_reserva' r.id %}" class="btn-aprovar">✓ Aprovar</a>
-                            <a href="{% url 'recusar_reserva' r.id %}" class="btn-recusar">✗ Recusar</a>
-                        </div>
-                    </div>
-                    {% endfor %}
+            <div class="header">
+                <h1>GTREP - Manoel Martins</h1>
+            <div class="header-right">
+                    <span>Olá, <strong id="nome-professor">{{ user.username }}</strong></span>
+                    {% if user.is_staff %}
+                        <span class="badge-admin">ADM</span>
+                    {% endif %}
+                    {% if not tem_pin %}
+                        <button onclick="abrirModalPin()" class="btn-pin">Criar PIN de Envio</button>
+                    {% else %}
+                        <button onclick="abrirModalPin()" class="btn-pin">Alterar PIN</button>
+                    {% endif %}
                 </div>
             </div>
+
+
+
+            {% if messages %}
+            <div class="mensagens-fixas">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                    <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
 
-            <!-- Controle de Quantidade -->
-            <div class="painel-admin">
-                <h3>🛒 Controle de Quantidade</h3>
-                <table class="tabela-admin">
-                    <tr>
-                        <th>Carrinho</th>
-                        <th>Quantidade</th>
-                        <th>Ação</th>
-                    </tr>
-                    {% for equipamento in equipamentos %}
-                    <tr>
-                        <td>{{ equipamento.nome }}</td>
-                        <td>
-                            <form method="POST" action="{% url 'atualizar_quantidade' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="equipamento_id" value="{{ equipamento.id }}">
-                                <input type="number" name="quantidade" value="{{ equipamento.quantidade }}" min="0">
-                        </td>
-                        <td>
-                                <button type="submit" class="btn-salvar">Salvar</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </table>
+            {% if user.is_staff %}
+            <div id="notif-fichas-ausentes" class="notif-fichas" style="display:none">
+                <div class="notif-header">
+                    <span><strong>Fichas não enviadas após encerramento do horário:</strong></span>
+                    <button onclick="document.getElementById('notif-fichas-ausentes').style.display='none'" class="fechar-notif">✕</button>
+                </div>
+                <ul id="lista-ausentes"></ul>
             </div>
+            {% endif %}
 
-            <!-- Painel de Fichas Preenchidas -->
-
-        </div>
-
-        {% endif %}
-
-        <!-- Formulário de Reserva -->
-        <div class="reserva-box">
-            <h3>📅 Reservar Equipamento</h3>
-            <form method="POST" id="form-reserva">
-                {% csrf_token %}
-
-                <label for="id_data">Data da Reserva:</label>
-                <input type="date" name="data" id="id_data" value="{{ hoje }}" required>
-
-                <label for="id_periodo">Período/Horário:</label>
-                <select id="id_periodo" required onchange="definirHorarios()">
-                    <option value="">Selecione o Horário</option>
-                    <optgroup label="1º Período Manhã/Tarde">
-                        <option value="07:00|07:50">1º Horário (07:00 - 07:50)</option>
-                        <option value="07:50|08:40">2º Horário (07:50 - 08:40)</option>
-                        <option value="08:40|09:30">3º Horário (08:40 - 09:30)</option>
-                        <option value="09:50|10:40">4º Horário (09:50 - 10:40)</option>
-                        <option value="10:40|11:30">5º Horário (10:40 - 11:30)</option>
-                        <option value="12:20|13:10">6º Horário (12:20 - 13:10)</option>
-                        <option value="13:10|14:00">7º Horário (13:10 - 14:00)</option>
-                    </optgroup>
-                    <optgroup label="2º Período Tarde/Noite">
-                        <option value="14:15|15:05">1º Horário (14:15 - 15:05)</option>
-                        <option value="15:05|15:55">2º Horário (15:05 - 15:55)</option>
-                        <option value="15:55|16:45">3º Horário (15:55 - 16:45)</option>
-                        <option value="17:05|17:55">4º Horário (17:05 - 17:55)</option>
-                        <option value="17:55|18:45">5º Horário (17:55 - 18:45)</option>
-                        <option value="19:35|20:25">6º Horário (19:35 - 20:25)</option>
-                        <option value="20:25|21:15">7º Horário (20:25 - 21:15)</option>
-                    </optgroup>
-                </select>
-
-                <input type="hidden" name="horario_inicio" id="horario_inicio">
-                <input type="hidden" name="horario_fim" id="horario_fim">
-
-                <label for="carrinho">Carrinhos Disponíveis:</label>
-                <select name="equipamento" id="carrinho" required disabled>
-                    <option value="">Escolha a data e o horário...</option>
-                </select>
-                <p><span id="quantidade-info">-</span></p>
-
-                <label for="sala">Sala:</label>
-                {{ form.sala }}
-
-
+            <div class="container">
                 {% if user.is_staff %}
-                <label for="id_professor">Nome do Profº (Username):</label>
-                {{ form.professor }}
+                <div class="container-export">
+                    {% if reservas_pendentes %}
+                    <div class="painel-pendentes">
+                    <h3>Reservas Aguardando Aprovação <span class="badge-count">{{ reservas_pendentes|length }}</span></h3>
+                        <div class="lista-pendentes">
+                            {% for r in reservas_pendentes %}
+                            <div class="card-pendente">
+                                <div class="pendente-info">
+                    <span class="pendente-prof">{{ r.professor.get_full_name|default:r.professor.username }}</span>
+                                    <span class="pendente-det">{{ r.equipamento.nome }} · Sala {{ r.sala }} · {{ r.data_uso|date:"d/m/Y" }} · {{ r.horario_inicio|time:"H:i" }}–{{ r.horario_fim|time:"H:i" }}</span>
+                                </div>
+                                <div class="pendente-acoes">
+                                    <a href="{% url 'aprovar_reserva' r.id %}" class="btn-aprovar">Aprovar</a>
+                                    <a href="{% url 'recusar_reserva' r.id %}" class="btn-recusar">Recusar</a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="painel-admin">
+                        <h3>Controle de Quantidade</h3>
+                        <table class="tabela-admin">
+                            <tr>
+                                <th>Carrinho</th>
+                                <th>Quantidade</th>
+                                <th>Ação</th>
+                            </tr>
+                            {% for equipamento in equipamentos %}
+                            <tr>
+                                <td>{{ equipamento.nome }}</td>
+                                <td>
+                                    <form method="POST" action="{% url 'atualizar_quantidade' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="equipamento_id" value="{{ equipamento.id }}">
+                                        <input type="number" name="quantidade" value="{{ equipamento.quantidade }}" min="0">
+                                </td>
+                                <td>
+                                        <button type="submit" class="btn-salvar">Salvar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
                 {% endif %}
 
+                <div class="reserva-box">
+                    <h3>Reservar Equipamento</h3>
+                    <form method="POST" id="form-reserva">
+                        {% csrf_token %}
 
-                <button type="submit" id="btn-reservar">Enviar para o Mural</button>
-            </form>
-        </div>
+                        <label for="id_data">Data da Reserva:</label>
+                        <input type="date" name="data" id="id_data" value="{{ hoje }}" required>
 
-        <!-- Mural -->
-        <div class="mural">
-            <h2>📌 Mural de Reservas</h2>
-            <div class="grid-mural" id="grid-mural">
-                {% include 'partials/lista_reservas.html' with reservas=reservas user=user %}
+                        <label for="id_periodo">Período/Horário:</label>
+                        <select id="id_periodo" required onchange="definirHorarios()">
+                            <option value="">Selecione o Horário</option>
+                            <optgroup label="1º Período Manhã/Tarde">
+                                <option value="07:00|07:50">1º Horário (07:00 - 07:50)</option>
+                                <option value="07:50|08:40">2º Horário (07:50 - 08:40)</option>
+                                <option value="08:40|09:30">3º Horário (08:40 - 09:30)</option>
+                                <option value="09:50|10:40">4º Horário (09:50 - 10:40)</option>
+                                <option value="10:40|11:30">5º Horário (10:40 - 11:30)</option>
+                                <option value="12:20|13:10">6º Horário (12:20 - 13:10)</option>
+                                <option value="13:10|14:00">7º Horário (13:10 - 14:00)</option>
+                            </optgroup>
+                            <optgroup label="2º Período Tarde/Noite">
+                                <option value="14:15|15:05">1º Horário (14:15 - 15:05)</option>
+                                <option value="15:05|15:55">2º Horário (15:05 - 15:55)</option>
+                                <option value="15:55|16:45">3º Horário (15:55 - 16:45)</option>
+                                <option value="17:05|17:55">4º Horário (17:05 - 17:55)</option>
+                                <option value="17:55|18:45">5º Horário (17:55 - 18:45)</option>
+                                <option value="19:35|20:25">6º Horário (19:35 - 20:25)</option>
+                                <option value="20:25|21:15">7º Horário (20:25 - 21:15)</option>
+                            </optgroup>
+                        </select>
+
+                        <input type="hidden" name="horario_inicio" id="horario_inicio">
+                        <input type="hidden" name="horario_fim" id="horario_fim">
+
+                        <label for="carrinho">Carrinho:</label>
+                        <select name="equipamento" id="carrinho" required>
+                            {% for equip in equipamentos %}
+                            <option value="{{ equip.id }}">{{ equip.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <p><span id="quantidade-info">-</span></p>
+
+                        <label for="sala">Sala:</label>
+                        {{ form.sala }}
+
+                        {% if user.is_staff %}
+                        <label for="id_professor">Nome do Profº (Username):</label>
+                        {{ form.professor }}
+                        {% endif %}
+
+                        <button type="submit" id="btn-reservar">Enviar para o Mural</button>
+                        <a href="{% url 'unico' %}" class="btn-unico">reserva unica</a>
+                    </form>
+                </div>
+
+                <div class="mural">
+                    <h2>Mural de Reservas</h2>
+                    <div class="grid-mural" id="grid-mural">
+                        {% include 'partials/lista_reservas.html' with reservas=reservas user=user %}
+                    </div>
+                </div>
             </div>
+
         </div>
     </div>
 
@@ -218,9 +209,9 @@
     </div>
 
     <script src="{% static 'js/scriptMural.js' %}"></script>
+
     {% if user.is_staff %}
     <script>
-    // Verifica fichas ausentes a cada 3 minutos
     function verificarFichasAusentes() {
         fetch('/ajax/fichas-ausentes/')
             .then(r => r.json())
@@ -241,5 +232,76 @@
     setInterval(verificarFichasAusentes, 3 * 60 * 1000);
     </script>
     {% endif %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        function abrirMenu() {
+            sidebar.classList.add('aberta');
+            overlay.classList.add('ativo');
+            document.body.classList.add('menu-aberto');
+        }
+
+        function fecharMenu() {
+            sidebar.classList.remove('aberta');
+            overlay.classList.remove('ativo');
+            document.body.classList.remove('menu-aberto');
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            sidebar.classList.contains('aberta') ? fecharMenu() : abrirMenu();
+        });
+
+        overlay.addEventListener('click', fecharMenu);
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') fecharMenu();
+        });
+
+        document.querySelectorAll('.sidebar-link').forEach(function (link) {
+            link.addEventListener('click', fecharMenu);
+        });
+    });
+    </script>
+
+    <!-- Modal PIN de Envio -->
+    <div class="modal-overlay" id="modal-pin" style="display:none;" onclick="fecharModalPin(event)">
+        <div class="modal-box modal-box-small" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>🔑 Configurar PIN de Envio</h3>
+                <button onclick="fecharModalPin()" class="btn-fechar" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+            </div>
+            <form method="POST" action="{% url 'criar_pin' %}" style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+                {% csrf_token %}
+                <label for="pin-input" style="font-weight:600;font-size:14px;">Digite um PIN de 4 dígitos:</label>
+                <input type="password" id="pin-input" name="pin" maxlength="4" pattern="\d{4}" inputmode="numeric" 
+                    style="padding:12px;font-size:24px;text-align:center;letter-spacing:8px;border:2px solid #1e3a5f;border-radius:8px;outline:none;" 
+                    required autocomplete="off">
+                <p style="color:#666;font-size:12px;text-align:center;">Este PIN será usado para enviar fichas no tablet.</p>
+                <button type="submit" style="padding:12px;background:#1e3a5f;color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;">Salvar PIN</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function abrirModalPin() {
+        document.getElementById('modal-pin').style.display = 'flex';
+        document.getElementById('pin-input').value = '';
+        setTimeout(() => document.getElementById('pin-input').focus(), 100);
+    }
+    function fecharModalPin(e) {
+        if (e && e.target !== e.currentTarget) return;
+        document.getElementById('modal-pin').style.display = 'none';
+    }
+    // Fecha com ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.getElementById('modal-pin').style.display = 'none';
+        }
+    });
+    </script>
+
 </body>
 </html>

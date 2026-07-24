@@ -1,12 +1,24 @@
 {% for reserva in reservas %}
-<div class="card {% if reserva.status == 'pendente' %}card-pendente-mural{% endif %}">
+<div class="card {% if reserva.status == 'pendente' %}card-pendente-mural{% endif %} {% if reserva.quantidade %}card-quantidade{% endif %}">
     <strong>{{ reserva.equipamento.nome }}</strong>
+
+    {% if reserva.quantidade %}
+        <span class="tag-quantidade">{{ reserva.quantidade }} unidade{{ reserva.quantidade|pluralize }} reservada{{ reserva.quantidade|pluralize }}</span>
+    {% endif %}
+
     <p><span class="label">Professor:</span> {{ reserva.professor.username }}</p>
     <p><span class="label">Sala:</span> {{ reserva.sala }}</p>
-    <p><span class="label">Horário:</span> {{ reserva.horario_inicio|time:"H:i" }} – {{ reserva.horario_fim|time:"H:i" }}</p>
+    <p><span class="label">Horário:</span> {{ reserva.horario_inicio|time:"H:i" }} - {{ reserva.horario_fim|time:"H:i" }}</p>
     {% if reserva.status == 'pendente' %}
         <span class="tag-pendente">⏳ Aguardando aprovação</span>
     {% endif %}
+
+    {% if reserva.mostrar_botao_numeracao %}
+        {% if user == reserva.professor or user.is_staff %}
+            <a href="{% url 'preencher_numeracao_quantidade' reserva.id %}" class="btn-numeracao">Preencher numeração</a>
+        {% endif %}
+    {% endif %}
+
     {% if user.is_authenticated %}
         {% if user == reserva.professor or user.is_staff %}
         <form method="POST" action="{% url 'excluir_reserva' reserva.id %}" style="display:inline">

@@ -6,65 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificar Carrinhos - PROATI</title>
     <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
-    <style>
-        /* Apenas o que não existe no estiloMural.css */
-        .form-faixa-modal {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #eee;
-        }
-        .form-faixa-modal label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #444;
-        }
-        .form-faixa-modal input[type="number"] {
-            width: 80px;
-            padding: 6px 8px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-        }
-        .badge-ok {
-            background: #e6f4ea;
-            color: #1e7e34;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .badge-quebrado {
-            background: #fdecea;
-            color: #b3261e;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .btn-toggle-status {
-            border: none;
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            color: white;
-        }
-        .btn-toggle-status.marcar-quebrado { background: #ea4335; }
-        .btn-toggle-status.marcar-quebrado:hover { background: #c5301f; }
-        .btn-toggle-status.reativar { background: #34a853; }
-        .btn-toggle-status.reativar:hover { background: #287d3f; }
-        .faixa-vazia {
-            color: #999;
-            font-style: italic;
-            font-size: 0.9rem;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/verificar_carrinho.css' %}">
 </head>
 <body data-pagina="verificar-carrinho">
 
@@ -72,7 +14,7 @@
         <h1>📦 Verificação de Carrinhos</h1>
         <div class="header-right">
             <span>Olá, <strong>{{ user.username }}</strong></span>
-            <a href="{% url 'mural' %}" class="btn-exportar">⬅ Voltar ao Mural</a>
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
             {% if user.is_staff %}
                 <span class="badge-admin">ADM</span>
             {% endif %}
@@ -108,12 +50,12 @@
                         <td>{{ equipamento.nome }}</td>
                         <td>
                             {% if equipamento.numero_inicial and equipamento.numero_final %}
-                                Nº {{ equipamento.numero_inicial }}–{{ equipamento.numero_final }}
+                                Nº {{ equipamento.numero_inicial }}-{{ equipamento.numero_final }}
                             {% else %}
                                 <span class="faixa-vazia">Não cadastrada</span>
                             {% endif %}
                         </td>
-                        <td>{{ equipamento.lista_numeros|length }}</td>
+                        <td>{{ equipamento.quantidade_ativa }}</td>
                         <td>
                             <button type="button" class="btn-exportar" onclick="abrirModalNumeracao('{{ equipamento.id }}')">
                                 🔍 Ver Numeração

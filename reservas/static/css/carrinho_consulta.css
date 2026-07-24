@@ -38,7 +38,6 @@
     font-weight: bold;
     padding: 6px 12px;
     border-radius: 20px;
-    white-board: nowrap;
     box-shadow: 0 2px 4px rgba(30, 58, 95, 0.2);
 }
 
@@ -48,7 +47,22 @@
     flex-direction: column;
     gap: 8px;
 }
+.card.card-reserva.card-quantidade-vermelha {
+    background: #fdecea;
+    border-left: 6px solid #dc3545;
+}
 
+.tag-quantidade-vermelha {
+    display: inline-block;
+    background: #f8d7da;
+    color: #721c24;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-top: 6px;
+    border: 1px solid #dc3545;
+}
 /* DESTAQUE 2: Bloco de Destaque do Equipamento */
 .destaque-equipamento {
     background-color: #fffdf6; /* Fundo creme sutil */

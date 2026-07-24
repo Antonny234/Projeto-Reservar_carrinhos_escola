@@ -143,6 +143,44 @@ document.addEventListener('DOMContentLoaded', function () {
     window.definirHorarios = definirHorarios;
     atualizarMural();
 });
+
+let menuCarregado = false;
+
+async function toggleSidebar() {
+
+    const sidebar = document.getElementById("sidebar");
+
+    const overlay = document.getElementById("sidebar-overlay");
+
+    if (!menuCarregado) {
+
+        const resposta = await fetch("/ajax/menu/");
+
+        const html = await resposta.text();
+
+        sidebar.innerHTML = html;
+
+        menuCarregado = true;
+    }
+
+    sidebar.classList.add("aberta");
+
+    overlay.classList.add("ativo");
+
+}
+
+function fecharSidebar() {
+
+    document
+        .getElementById("sidebar")
+        .classList.remove("aberta");
+
+    document
+        .getElementById("sidebar-overlay")
+        .classList.remove("ativo");
+
+}
+
 function abrirFicha(reservaId, turma, professor) {
             document.getElementById('modal-titulo').textContent = `Turma ${turma}`;
             document.getElementById('modal-loading').style.display = 'block';

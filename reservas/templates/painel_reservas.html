@@ -6,119 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reservas do Dia - PROATI</title>
     <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
-    <style>
-        .painel-reservas { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-
-        .painel-topo {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .painel-topo h2 { margin: 0; font-size: 1.4rem; color: #1B3A5C; }
-
-        .filtro-data {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .filtro-data input[type="date"] {
-            padding: 6px 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 0.95rem;
-        }
-
-        .cards-reservas {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 1rem;
-        }
-
-        .card-reserva {
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            cursor: pointer;
-            transition: box-shadow .2s, transform .2s;
-            position: relative;
-        }
-        .card-reserva:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); transform: translateY(-2px); }
-        .card-reserva.pendente { border-left: 4px solid #fbbc04; }
-        .card-reserva.recusada { border-left: 4px solid #ea4335; opacity: 0.7; }
-        .card-reserva.confirmada { border-left: 4px solid #34a853; }
-
-        .reserva-avatar {
-            width: 44px; height: 44px; border-radius: 50%;
-            background: #1B3A5C; color: white;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.3rem; font-weight: bold; flex-shrink: 0;
-        }
-        .reserva-avatar.pendente { background: #f59e0b; }
-        .reserva-avatar.recusada { background: #ea4335; }
-
-        .reserva-info { display: flex; flex-direction: column; flex: 1; }
-        .reserva-equipamento { font-weight: bold; font-size: 1rem; color: #1B3A5C; }
-        .reserva-professor { font-size: .82rem; color: #555; }
-        .reserva-detalhe { font-size: .78rem; color: #888; margin-top: 2px; }
-        .reserva-status {
-            font-size: .72rem; font-weight: bold; margin-top: 4px;
-            padding: 2px 7px; border-radius: 10px; display: inline-block;
-        }
-        .status-confirmada { background: #e6f4ea; color: #1e7e34; }
-        .status-pendente { background: #fff8e1; color: #8a6d00; }
-        .status-recusada { background: #fdecea; color: #b3261e; }
-
-        .vazio {
-            color: #888; text-align: center;
-            grid-column: 1/-1; margin-top: 2rem; font-size: 1rem;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,.5); z-index: 1000;
-            align-items: center; justify-content: center;
-        }
-        .modal-overlay.ativo { display: flex; }
-        .modal-box {
-            background: white; border-radius: 12px; width: 90%; max-width: 520px;
-            padding: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,.2);
-        }
-        .modal-header {
-            display: flex; justify-content: space-between;
-            align-items: flex-start; margin-bottom: 1rem;
-        }
-        .modal-header h3 { margin: 0; color: #1B3A5C; font-size: 1.15rem; }
-        .modal-linha {
-            display: flex; gap: 8px; margin-bottom: 8px;
-            font-size: .93rem; align-items: center;
-        }
-        .modal-label { font-weight: bold; color: #444; min-width: 90px; }
-        .modal-valor { color: #222; }
-        .btn-fechar {
-            background: none; border: 1px solid #ddd; border-radius: 6px;
-            padding: .3rem .7rem; cursor: pointer; font-size: 1rem;
-        }
-        .btn-fechar:hover { background: #f5f5f5; }
-        .modal-status {
-            display: inline-block; margin-top: 10px;
-            padding: 4px 12px; border-radius: 12px;
-            font-size: .85rem; font-weight: bold;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/painel_reservas.css' %}">
 </head>
 <body>
     <div class="header">
-        <h1>PROATI 2026 - Reservas do Dia</h1>
+        <h1>GTREP Manoel Martins - Reservas do Dia</h1>
         <div class="header-right">
-            <a href="{% url 'mural' %}" style="color:#fff; text-decoration:none;">← Voltar ao Mural</a>
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
         </div>
     </div>
 
@@ -130,14 +24,17 @@
                 <input type="date" id="filtro-data" value="{{ data_atual }}"
                     onchange="window.location.href='?data=' + this.value">
             </div>
+        <a href="{% url 'painel_reservas_quantidade' %}" class="admin">
+            🔢 Notebooks Avulsos
+        </a>
         </div>
 
         <div class="cards-reservas">
             {% for reserva in reservas %}
                 {% with prof_nome=reserva.professor.get_full_name|default:reserva.professor.username %}
                 {% with inicial=prof_nome|slice:":1" %}
-                <div class="card-reserva {{ reserva.status }}"
-                        onclick="abrirModal("
+                <div class="card-reserva {{ reserva.status }} {% if reserva.quantidade %}card-quantidade-vermelha{% endif %}"
+                        onclick="abrirModal"("
                         '{{ reserva.equipamento.nome }}',
                         '{{ prof_nome }}',
                         '{{ reserva.sala.nome }}',
@@ -145,13 +42,17 @@
                         '{{ reserva.horario_fim|time:"H:i" }}',
                         '{{ reserva.status }}',
                         '{{ reserva.data_uso|date:"d/m/Y" }}'
-                        ")>
+                        ")">
                     <div class="reserva-avatar {{ reserva.status }}">{{ inicial }}</div>
                     <div class="reserva-info">
                         <span class="reserva-equipamento">{{ reserva.equipamento.nome }}</span>
                         <span class="reserva-professor">👤 {{ prof_nome }}</span>
                         <span class="reserva-detalhe">🏫 Sala {{ reserva.sala.nome }}</span>
                         <span class="reserva-detalhe">🕐 {{ reserva.horario_inicio|time:"H:i" }} - {{ reserva.horario_fim|time:"H:i" }}</span>
+                        {% if reserva.quantidade %}
+                            <span class="reserva-detalhe">🔢 {{ reserva.quantidade }} unidade{{ reserva.quantidade|pluralize }} reservada{{ reserva.quantidade|pluralize }}</span>
+                            <span class="tag-quantidade-vermelha">Reserva parcial</span>
+                        {% endif %}
                         <span class="reserva-status status-{{ reserva.status }}">
                             {% if reserva.status == 'confirmada' %}✓ Confirmada
                             {% elif reserva.status == 'pendente' %}⏳ Pendente
@@ -194,7 +95,6 @@
             </div>
         </div>
     </div>
-
     <script>
         function abrirModal(equipamento, professor, sala, inicio, fim, status, data) {
             document.getElementById('modal-equipamento').textContent = equipamento;
