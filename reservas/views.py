@@ -31,7 +31,9 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 from PIL import Image
 
-# YOLO será carregado apenas quando necessário (lazy import)
+# ============================================
+# YOLO - Lazy Loading (Carregado apenas sob demanda)
+# ============================================
 modelo_yolo = None
 CONFIANCA_MINIMA = 0.4
 
@@ -43,11 +45,14 @@ def carregar_modelo_yolo():
             from ultralytics import YOLO
             MODEL_PATH = settings.BASE_DIR / "modelos" / "best.pt"
             modelo_yolo = YOLO(str(MODEL_PATH))
+            logging.info("✓ Modelo YOLO carregado com sucesso")
         except Exception as e:
-            logging.warning(f"YOLO não está disponível: {e}")
+            logging.warning(f"⚠ YOLO não disponível: {e}")
     return modelo_yolo
 
-# helpers
+# ============================================
+# HELPERS
+# ============================================
 
 def _professor_requer_aprovacao(user):
     """Retorna True se a conta do professor está marcada como 'requer aprovação'."""
@@ -57,9 +62,9 @@ def _professor_requer_aprovacao(user):
         return False
 
 
-
-# Auth
-
+# ============================================
+# AUTH
+# ============================================
 
 def home(request):
     return render(request, 'longa.html')
@@ -122,8 +127,9 @@ def Entrar(request):
     return render(request, 'longa.html')
 
 
-# Mural / Reservas
-
+# ============================================
+# MURAL / RESERVAS
+# ============================================
 
 @login_required
 def mural(request):
@@ -277,8 +283,9 @@ def recusar_reserva(request, reserva_id):
 
 
 
-# Excel / exportar
-
+# ============================================
+# EXCEL / EXPORTAR
+# ============================================
 
 @login_required
 def exportar_reservas_excel(request):
@@ -533,8 +540,9 @@ def importar_de_excel(caminho_arquivo):
         Aluno.objects.get_or_create(nome=row['nome'], sala = Sala)
 
 
-# Tablet / Fichas
-
+# ============================================
+# TABLET / FICHAS
+# ============================================
 
 def view_tablet(request, equipamento_id):
     agora = timezone.localtime()
@@ -756,8 +764,9 @@ def ficha_detalhe_json(request, reserva_id):
     return JsonResponse(data)
 
 
-# Notificações de fichas ausentes (chamada via AJAX do frontend admin)
-
+# ============================================
+# NOTIFICAÇÕES DE FICHAS AUSENTES
+# ============================================
 
 @staff_member_required
 def verificar_fichas_ausentes(request):
@@ -940,32 +949,38 @@ def analisar_foto(request):
     # Carrega o modelo YOLO apenas quando necessário
     modelo = carregar_modelo_yolo()
     if modelo is None:
-        return JsonResponse({"erro": "Modelo YOLO não disponível. Certifique-se que o arquivo best.pt existe."}, status=503)
+        return JsonResponse({
+            "erro": "Modelo YOLO não disponível. Certifique-se que o arquivo best.pt existe em modelos/"
+        }, status=503)
     
     # Roda a inferência do YOLO na imagem recebida
-    resultados = modelo.predict(
-        source=imagem,
-        conf=CONFIANCA_MINIMA,
-        verbose=False,
-    )
- 
-    # resultados é uma lista (1 imagem = 1 resultado). Pegamos o primeiro.
-    deteccoes = resultados[0]
- 
-    # Conta quantas detecções de cada classe apareceram
-    contagens = {}
-    for box in deteccoes.boxes:
-        classe_id = int(box.cls[0])
-        nome_classe = modelo.names[classe_id]  # ex: "notebook" ou "tablet"
-        contagens[nome_classe] = contagens.get(nome_classe, 0) + 1
- 
-    total = sum(contagens.values())
- 
-    return JsonResponse({
-        "contagens": contagens,
-        "total": total,
-        "tipo_carrinho": tipo_carrinho,
-    })
+    try:
+        resultados = modelo.predict(
+            source=imagem,
+            conf=CONFIANCA_MINIMA,
+            verbose=False,
+        )
+    
+        # resultados é uma lista (1 imagem = 1 resultado). Pegamos o primeiro.
+        deteccoes = resultados[0]
+    
+        # Conta quantas detecções de cada classe apareceram
+        contagens = {}
+        for box in deteccoes.boxes:
+            classe_id = int(box.cls[0])
+            nome_classe = modelo.names[classe_id]  # ex: "notebook" ou "tablet"
+            contagens[nome_classe] = contagens.get(nome_classe, 0) + 1
+    
+        total = sum(contagens.values())
+    
+        return JsonResponse({
+            "contagens": contagens,
+            "total": total,
+            "tipo_carrinho": tipo_carrinho,
+        })
+    except Exception as e:
+        logging.error(f"Erro ao analisar foto: {e}")
+        return JsonResponse({"erro": f"Erro ao processar imagem: {str(e)}"}, status=500)
 
 @login_required
 def camera_contagem(request):
