@@ -29,16 +29,24 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 from PIL import Image
- 
-from ultralytics import YOLO
 
-MODEL_PATH = settings.BASE_DIR / "modelos" / "best.pt"
- 
-# Carrega o modelo UMA vez, quando o servidor sobe (evita recarregar a cada requisição)
-modelo_yolo = YOLO(str(MODEL_PATH))
- 
-# Limite de confiança mínima para considerar uma detecção válida (ajuste conforme necessário)
+# YOLO será carregado apenas quando necessário (lazy import)
+modelo_yolo = None
 CONFIANCA_MINIMA = 0.4
+
+def carregar_modelo_yolo():
+    """Carrega o modelo YOLO apenas quando necessário."""
+    global modelo_yolo
+    if modelo_yolo is None:
+        try:
+            from ultralytics import YOLO
+            MODEL_PATH = settings.BASE_DIR / "modelos" / "best.pt"
+            modelo_yolo = YOLO(str(MODEL_PATH))
+        except ImportError:
+            import logging
+            logging.warning("YOLO não está disponível. Funcionalidades de detecção desabilitadas.")
+    return modelo_yolo
+
 # helpers
 
 def _professor_requer_aprovacao(user):
@@ -574,7 +582,7 @@ def view_tablet(request, equipamento_id):
                 elif carrinho_id == 14 and (num < 1 or num > 20):
                     messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 120 a 150.")
                     erros = True
-            
+             
                 if num in numeros_usados:
                     messages.error(
                         request,
@@ -583,7 +591,7 @@ def view_tablet(request, equipamento_id):
                     erros = True
                 else:
                     numeros_usados[num] = aluno.nome
-        
+         
 
       
         if erros:
@@ -929,8 +937,13 @@ def analisar_foto(request):
     except Exception:
         return JsonResponse({"erro": "Não foi possível processar a imagem."}, status=400)
  
+    # Carrega o modelo YOLO apenas quando necessário
+    modelo = carregar_modelo_yolo()
+    if modelo is None:
+        return JsonResponse({"erro": "Modelo YOLO não disponível."}, status=503)
+    
     # Roda a inferência do YOLO na imagem recebida
-    resultados = modelo_yolo.predict(
+    resultados = modelo.predict(
         source=imagem,
         conf=CONFIANCA_MINIMA,
         verbose=False,
@@ -943,7 +956,7 @@ def analisar_foto(request):
     contagens = {}
     for box in deteccoes.boxes:
         classe_id = int(box.cls[0])
-        nome_classe = modelo_yolo.names[classe_id]  # ex: "notebook" ou "tablet"
+        nome_classe = modelo.names[classe_id]  # ex: "notebook" ou "tablet"
         contagens[nome_classe] = contagens.get(nome_classe, 0) + 1
  
     total = sum(contagens.values())
