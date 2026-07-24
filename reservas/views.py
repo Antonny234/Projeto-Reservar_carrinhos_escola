@@ -24,6 +24,7 @@ from .forms import ReservaForm
 import base64
 import json
 import io
+import logging
  
 from django.conf import settings
 from django.views.decorators.csrf import csrf_protect
@@ -42,9 +43,8 @@ def carregar_modelo_yolo():
             from ultralytics import YOLO
             MODEL_PATH = settings.BASE_DIR / "modelos" / "best.pt"
             modelo_yolo = YOLO(str(MODEL_PATH))
-        except ImportError:
-            import logging
-            logging.warning("YOLO não está disponível. Funcionalidades de detecção desabilitadas.")
+        except Exception as e:
+            logging.warning(f"YOLO não está disponível: {e}")
     return modelo_yolo
 
 # helpers
@@ -940,7 +940,7 @@ def analisar_foto(request):
     # Carrega o modelo YOLO apenas quando necessário
     modelo = carregar_modelo_yolo()
     if modelo is None:
-        return JsonResponse({"erro": "Modelo YOLO não disponível."}, status=503)
+        return JsonResponse({"erro": "Modelo YOLO não disponível. Certifique-se que o arquivo best.pt existe."}, status=503)
     
     # Roda a inferência do YOLO na imagem recebida
     resultados = modelo.predict(
