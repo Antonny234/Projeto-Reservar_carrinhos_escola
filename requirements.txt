@@ -1,29 +1,32 @@
-ultralytics==8.0.0
-asgiref==3.11.1
-django-sslserver
-Pillow==10.4.0
-pandas==2.2.3
-django-select2
-cffi==2.0.0
-click==8.4.1
-dj-database-url==2.0.0
-django==6.0.5
-et-xmlfile==2.0.0
-gunicorn==26.0.0
-MarkupSafe==3.0.3
-openpyxl==3.1.5
-pluggy==1.6.0
-psycopg2-binary==2.9.12
-pyparsing==3.1.4
-pyOpenSSL==26.2.0
-python-dateutil==2.9.0.Post0
-python-dotenv==1.2.2
-six==1.17.0
-sqlite-fts4==1.0.3
-sqlite-utils==3.39
-sqlparse==0.5.5
-tabulate==0.10.0
-typing-extensions==4.15.0
-tzdata==2026.2
-Werkzeug==3.1.8
-whitenoise==6.7.0
+# ─── Core Django ────────────────────────────────────────────────
+django>=4.2.19,<5.2          # LTS estável (Django 6.0 nunca foi lançado)
+asgiref>=3.8.1               # ASGI/WSGI suporte (via daphne/gunicorn)
+gunicorn>=23.0.0             # WSGI server para produção
+whitenoise>=6.7.0            # Servir arquivos estáticos em produção
+dj-database-url>=2.1.0       # Conexão PostgreSQL via DATABASE_URL (Railway)
+psycopg2-binary>=2.9.9       # Driver PostgreSQL
+python-dotenv>=1.0.1         # Carregar .env localmente
+django-select2>=8.0          # Select2 com busca AJAX
+sqlparse>=0.5.0              # Django ORM depende disso
+tzdata>=2024.2               # Fuso horários (necessário no Windows/Railway)
+typing_extensions>=4.12.0    # Tipos Python modernos
+
+# ─── Planilhas / Excel ──────────────────────────────────────────
+pandas>=2.2.0                # Manipulação de dados / exportar Excel
+openpyxl>=3.1.0              # Leitura/escrita de arquivos .xlsx
+et-xmlfile>=2.0.0            # Dependência do openpyxl
+python-dateutil>=2.9.0       # Manipulação de datas (pandas/django)
+
+# ─── YOLO / Visão Computacional ─────────────────────────────────
+ultralytics>=8.3.0           # YOLO (modelo de detecção)
+torch>=2.5.0                 # PyTorch (CPU-only no Railway)
+opencv-python-headless>=4.10.0  # OpenCV (versão headless, sem GUI)
+Pillow>=11.1.0               # Manipulação de imagens
+
+# ─── Segurança ──────────────────────────────────────────────────
+cffi>=1.17.1                 # CFFI para criptografia (pyOpenSSL precisa)
+pyOpenSSL>=24.3.0            # SSL/TLS (usado pelo sslserver local)
+
+# ─── Utilitários ────────────────────────────────────────────────
+pluggy>=1.5.0                # Hook system (pytest/django dependem)
+pyparsing>=3.1.0             # Parsing de strings (usado pelo pandas)
