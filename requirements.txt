@@ -19,7 +19,10 @@ et-xmlfile>=2.0.0            # Dependência do openpyxl
 python-dateutil>=2.9.0       # Manipulação de datas (pandas/django)
 
 # ─── YOLO / Visão Computacional ─────────────────────────────────
-ultralytics>=8.3.0           # YOLO (modelo de detecção)
+ultralytics>=8.3.0
+ultralytics==8.4.104
+ultralytics-thop==2.0.20
+ultralytics # YOLO (modelo de detecção)
 torch>=2.5.0,<3.0            # PyTorch (CPU-only no Railway)
 torchvision>=0.18.0          # Componentes de visão do PyTorch
 opencv-python-headless>=4.10.0  # OpenCV (versão headless, sem GUI)
