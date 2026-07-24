@@ -1,0 +1,21 @@
+{% for reserva in reservas %}
+<div class="card {% if reserva.status == 'pendente' %}card-pendente-mural{% endif %}">
+    <strong>{{ reserva.equipamento.nome }}</strong>
+    <p><span class="label">Professor:</span> {{ reserva.professor.username }}</p>
+    <p><span class="label">Sala:</span> {{ reserva.sala }}</p>
+    <p><span class="label">Horário:</span> {{ reserva.horario_inicio|time:"H:i" }} – {{ reserva.horario_fim|time:"H:i" }}</p>
+    {% if reserva.status == 'pendente' %}
+        <span class="tag-pendente">⏳ Aguardando aprovação</span>
+    {% endif %}
+    {% if user.is_authenticated %}
+        {% if user == reserva.professor or user.is_staff %}
+        <form method="POST" action="{% url 'excluir_reserva' reserva.id %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn-excluir" onclick="return confirm('Excluir esta reserva?')">Excluir</button>
+        </form>
+        {% endif %}
+    {% endif %}
+</div>
+{% empty %}
+<p style="color:#888; text-align:center; padding:30px;">Nenhuma reserva para esta data.</p>
+{% endfor %}

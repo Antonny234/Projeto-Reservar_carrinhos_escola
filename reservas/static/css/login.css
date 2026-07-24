@@ -1,0 +1,101 @@
+  /* Garante que os paddings não quebrem o tamanho total dos elementos */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .login-box {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      width: 340px; /* Um pouquinho mais largo para acomodar bem o layout */
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #333;
+    }
+
+    .input-box {
+      margin-bottom: 20px;
+    }
+
+    .input-box input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      font-size: 16px;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      background: #4facfe;
+      color: white;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .login-btn:hover {
+      background: #2196f3;
+    }
+
+    /* Divisor visual elegante entre o Login e o Acesso ao Mural */
+    .divisor {
+      margin: 20px 0;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+      line-height: 0.1em;
+    }
+    .divisor span {
+      background: #fff;
+      padding: 0 10px;
+      color: #999;
+      font-size: 13px;
+    }
+
+    /* Botão de Acesso ao Mural Público */
+    .btn-mural {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background-color: #2ec4b6; /* Cor verde/turquesa de destaque */
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    .btn-mural:hover {
+      background-color: #20a498;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .footer a {
+      text-decoration: none;
+      color: #2196f3;
+    }

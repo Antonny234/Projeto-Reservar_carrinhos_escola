@@ -1,0 +1,280 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contagem de Equipamentos - PROATI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .camera-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 3 / 4;
+    }
+    #video, #canvas, #preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    #canvas, #preview { display: none; }
+
+    .controles {
+      display: flex;
+      gap: .8rem;
+      margin-top: 1rem;
+      width: 100%;
+      max-width: 480px;
+    }
+    button {
+      flex: 1;
+      padding: .9rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #btn-capturar { background: #2563eb; color: white; }
+    #btn-refazer { background: #475569; color: white; display: none; }
+    #btn-enviar { background: #16a34a; color: white; display: none; }
+
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    select {
+      margin-top: .8rem;
+      width: 100%;
+      max-width: 480px;
+      padding: .6rem;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .status {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: .95rem;
+      min-height: 1.4rem;
+    }
+    .status.erro { color: #f87171; }
+    .status.ok { color: #4ade80; }
+
+    .resultado {
+      margin-top: 1rem;
+      width: 100%;
+      max-width: 480px;
+      background: #1e293b;
+      border-radius: 10px;
+      padding: 1rem;
+      display: none;
+    }
+    .resultado h2 { margin: 0 0 .6rem; font-size: 1rem; }
+    .resultado-item {
+      display: flex;
+      justify-content: space-between;
+      padding: .4rem 0;
+      border-bottom: 1px solid #334155;
+      font-size: .95rem;
+    }
+    .resultado-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+
+  <h1>📷 Contagem de Notebooks e Tablets</h1>
+
+  <select id="select-carrinho">
+    <option value="notebook">Carrinho de Notebooks</option>
+    <option value="tablet">Carrinho de Tablets</option>
+  </select>
+
+  <div class="camera-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <img id="preview" alt="Foto capturada"/>
+  </div>
+
+  <div class="controles">
+    <button id="btn-capturar">📸 Capturar Foto</button>
+    <button id="btn-refazer">↺ Refazer</button>
+    <button id="btn-enviar">✅ Enviar para Análise</button>
+  </div>
+
+  <p class="status" id="status"></p>
+
+  <div class="resultado" id="resultado">
+    <h2>Resultado da contagem</h2>
+    <div id="resultado-conteudo"></div>
+  </div>
+
+<script>
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const preview = document.getElementById('preview');
+  const btnCapturar = document.getElementById('btn-capturar');
+  const btnRefazer = document.getElementById('btn-refazer');
+  const btnEnviar = document.getElementById('btn-enviar');
+  const statusEl = document.getElementById('status');
+  const selectCarrinho = document.getElementById('select-carrinho');
+  const resultadoBox = document.getElementById('resultado');
+  const resultadoConteudo = document.getElementById('resultado-conteudo');
+
+  let stream = null;
+  let fotoBase64 = null;
+
+  function setStatus(msg, tipo) {
+    statusEl.textContent = msg || '';
+    statusEl.className = 'status' + (tipo ? ' ' + tipo : '');
+  }
+
+  async function iniciarCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }, // câmera traseira
+        audio: false
+      });
+      video.srcObject = stream;
+      setStatus('');
+    } catch (err) {
+      setStatus('Não foi possível acessar a câmera: ' + err.message, 'erro');
+    }
+  }
+
+  function pararCamera() {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+  }
+
+  btnCapturar.addEventListener('click', () => {
+    const ctx = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    fotoBase64 = canvas.toDataURL('image/jpeg', 0.9);
+    preview.src = fotoBase64;
+
+    video.style.display = 'none';
+    preview.style.display = 'block';
+
+    btnCapturar.style.display = 'none';
+    btnRefazer.style.display = 'block';
+    btnEnviar.style.display = 'block';
+
+    pararCamera();
+  });
+
+  btnRefazer.addEventListener('click', () => {
+    fotoBase64 = null;
+    preview.style.display = 'none';
+    video.style.display = 'block';
+
+    btnCapturar.style.display = 'block';
+    btnRefazer.style.display = 'none';
+    btnEnviar.style.display = 'none';
+
+    resultadoBox.style.display = 'none';
+    setStatus('');
+
+    iniciarCamera();
+  });
+
+  btnEnviar.addEventListener('click', async () => {
+    if (!fotoBase64) return;
+
+    btnEnviar.disabled = true;
+    setStatus('Analisando imagem, aguarde...', '');
+
+    try {
+      const resp = await fetch("{% url 'analisar_foto' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          imagem: fotoBase64,
+          tipo_carrinho: selectCarrinho.value
+        })
+      });
+
+      if (!resp.ok) {
+        throw new Error('Erro no servidor (status ' + resp.status + ')');
+      }
+
+      const data = await resp.json();
+      mostrarResultado(data);
+      setStatus('Análise concluída.', 'ok');
+
+    } catch (err) {
+      setStatus('Erro ao enviar imagem: ' + err.message, 'erro');
+    } finally {
+      btnEnviar.disabled = false;
+    }
+  });
+
+  function mostrarResultado(data) {
+    // Espera algo como: { contagens: { notebook: 5, tablet: 0 }, total: 5 }
+    resultadoConteudo.innerHTML = '';
+
+    Object.entries(data.contagens || {}).forEach(([classe, qtd]) => {
+      const linha = document.createElement('div');
+      linha.className = 'resultado-item';
+      linha.innerHTML = `<span>${classe}</span><strong>${qtd}</strong>`;
+      resultadoConteudo.appendChild(linha);
+    });
+
+    const total = document.createElement('div');
+    total.className = 'resultado-item';
+    total.innerHTML = `<span>Total detectado</span><strong>${data.total ?? '-'}</strong>`;
+    resultadoConteudo.appendChild(total);
+
+    resultadoBox.style.display = 'block';
+  }
+
+  // Função utilitária para pegar o token CSRF do cookie (necessário pro Django aceitar o POST)
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  iniciarCamera();
+</script>
+
+</body>
+</html>

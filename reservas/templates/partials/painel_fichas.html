@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="painel-container">
+
+  <!-- Cabeçalho -->
+  <div class="painel-header">
+    <h1>📋 Fichas Preenchidas</h1>
+    <a href="{% url 'exportar_todas_excel' %}" class="btn-excel-tudo">
+      ⬇️ Exportar Tudo para Excel
+    </a>
+  </div>
+
+  <!-- Grade de cards -->
+  <div class="cards-grid">
+    {% for reserva in reservas %}
+      {% with professor_nome=reserva.professor.get_full_name|default:reserva.professor.username %}
+      {% with inicial=professor_nome|slice:":1" %}
+      {% with turma_nome=reserva.registrouso_set.first.aluno.turma.nome %}
+
+      <div class="card" onclick="abrirFicha('{{ reserva.id }}', '{{ turma_nome }}', '{{ professor_nome }}')">
+        <div class="card-avatar">{{ inicial }}</div>
+        <div class="card-info">
+          <span class="card-turma">{{ turma_nome }}</span>
+          <span class="card-professor">{{ professor_nome }}</span>
+          <span class="card-data">{{ reserva.data_uso|date:"d/m/Y" }}</span>
+          <span class="card-qtd">
+            {{ reserva.registrouso_set.count }} aluno{{ reserva.registrouso_set.count|pluralize }}
+          </span>
+        </div>
+        <a href="{% url 'exportar_ficha_excel' reserva.id %}"
+           class="btn-excel-card"
+           onclick="event.stopPropagation()"
+           title="Baixar Excel desta ficha">
+          ⬇️
+        </a>
+      </div>
+
+      {% endwith %}{% endwith %}{% endwith %}
+    {% empty %}
+      <p class="vazio">Nenhuma ficha preenchida ainda.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal" onclick="fecharModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2 id="modal-titulo">Ficha da Turma</h2>
+        <p id="modal-info" class="modal-info"></p>
+      </div>
+      <div class="modal-acoes">
+        <a id="modal-btn-excel" href="#" class="btn-excel-tudo">⬇️ Excel</a>
+        <button onclick="fecharModal()" class="btn-fechar">✕</button>
+      </div>
+    </div>
+    <div id="modal-loading" class="modal-loading">Carregando...</div>
+    <table id="modal-tabela" class="ficha-tabela" style="display:none">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Aluno</th>
+          <th>Turma</th>
+          <th>Nº Notebook</th>
+        </tr>
+      </thead>
+      <tbody id="modal-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .painel-container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; font-family: sans-serif; }
+
+  .painel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+  .painel-header h1 { margin: 0; font-size: 1.5rem; }
+
+  .btn-excel-tudo {
+    background: #217346; color: white; padding: .5rem 1rem;
+    border-radius: 6px; text-decoration: none; font-size: .9rem;
+    display: inline-flex; align-items: center; gap: .3rem;
+  }
+  .btn-excel-tudo:hover { background: #1a5c38; }
+
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+
+  .card {
+    background: white; border: 1px solid #e0e0e0; border-radius: 10px;
+    padding: 1rem; display: flex; align-items: center; gap: .8rem;
+    cursor: pointer; transition: box-shadow .2s, transform .2s; position: relative;
+  }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); transform: translateY(-2px); }
+
+  .card-avatar {
+    width: 44px; height: 44px; border-radius: 50%; background: #4f46e5;
+    color: white; display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: bold; flex-shrink: 0;
+  }
+
+  .card-info { display: flex; flex-direction: column; flex: 1; }
+  .card-turma { font-weight: bold; font-size: 1rem; }
+  .card-professor { font-size: .8rem; color: #555; }
+  .card-data { font-size: .75rem; color: #888; }
+  .card-qtd { font-size: .75rem; color: #4f46e5; margin-top: .2rem; }
+
+  .btn-excel-card {
+    position: absolute; top: .5rem; right: .5rem;
+    font-size: 1.1rem; text-decoration: none; opacity: .5;
+    transition: opacity .2s;
+  }
+  .btn-excel-card:hover { opacity: 1; }
+
+  .vazio { color: #888; text-align: center; grid-column: 1/-1; margin-top: 2rem; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.ativo { display: flex; }
+
+  .modal-box {
+    background: white; border-radius: 12px; width: 90%; max-width: 700px;
+    max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 1.2rem 1.5rem; border-bottom: 1px solid #eee;
+  }
+  .modal-header h2 { margin: 0; font-size: 1.2rem; }
+  .modal-info { margin: .2rem 0 0; font-size: .85rem; color: #666; }
+  .modal-acoes { display: flex; gap: .5rem; align-items: center; }
+
+  .btn-fechar {
+    background: none; border: 1px solid #ddd; border-radius: 6px;
+    padding: .3rem .7rem; cursor: pointer; font-size: 1rem;
+  }
+  .btn-fechar:hover { background: #f5f5f5; }
+
+  .modal-loading { padding: 2rem; text-align: center; color: #888; }
+
+  .ficha-tabela { width: 100%; border-collapse: collapse; overflow-y: auto; }
+  .ficha-tabela th, .ficha-tabela td {
+    padding: .6rem 1rem; text-align: left; border-bottom: 1px solid #eee; font-size: .9rem;
+  }
+  .ficha-tabela th { background: #f8f8f8; font-weight: 600; position: sticky; top: 0; }
+  .ficha-tabela tbody { display: block; overflow-y: auto; max-height: 50vh; }
+  .ficha-tabela thead, .ficha-tabela tbody tr { display: table; width: 100%; table-layout: fixed; }
+</style>
+
+<script>
+  let reservaAtual = null;
+
+  function abrirFicha(reservaId, turma, professor) {
+    reservaAtual = reservaId;
+    document.getElementById('modal-titulo').textContent = `Turma ${turma}`;
+    document.getElementById('modal-loading').style.display = 'block';
+    document.getElementById('modal-tabela').style.display = 'none';
+    document.getElementById('modal-info').textContent = '';
+    document.getElementById('modal-btn-excel').href = `/fichas/${reservaId}/excel/`;
+    document.getElementById('modal').classList.add('ativo');
+
+    fetch(`/fichas/${reservaId}/json/`)
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('modal-info').textContent =
+          `${data.professor} · ${data.data} · ${data.horario} · ${data.sala} · ${data.equipamento}`;
+
+        const tbody = document.getElementById('modal-tbody');
+        tbody.innerHTML = '';
+        data.registros.forEach((reg, i) => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${reg.aluno}</td>
+              <td>${reg.turma}</td>
+              <td>${reg.notebook}</td>
+            </tr>`;
+        });
+
+        document.getElementById('modal-loading').style.display = 'none';
+        document.getElementById('modal-tabela').style.display = 'table';
+      });
+  }
+
+  function fecharModal() {
+    document.getElementById('modal').classList.remove('ativo');
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+</script>
+
+{% endblock %}

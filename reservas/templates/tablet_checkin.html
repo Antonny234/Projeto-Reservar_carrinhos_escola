@@ -1,0 +1,76 @@
+{% load static %}
+{% load static meus_filtros %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ficha de Uso - PROATI</title>
+  <link rel="stylesheet" href="{% static 'css/ficha.css' %}">
+</head>
+<body>
+<form method="POST" id="form-ficha">
+    {% if messages %}
+    <div class="mensagens-fixas">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+            <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% csrf_token %}
+    <h1>Carrinho: {{ reserva.equipamento.nome }} | Sala: {{ reserva.sala }} | Professor: {{ reserva.professor.username }}</h1>
+
+    <p id="erro-minimo" style="color:red; display:none; font-weight:bold;"></p>
+
+    <div class="lista-alunos">
+    {% for aluno in alunos %}
+        <div class="item-aluno">
+            <label for="aluno_{{ aluno.id }}">{{ aluno.nome }}</label>
+
+            <input type="number"
+                    class="campo-notebook"
+                    name="aluno_{{ aluno.id }}"
+                    id="aluno_{{ aluno.id }}"
+                    placeholder="Nº Notebook"
+                    min="1"
+                    {% if dados_anteriores %}
+                        value="{{ dados_anteriores|get_item:aluno.id }}"
+                    {% endif %}>
+        </div>
+    {% endfor %}
+    </div>
+
+    <button type="submit">ENVIAR FICHA</button>
+</form>
+
+<script>
+  const MINIMO = 5;
+
+  document.getElementById('form-ficha').addEventListener('submit', function (e) {
+    const campos = document.querySelectorAll('.campo-notebook');
+    let preenchidos = 0;
+
+    campos.forEach(campo => {
+      if (campo.value.trim() !== '') {
+        preenchidos++;
+      }
+    });
+
+    const erro = document.getElementById('erro-minimo');
+
+    if (preenchidos < MINIMO) {
+      e.preventDefault();
+      erro.textContent = `Preencha pelo menos ${MINIMO} campos. Você preencheu ${preenchidos}.`;
+      erro.style.display = 'block';
+      erro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      erro.style.display = 'none';
+    }
+  });
+</script>
+
+</body>
+</html>

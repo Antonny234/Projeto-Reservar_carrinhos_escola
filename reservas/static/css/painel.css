@@ -1,0 +1,168 @@
+  /* ==========================================================================
+   CONFIGURAÇÕES GERAIS E RESET (REMOÇÃO DE ESPAÇOS EM BRANCO)
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+
+}
+
+body {
+    background-color: #f4f6f9;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==========================================================================
+   CABEÇALHO (OCUPA 100% DA LARGURA SEM BORDAS VAZIAS)
+   ========================================================================== */
+
+.header {
+    width: 100%;
+    background-color: #1e3a5f;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.header-consulta, .header {
+    width: 100%;
+    background-color: #1e3a5f; /* Azul escuro idêntico ao seu print */
+    color: #ffffff;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header-consulta h1, .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+/* Botão de Voltar no Cabeçalho */
+.btn-voltar {
+    display: inline-block;
+    background-color: #4a5568;
+    color: #ffffff;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.btn-voltar:hover {
+    background-color: #2d3748;
+}
+
+/* ==========================================================================
+   CONTAINER PRINCIPAL (FORÇADO PARA TELA CHEIA)
+   ========================================================================== */
+.container {
+    width: 100% !important;
+    max-width: 100% !important; /* Remove qualquer limitação de pixels (ex: 1200px) */
+    padding: 20px;
+    display: flex;
+    flex-direction: row; /* Organiza os blocos um abaixo do outro se necessário */
+    align-items: center;
+    flex: 1;
+}
+
+/* O bloco branco interno do Mural */
+.mural {
+    width: 100% !important; /* Obriga o quadro branco a colar nas bordas do container */
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-top: 10px;
+}
+
+.mural h2 {
+    color: #1e3a5f;
+    font-size: 24px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+/* ==========================================================================
+   GRID DE CARTÕES (COMPACTO E RESPONSIVO)
+   ========================================================================== */
+.grid-mural {
+    display: grid;
+    /* Divide o espaço total em colunas iguais de no mínimo 320px */
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+    width: 100%;
+}
+
+/* ==========================================================================
+   ESTILIZAÇÃO DOS CARDs DE RESERVA (IGUAL AOS SEUS PRINTS)
+   ========================================================================== */
+.card-reserva, .reserva-box-card {
+    background-color: #fffdf6; /* Fundo levemente amarelado/creme do print */
+    border-left: 5px solid #ecc94b; /* Borda amarela lateral esquerda */
+    border-top: 1px solid #edf2f7;
+    border-right: 1px solid #edf2f7;
+    border-bottom: 1px solid #edf2f7;
+    border-radius: 0 8px 8px 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.card-reserva h3, .card-reserva .prof-nome {
+    font-size: 18px;
+    color: #2d3748;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.card-reserva p, .card-reserva .info-linha {
+    font-size: 14px;
+    color: #4a5568;
+    margin-bottom: 6px;
+}
+
+.card-reserva strong {
+    color: #718096;
+    font-weight: 500;
+}
+
+/* Botão Excluir Vermelho dentro do Card */
+.btn-excluir, .btn-excluir-reserva {
+    margin-top: 15px;
+    align-self: flex-start;
+    background-color: #e53e3e;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.btn-excluir:hover {
+    background-color: #c53030;
+}
+
+/* Mensagem de quando não há registros */
+.sem-reservas {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 50px;
+    font-size: 16px;
+    color: #718096;
+}

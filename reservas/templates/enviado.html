@@ -1,0 +1,237 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário Enviado</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+        }
+        .monstro {
+            background-color: #f9f9f9;
+            position: relative;
+            /* Reduzi o container geral para diminuir o corpo */
+            width: 190px; 
+            height: auto;
+            animation: cintura 2s infinite ease-in-out;
+        }
+
+        .corpo {
+            width: 100%; /* O corpo ocupará 100% da div monstro (120px) */
+            display: block;
+        }
+
+        /* Posição dos ombros (ajustadas proporcionalmente ao novo tamanho) */
+        .ombro-esquerdo {
+            position: absolute;
+            left: 10px;
+            top: 84px;
+            animation: moverBracoEsquerdo 2s infinite ease-in-out;
+        }
+
+        .ombro-direito {
+            position: absolute;
+            right: 12px;
+            top: 84px;
+            animation: moverBracoDireito 2s infinite ease-in-out;
+        }
+
+        .braco-direito {
+            width: 70px; /* Mantive o tamanho que você gostou */
+            transform-origin: top center; /* Garante que gire no topo */
+        }
+        .braco-esquerdo1 {
+            width: 70px; /* Mantive o tamanho que você gostou */
+            transform-origin: top center; /* Garante que gire no topo */   
+
+        }
+
+        /* Animações */
+        @keyframes cintura {
+            0%, 100% { transform: rotate(4deg); }
+            50% { transform: rotate(-4deg); }
+        }
+
+        @keyframes moverBracoEsquerdo {
+            0%, 100% { transform: rotate(30deg); }
+            50% { transform: rotate(-20deg); }
+        }
+
+        @keyframes moverBracoDireito {
+            0%, 100% { transform: rotate(-28deg); }
+            50% { transform: rotate(30deg); }
+        }
+        /* Área do conteúdo principal */
+        .principal {
+            text-align: center;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .ok {
+            font-size: 50px;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin: 10px 0;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        /* Botão */
+        .voltar {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .voltar:hover {
+            background-color: #0056b3;
+        }
+        /* Mensagens (alertas do Django) */
+        .mensagens-fixas {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 360px;
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-success {
+            background: #e6f4ea;
+            border: 1px solid #34a853;
+            color: #1e7e34;
+        }
+
+        .alert-error {
+            background: #fdecea;
+            border: 1px solid #ea4335;
+            color: #b3261e;
+        }
+
+        .alert-warning {
+            background: #fff8e1;
+            border: 1px solid #fbbc04;
+            color: #8a6d00;
+        }
+
+        .alert-info,
+        .alert-debug {
+            background: #e8f0fe;
+            border: 1px solid #4285f4;
+            color: #1a56c4;
+        }
+
+        .fechar-alert {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.6;
+            line-height: 1;
+            padding: 0 4px;
+        }
+
+        .fechar-alert:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="monstro">
+
+        <img class="corpo"
+            src="{% static 'img/corpo(2).png' %}">
+
+        <div class="ombro-esquerdo">
+            <img class="braco-esquerdo1"
+                src="{% static 'img/braco-esquerdo1.png' %}">
+        </div>
+
+        <div class="ombro-direito">
+            <img class="braco-direito"
+                src="{% static 'img/braco-direito.png' %}">
+        </div>
+
+    </div>
+
+    <div class="principal">
+        <div class="ok">✔</div>
+        <h1>Formulário enviado com sucesso!</h1>
+        <p>Suas informações foram registradas corretamente.</p>
+
+        <a href="{% url 'tablet_checkin' id %}" class="voltar">
+            Voltar para a página inicial
+        </a>
+    </div>
+<script>
+    const equipamentoId = "{{ id }}";
+    const reservaAtualId = "{{ reserva_id }}";
+
+    function verificarProximaReserva() {
+        fetch(`/tablet/${equipamentoId}/status/?reserva_atual=${reservaAtualId}`)
+            .then(resposta => resposta.json())
+            .then(dados => {
+                if (dados.nova_reserva) {
+                    window.location.href = "/tablet/" + equipamentoId + "/";
+                }
+            })
+            .catch(erro => console.error("Erro ao verificar próxima reserva:", erro));
+    }
+
+    // Verifica a cada 15 segundos se já chegou a hora de outra reserva
+    setInterval(verificarProximaReserva, 15000);
+</script>
+</body>
+</html>

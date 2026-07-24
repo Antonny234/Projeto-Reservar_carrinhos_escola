@@ -1,0 +1,89 @@
+    /* ==========================================================================
+   ESTILIZAÇÃO REFEITA DOS CARDS DE RESERVA
+   ========================================================================== */
+.card-reserva {
+    background-color: #ffffff;
+    border-left: 5px solid #ecc94b; /* Borda amarela lateral */
+    border-top: 1px solid #edf2f7;
+    border-right: 1px solid #edf2f7;
+    border-bottom: 1px solid #edf2f7;
+    border-radius: 4px 8px 8px 4px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    margin-bottom: 15px;
+}
+
+/* Linha Superior: Alinha Professor na esquerda e Horário na direita */
+.card-header-reserva {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f7fafc;
+    padding-bottom: 8px;
+}
+
+.prof-nome {
+    font-size: 16px;
+    color: #2d3748;
+}
+
+/* DESTAQUE 1: Horário estilo "Badge" Balão */
+.badge-horario {
+    background-color: #1e3a5f; /* Azul padrão PROATI */
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 20px;
+    white-board: nowrap;
+    box-shadow: 0 2px 4px rgba(30, 58, 95, 0.2);
+}
+
+/* Corpo do Card */
+.card-body-reserva {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* DESTAQUE 2: Bloco de Destaque do Equipamento */
+.destaque-equipamento {
+    background-color: #fffdf6; /* Fundo creme sutil */
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px dashed #f6e05e; /* Borda tracejada amarela */
+    margin-bottom: 4px;
+}
+
+.equipamento-nome {
+    font-size: 16px;
+    font-weight: 700;
+    color: #b7791f; /* Texto num tom bronze/ouro escuro para contrastar */
+}
+
+/* Subrótulos ("Equipamento:", "Local:") */
+.label {
+    font-size: 13px;
+    color: #718096;
+    font-weight: 600;
+}
+
+/* Rodapé com a Data */
+.card-footer-reserva {
+    border-top: 1px solid #edf2f7;
+    padding-top: 8px;
+    font-size: 13px;
+    color: #4a5568;
+    text-align: right;
+}
+
+/* Mensagem de lista vazia */
+.sem-reservas {
+    text-align: center;
+    padding: 30px;
+    color: #a0aec0;
+    font-style: italic;
+}

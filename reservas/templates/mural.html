@@ -1,0 +1,245 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva de Carrinhos - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    {{ form.media }}
+</head>
+<body data-pagina="professor">
+
+    <div class="header">
+        <h1>PROATI 2026 - Gestão de Equipamentos</h1>
+        <div class="header-right">
+            <span>Olá, <strong id="nome-professor">{{ user.username }}</strong></span>
+            {% if user.is_staff %}
+                <span class="badge-admin">ADM</span>
+            {% endif %}
+        </div>
+
+    </div>
+    <div class="acoes-admin">
+        <a href="{% url 'exportar_excel' %}" class="admin">
+            Reservas (Excel)
+        </a>
+        <a href="{% url 'exportar_todas_excel' %}" class="admin">
+            Fichas (Excel)
+        </a>
+        <a href="{% url 'verificar_carrinho' %}" class="admin">
+            Verificar Carrinhos
+        </a>
+        <a href="{% url 'painel_fichas' %}" class="admin">
+            Estudantes
+        </a>
+        <a href="{% url 'painel_reservas_dia' %}" class="admin">
+            Ver Reservas do Dia
+        </a>
+        <a href="{% url 'camera_contagem' %}" class="admin">
+            camera
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="mensagens-fixas">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+            <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Notificação de fichas ausentes (só admins) -->
+    {% if user.is_staff %}
+    <div id="notif-fichas-ausentes" class="notif-fichas" style="display:none">
+        <div class="notif-header">
+            <span>⚠️ <strong>Fichas não enviadas após encerramento do horário:</strong></span>
+            <button onclick="document.getElementById('notif-fichas-ausentes').style.display='none'" class="fechar-notif">✕</button>
+        </div>
+        <ul id="lista-ausentes"></ul>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        {% if user.is_staff %}
+
+        <div class="container-export">
+
+            <!-- Linha de ações rápidas -->
+
+            <!-- Reservas pendentes de aprovação -->
+            {% if reservas_pendentes %}
+            <div class="painel-pendentes">
+                <h3>🔔 Reservas Aguardando Aprovação <span class="badge-count">{{ reservas_pendentes|length }}</span></h3>
+                <div class="lista-pendentes">
+                    {% for r in reservas_pendentes %}
+                    <div class="card-pendente">
+                        <div class="pendente-info">
+                            <span class="pendente-prof">👤 {{ r.professor.get_full_name|default:r.professor.username }}</span>
+                            <span class="pendente-det">{{ r.equipamento.nome }} · Sala {{ r.sala }} · {{ r.data_uso|date:"d/m/Y" }} · {{ r.horario_inicio|time:"H:i" }}–{{ r.horario_fim|time:"H:i" }}</span>
+                        </div>
+                        <div class="pendente-acoes">
+                            <a href="{% url 'aprovar_reserva' r.id %}" class="btn-aprovar">✓ Aprovar</a>
+                            <a href="{% url 'recusar_reserva' r.id %}" class="btn-recusar">✗ Recusar</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Controle de Quantidade -->
+            <div class="painel-admin">
+                <h3>🛒 Controle de Quantidade</h3>
+                <table class="tabela-admin">
+                    <tr>
+                        <th>Carrinho</th>
+                        <th>Quantidade</th>
+                        <th>Ação</th>
+                    </tr>
+                    {% for equipamento in equipamentos %}
+                    <tr>
+                        <td>{{ equipamento.nome }}</td>
+                        <td>
+                            <form method="POST" action="{% url 'atualizar_quantidade' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="equipamento_id" value="{{ equipamento.id }}">
+                                <input type="number" name="quantidade" value="{{ equipamento.quantidade }}" min="0">
+                        </td>
+                        <td>
+                                <button type="submit" class="btn-salvar">Salvar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+
+            <!-- Painel de Fichas Preenchidas -->
+
+        </div>
+
+        {% endif %}
+
+        <!-- Formulário de Reserva -->
+        <div class="reserva-box">
+            <h3>📅 Reservar Equipamento</h3>
+            <form method="POST" id="form-reserva">
+                {% csrf_token %}
+
+                <label for="id_data">Data da Reserva:</label>
+                <input type="date" name="data" id="id_data" value="{{ hoje }}" required>
+
+                <label for="id_periodo">Período/Horário:</label>
+                <select id="id_periodo" required onchange="definirHorarios()">
+                    <option value="">Selecione o Horário</option>
+                    <optgroup label="1º Período Manhã/Tarde">
+                        <option value="07:00|07:50">1º Horário (07:00 - 07:50)</option>
+                        <option value="07:50|08:40">2º Horário (07:50 - 08:40)</option>
+                        <option value="08:40|09:30">3º Horário (08:40 - 09:30)</option>
+                        <option value="09:50|10:40">4º Horário (09:50 - 10:40)</option>
+                        <option value="10:40|11:30">5º Horário (10:40 - 11:30)</option>
+                        <option value="12:20|13:10">6º Horário (12:20 - 13:10)</option>
+                        <option value="13:10|14:00">7º Horário (13:10 - 14:00)</option>
+                    </optgroup>
+                    <optgroup label="2º Período Tarde/Noite">
+                        <option value="14:15|15:05">1º Horário (14:15 - 15:05)</option>
+                        <option value="15:05|15:55">2º Horário (15:05 - 15:55)</option>
+                        <option value="15:55|16:45">3º Horário (15:55 - 16:45)</option>
+                        <option value="17:05|17:55">4º Horário (17:05 - 17:55)</option>
+                        <option value="17:55|18:45">5º Horário (17:55 - 18:45)</option>
+                        <option value="19:35|20:25">6º Horário (19:35 - 20:25)</option>
+                        <option value="20:25|21:15">7º Horário (20:25 - 21:15)</option>
+                    </optgroup>
+                </select>
+
+                <input type="hidden" name="horario_inicio" id="horario_inicio">
+                <input type="hidden" name="horario_fim" id="horario_fim">
+
+                <label for="carrinho">Carrinhos Disponíveis:</label>
+                <select name="equipamento" id="carrinho" required disabled>
+                    <option value="">Escolha a data e o horário...</option>
+                </select>
+                <p><span id="quantidade-info">-</span></p>
+
+                <label for="sala">Sala:</label>
+                {{ form.sala }}
+
+
+                {% if user.is_staff %}
+                <label for="id_professor">Nome do Profº (Username):</label>
+                {{ form.professor }}
+                {% endif %}
+
+
+                <button type="submit" id="btn-reservar">Enviar para o Mural</button>
+            </form>
+        </div>
+
+        <!-- Mural -->
+        <div class="mural">
+            <h2>📌 Mural de Reservas</h2>
+            <div class="grid-mural" id="grid-mural">
+                {% include 'partials/lista_reservas.html' with reservas=reservas user=user %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal da Ficha -->
+    <div class="modal-overlay" id="modal-ficha" onclick="fecharModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-titulo">Ficha da Turma</h2>
+                    <p id="modal-info" class="modal-info"></p>
+                </div>
+                <div class="modal-acoes">
+                    <a id="modal-btn-excel" href="#" class="btn-exportar">⬇️ Excel</a>
+                    <button onclick="fecharModal()" class="btn-fechar">✕</button>
+                </div>
+            </div>
+            <div id="modal-loading" class="modal-loading">Carregando...</div>
+            <table id="modal-tabela" class="ficha-tabela" style="display:none">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Aluno</th>
+                        <th>Turma</th>
+                        <th>Nº Notebook</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="{% static 'js/scriptMural.js' %}"></script>
+    {% if user.is_staff %}
+    <script>
+    // Verifica fichas ausentes a cada 3 minutos
+    function verificarFichasAusentes() {
+        fetch('/ajax/fichas-ausentes/')
+            .then(r => r.json())
+            .then(data => {
+                if (data.pendencias && data.pendencias.length > 0) {
+                    const lista = document.getElementById('lista-ausentes');
+                    const notif = document.getElementById('notif-fichas-ausentes');
+                    lista.innerHTML = '';
+                    data.pendencias.forEach(p => {
+                        lista.innerHTML += `<li>👤 <strong>${p.professor}</strong> — Sala <strong>${p.sala}</strong> (${p.equipamento}, encerrou às ${p.horario_fim})</li>`;
+                    });
+                    notif.style.display = 'block';
+                }
+            })
+            .catch(() => {});
+    }
+    verificarFichasAusentes();
+    setInterval(verificarFichasAusentes, 3 * 60 * 1000);
+    </script>
+    {% endif %}
+</body>
+</html>

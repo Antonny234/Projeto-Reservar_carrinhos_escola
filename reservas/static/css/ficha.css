@@ -1,0 +1,214 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f0f0f0;
+  min-height: 100vh;
+  padding: 32px 16px;
+}
+
+form {
+  max-width: 680px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #d0d0d0;
+  overflow: hidden;
+}
+
+/* Título principal — faixa verde escura */
+h1 {
+  background: #1e3a5f;
+  color: white;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+}
+
+/* Container da lista de alunos */
+.lista-alunos {
+  padding: 0;
+}
+
+/* Cabeçalho da tabela — verde médio */
+.lista-alunos::before {
+  content: 'Aluno(a)';
+  display: block;
+  background: #1e3a5f;
+  color: white;
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+/* Cada linha de aluno */
+.item-aluno {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.item-aluno:nth-child(odd) {
+  background: #fafafa;
+}
+
+.item-aluno:last-child {
+  border-bottom: none;
+}
+
+/* Nome do aluno */
+.item-aluno label {
+  font-size: 14px;
+  color: #222;
+  font-weight: 500;
+}
+
+/* Campo de número do notebook */
+.item-aluno input[type="number"] {
+  border: 1px solid #c0c0c0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+  background: white;
+  color: #222;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.item-aluno input[type="number"]:focus {
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(26, 92, 42, 0.15);
+}
+
+/* Remove setas do input number */
+.item-aluno input[type="number"]::-webkit-inner-spin-button,
+.item-aluno input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Botão enviar */
+button[type="submit"] {
+  display: block;
+  width: calc(100% - 48px);
+  margin: 20px 24px;
+  padding: 14px !important;
+  font-size: 15px !important;
+  font-weight: 600;
+  background: #1e3a5f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.15s, transform 0.1s;
+}
+
+button[type="submit"]:hover {
+  background: #0716bc;
+}
+
+button[type="submit"]:active {
+  transform: scale(0.99);
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.badge-admin {
+    background: #ffc107;
+    color: #1e3a5f;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+}
+
+/* Mensagens (alertas do Django) */
+.mensagens-fixas {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 360px;
+}
+
+.alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease-out;
+}
+
+.alert-success {
+    background: #e6f4ea;
+    border: 1px solid #34a853;
+    color: #1e7e34;
+}
+
+.alert-error {
+    background: #fdecea;
+    border: 1px solid #ea4335;
+    color: #b3261e;
+}
+
+.alert-warning {
+    background: #fff8e1;
+    border: 1px solid #fbbc04;
+    color: #8a6d00;
+}
+
+.alert-info,
+.alert-debug {
+    background: #e8f0fe;
+    border: 1px solid #4285f4;
+    color: #1a56c4;
+}
+
+.fechar-alert {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.6;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.fechar-alert:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
