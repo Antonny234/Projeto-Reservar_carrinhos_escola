@@ -1,4 +1,4 @@
-ultralytics>=8.0.0
+ultralytics==8.0.0
 asgiref==3.11.1
 django-sslserver
 Pillow==10.4.0
