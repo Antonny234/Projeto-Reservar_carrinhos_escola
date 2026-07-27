@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mural de Reservas do Dia</title>
+    <link rel="stylesheet" href="{% static 'css/painel.css' %}">
+    <link rel="stylesheet" href="{% static 'css/carrinho_consulta.css' %}">
+</head>
+<body data-pagina="publico">
+    
+    <div class="header">
+        <h1>GTREP - Quadro de Avisos</h1>
+        <a href="{% url 'longa' %}" class="btn-voltar-verde">Voltar para o Início</a>
+    </div>
+
+    <div class="container">
+        <div class="mural">
+            <h2>Reservas de Hoje ({{ hoje }})</h2>
+            
+            <div class="grid-mural" id="grid-mural">
+                {% include 'partials/lista_reservas_consulta.html' with reservas=reservas %}
+            </div>
+        </div>
+    </div>
+
+</body>
+<script>
+    function autoAtualizarMuralConsulta() {
+        const dataHoje = new Date().toISOString().split('T')[0]; 
+        fetch(`/carregar-mural-publico/?data=${dataHoje}`)
+            .then(response => response.text())
+            .then(html => {
+                const gridMural = document.getElementById('grid-mural');
+                if (gridMural) {
+                    gridMural.innerHTML = html;
+                }
+            })
+            .catch(error => console.error('Erro ao atualizar o mural:', error));
+    }
+
+    setInterval(autoAtualizarMuralConsulta, 150000);
+    window.onload = autoAtualizarMuralConsulta;
+</script>
+</html>

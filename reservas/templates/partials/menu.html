@@ -1,0 +1,32 @@
+
+<nav class="sidebar-nav">
+        <div class="sidebar-section">Visualização</div>
+        <a href="{% url 'mural' %}" class="sidebar-link {% if request.resolver_match.url_name == 'mural' %}ativo{% endif %}">
+            <span class="icone"></span> Mural
+        </a>
+        <a href="{% url 'painel_reservas_dia' %}" class="sidebar-link {% if request.resolver_match.url_name == 'painel_reservas_dia' %}ativo{% endif %}">
+            <span class="icone"></span> Reservas do Dia
+        </a>
+        <a href="{% url 'painel_fichas' %}" class="sidebar-link {% if request.resolver_match.url_name == 'painel_fichas' %}ativo{% endif %}">
+            <span class="icone"></span> Estudantes
+        </a>
+
+        <div class="sidebar-section">Ferramentas</div>
+        <a href="{% url 'verificar_carrinho' %}" class="sidebar-link {% if request.resolver_match.url_name == 'verificar_carrinho' %}ativo{% endif %}">
+            <span class="icone"></span> Verificar Carrinhos
+        </a>
+        <a href="{% url 'camera_contagem' %}" class="sidebar-link {% if request.resolver_match.url_name == 'camera_contagem' %}ativo{% endif %}">
+            <span class="icone"></span> Câmera
+        </a>
+        <a href="{% url 'pendentes_numeracao' %}" class="sidebar-link {% if request.resolver_match.url_name == 'pendentes_numeracao' %}ativo{% endif %}">
+            <span class="icone"></span> Numerações Pendentes
+        </a>
+
+        <div class="sidebar-section">Exportar</div>
+        <a href="{% url 'exportar_excel' %}" class="sidebar-link {% if request.resolver_match.url_name == 'exportar_excel' %}ativo{% endif %}">
+            <span class="icone"></span> Reservas (Excel)
+        </a>
+        <a href="{% url 'exportar_todas_excel' %}" class="sidebar-link {% if request.resolver_match.url_name == 'exportar_todas_excel' %}ativo{% endif %}">
+            <span class="icone"></span> Fichas (Excel)
+        </a>
+    </nav>

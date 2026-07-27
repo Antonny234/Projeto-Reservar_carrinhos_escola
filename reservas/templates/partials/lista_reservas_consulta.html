@@ -1,0 +1,29 @@
+{% load static %}
+{% for r in reservas %}
+<div class="card-reserva {% if r.quantidade %}card-quantidade-vermelha{% endif %}">
+    <div class="card-header-reserva">
+        <strong class="prof-nome">Prof. {{ r.professor.username }}</strong>
+        <span class="badge-horario">{{ r.horario_inicio }} - {{ r.horario_fim }}</span>
+    </div>
+
+    <div class="card-body-reserva">
+        <div class="destaque-equipamento">
+            <span class="label">Equipamento:</span>
+            <span class="equipamento-nome">{{ r.equipamento.nome }}</span>
+            {% if r.quantidade %}
+                <p><span class="label">Quantidade reservada:</span> {{ r.quantidade }} unidade{{ r.quantidade|pluralize }}</p>
+                <span class="tag-quantidade-vermelha">🔢 Reserva parcial</span>
+            {% else %}
+                <p><span class="label">Quantidade:</span> {{ r.equipamento.quantidade }}</p>
+            {% endif %}
+        </div>
+        <p><span class="label">Local:</span> {{ r.sala }}</p>
+    </div>
+
+    <div class="card-footer-reserva">
+        <span class="label">Data:</span> {{ r.data_uso|date:"d/m/Y" }}
+    </div>
+</div>
+{% empty %}
+<p class="sem-reservas">Nenhuma reserva para este dia.</p>
+{% endfor %}

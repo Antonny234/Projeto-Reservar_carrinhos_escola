@@ -1,0 +1,99 @@
+/* ============================================================
+   PAINEL ESTUDANTE — Estilo Padrão Mural (PROATI)
+   Complementar ao estiloMural.css
+   ============================================================ */
+
+body {
+    overflow-x: hidden;
+    width: 100%;
+    margin: 0;
+    background-color: #f0f2f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.container {
+    width: 98%;
+    max-width: 1400px;
+    margin: 20px auto;
+}
+
+.filtro-data {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.filtro-data input[type="date"] {
+    padding: 8px 12px;
+    border: 1.5px solid #dce1e7;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.painel-admin {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.tabela-admin {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.tabela-admin th, .tabela-admin td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+
+.tabela-admin th {
+    background-color: #1e3a5f;
+    color: #f8f9fa;
+    font-weight: bold;
+}
+
+.acoes-admin {
+    display: block !important;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .tabela-admin thead { display: none; }
+    
+    .tabela-admin, .tabela-admin tbody, .tabela-admin tr, .tabela-admin td {
+        display: block;
+        width: 100%;
+    }
+    
+    .tabela-admin tr {
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 8px;
+        background: #fff;
+    }
+    
+    .tabela-admin td {
+        display: flex;
+        justify-content: space-between;
+        border: none;
+        border-bottom: 1px solid #f9f9f9;
+    }
+    
+    .tabela-admin td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        color: #1e3a5f;
+    }
+}
+

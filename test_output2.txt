@@ -1,0 +1,205 @@
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Found 81 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: django_select2, messages, sslserver, staticfiles
+  Apply all migrations: admin, auth, contenttypes, reservas, sessions
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying reservas.0001_initial... OK
+  Applying reservas.0002_equipamento_numero_final_equipamento_numero_inicial... OK
+  Applying reservas.0003_notebook... OK
+  Applying reservas.0004_reserva_quantidade... OK
+  Applying reservas.0005_reserva_numero_notebook_unico_and_more... OK
+  Applying reservas.0006_reserva_numeracao_preenchida_numeroreservaquantidade... OK
+  Applying reservas.0007_perfiladm_pin_envio... OK
+  Applying sessions.0001_initial... OK
+test_aprovar_reserva_muda_status (teste.AdminAprovacaoTestCase.test_aprovar_reserva_muda_status)
+Aprovar uma reserva muda seu status para 'confirmada'. ... C:\Users\PROAT\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\django\core\handlers\base.py:62: UserWarning: No directory at: C:\Users\PROAT\OneDrive\Documents\projeto_atualizado (1)\app\staticfiles\
+  mw_instance = middleware(adapted_handler)
+ok
+test_painel_fichas_filtro_data (teste.AdminAprovacaoTestCase.test_painel_fichas_filtro_data)
+Painel de fichas com filtro de data. ... ok
+test_painel_fichas_staff (teste.AdminAprovacaoTestCase.test_painel_fichas_staff)
+Painel de fichas deve carregar para staff. ... ok
+test_recusar_reserva_muda_status (teste.AdminAprovacaoTestCase.test_recusar_reserva_muda_status)
+Recusar uma reserva muda seu status para 'recusada'. ... ok
+test_analisar_foto_base64_invalida (teste.AnalisarFotoTestCase.test_analisar_foto_base64_invalida)
+POST com base64 inválido deve retornar erro 400. ... ok
+test_analisar_foto_json_invalido (teste.AnalisarFotoTestCase.test_analisar_foto_json_invalido)
+POST com JSON inválido deve retornar erro 400. ... ok
+test_analisar_foto_sem_imagem (teste.AnalisarFotoTestCase.test_analisar_foto_sem_imagem)
+POST /fichas/analisar-foto/ sem imagem deve retornar erro 400. ... ok
+test_criar_conta_email_invalido (teste.AutenticacaoTestCase.test_criar_conta_email_invalido)
+Cadastro com e-mail que NÃO é @professor.educacao.sp.gov.br deve falhar. ... ok
+test_criar_conta_senhas_diferentes (teste.AutenticacaoTestCase.test_criar_conta_senhas_diferentes)
+Cadastro com senhas diferentes deve falhar. ... ok
+test_criar_conta_usuario_duplicado (teste.AutenticacaoTestCase.test_criar_conta_usuario_duplicado)
+Cadastro com username já existente deve falhar. ... ok
+test_criar_conta_valida (teste.AutenticacaoTestCase.test_criar_conta_valida)
+Cadastro com e-mail corporativo @professor.educacao.sp.gov.br deve ser aceito. ... ok
+test_login_senha_incorreta (teste.AutenticacaoTestCase.test_login_senha_incorreta)
+Login com senha errada deve exibir mensagem de erro. ... ok
+test_login_usuario_inexistente (teste.AutenticacaoTestCase.test_login_usuario_inexistente)
+Login com usuário que não existe deve exibir mensagem de erro. ... ok
+test_login_valido (teste.AutenticacaoTestCase.test_login_valido)
+Login com credenciais corretas deve redirecionar ao mural. ... ok
+test_exportar_ficha_excel (teste.ExportacaoTestCase.test_exportar_ficha_excel)
+GET /fichas/1/excel/ deve retornar um arquivo Excel. ... ok
+test_exportar_reservas_excel (teste.ExportacaoTestCase.test_exportar_reservas_excel)
+GET /exportar-excel/ deve retornar um arquivo Excel. ... ok
+test_exportar_todas_fichas_excel (teste.ExportacaoTestCase.test_exportar_todas_fichas_excel)
+GET /fichas/excel-tudo/ deve retornar um arquivo Excel. ... ok
+test_fichas_ausentes_detecta_pendencia (teste.FichasAusentesTestCase.test_fichas_ausentes_detecta_pendencia)
+Reserva já encerrada sem ficha deve aparecer como pendência. ... ok
+test_preencher_numeracao_quantidade_sucesso (teste.FluxoReservasTestCase.test_preencher_numeracao_quantidade_sucesso)
+Preenche a numeração correta para uma reserva por quantidade. ... ok
+test_preencher_numeracao_repetida (teste.FluxoReservasTestCase.test_preencher_numeracao_repetida)
+Não permite números repetidos na numeração. ... ok
+test_reserva_carrinho_inteiro_duplicada_horario (teste.FluxoReservasTestCase.test_reserva_carrinho_inteiro_duplicada_horario)
+Não permite duas reservas do mesmo carrinho no mesmo horário. ... ok
+test_reserva_carrinho_inteiro_sucesso (teste.FluxoReservasTestCase.test_reserva_carrinho_inteiro_sucesso)
+Cria uma reserva de carrinho inteiro com dados válidos via POST. ... ok
+test_reserva_quantidade_excede_disponivel (teste.FluxoReservasTestCase.test_reserva_quantidade_excede_disponivel)
+Não permite reservar quantidade maior que a disponível. ... ok
+test_reserva_quantidade_soma_com_outras (teste.FluxoReservasTestCase.test_reserva_quantidade_soma_com_outras)
+Reservas por quantidade no mesmo horário devem somar até o limite. ... ok
+test_reserva_quantidade_sucesso (teste.FluxoReservasTestCase.test_reserva_quantidade_sucesso)
+Cria uma reserva por quantidade com dados válidos. ... ok
+test_criar_aluno (teste.ModelosTestCase.test_criar_aluno)
+Cria um aluno vinculado a uma sala. ... ok
+test_criar_equipamento_notebook (teste.ModelosTestCase.test_criar_equipamento_notebook)
+Verifica a criação de um equipamento do tipo notebook. ... ok
+test_criar_equipamento_tablet (teste.ModelosTestCase.test_criar_equipamento_tablet)
+Verifica a criação de um equipamento do tipo tablet. ... ok
+test_criar_notebook (teste.ModelosTestCase.test_criar_notebook)
+Cria um notebook e verifica seus atributos. ... ok
+test_criar_numero_reserva_quantidade (teste.ModelosTestCase.test_criar_numero_reserva_quantidade)
+Cria números de notebook vinculados a uma reserva por quantidade. ... ok
+test_criar_perfil_adm_com_pin (teste.ModelosTestCase.test_criar_perfil_adm_com_pin)
+Cria perfil ADM com PIN de 4 dígitos. ... ok
+test_criar_perfil_adm_sem_pin (teste.ModelosTestCase.test_criar_perfil_adm_sem_pin)
+Cria perfil ADM sem PIN — pin_envio deve ser None. ... ok
+test_criar_registro_uso (teste.ModelosTestCase.test_criar_registro_uso)
+Cria um registro de uso (ficha de aluno). ... ok
+test_criar_reserva_com_quantidade (teste.ModelosTestCase.test_criar_reserva_com_quantidade)
+Cria uma reserva por quantidade específica. ... ok
+test_criar_reserva_confirmada (teste.ModelosTestCase.test_criar_reserva_confirmada)
+Cria uma reserva com status 'confirmada'. ... ok
+test_criar_reserva_pendente (teste.ModelosTestCase.test_criar_reserva_pendente)
+Cria uma reserva pendente de aprovação. ... ok
+test_criar_sala (teste.ModelosTestCase.test_criar_sala)
+Verifica a criação e string de Sala. ... ok
+test_faixa_numeros_com_intervalo (teste.ModelosTestCase.test_faixa_numeros_com_intervalo)
+faixa_numeros() deve retornar um set com todos os números entre inicial e final. ... ok
+test_faixa_numeros_sem_intervalo (teste.ModelosTestCase.test_faixa_numeros_sem_intervalo)
+Se numero_inicial e numero_final forem None, faixa_numeros() retorna vazio. ... ok
+test_lista_numeros_ordenada (teste.ModelosTestCase.test_lista_numeros_ordenada)
+lista_numeros() deve retornar uma lista ordenada. ... ok
+test_notebook_inativo (teste.ModelosTestCase.test_notebook_inativo)
+Notebook com ativo=False deve refletir no verbose_name 'quebrado'. ... ok
+test_notebook_unico_por_equipamento (teste.ModelosTestCase.test_notebook_unico_por_equipamento)
+unique_together = ('equipamento', 'numero') impede dois notebooks ... ok
+test_quantidade_ativa_com_inativos (teste.ModelosTestCase.test_quantidade_ativa_com_inativos)
+Cria notebooks inativos e verifica a redução na quantidade ativa. ... ok
+test_quantidade_ativa_sem_notebooks (teste.ModelosTestCase.test_quantidade_ativa_sem_notebooks)
+quantidade_ativa() deve refletir a faixa menos os notebooks inativos. ... ok
+test_reserva_com_aprovacao_fica_pendente (teste.PerfilAdmTestCase.test_reserva_com_aprovacao_fica_pendente)
+Professor com requer_aprovacao=True tem reservas criadas como 'pendente'. ... ok
+test_reserva_sem_aprovacao_fica_confirmada (teste.PerfilAdmTestCase.test_reserva_sem_aprovacao_fica_confirmada)
+Professor sem requer_aprovacao tem reservas criadas como 'confirmada'. ... ok
+test_criar_pin_invalido_letras (teste.TabletCheckinTestCase.test_criar_pin_invalido_letras)
+PIN com letras não deve ser aceito. ... ok
+test_criar_pin_valido (teste.TabletCheckinTestCase.test_criar_pin_valido)
+POST /criar-pin/ com PIN de 4 dígitos deve salvar. ... ok
+test_enviar_ficha_numero_duplicado (teste.TabletCheckinTestCase.test_enviar_ficha_numero_duplicado)
+Dois alunos não podem receber o mesmo número de notebook. ... ok
+test_enviar_ficha_pin_correto (teste.TabletCheckinTestCase.test_enviar_ficha_pin_correto)
+Envio de ficha com PIN correto deve criar registros de uso. ... ok
+test_enviar_ficha_pin_incorreto (teste.TabletCheckinTestCase.test_enviar_ficha_pin_incorreto)
+Envio com PIN errado não deve criar registros. ... ok
+test_enviar_ficha_sem_pin (teste.TabletCheckinTestCase.test_enviar_ficha_sem_pin)
+Envio sem PIN não deve criar registros. ... ok
+test_tablet_acesso_com_reserva_ativa (teste.TabletCheckinTestCase.test_tablet_acesso_com_reserva_ativa)
+Com reserva ativa, deve exibir o formulário da ficha. ... ok
+test_tablet_acesso_sem_reserva_ativa (teste.TabletCheckinTestCase.test_tablet_acesso_sem_reserva_ativa)
+Se não há reserva ativa agora, deve retornar mensagem de erro. ... ok
+test_tablet_status (teste.TabletCheckinTestCase.test_tablet_status)
+GET /tablet/1/status/ deve retornar JSON. ... ok
+test_ajax_disponiveis_anonimo (teste.URLsTestCase.test_ajax_disponiveis_anonimo)
+GET /ajax/disponiveis/ sem login \u2192 302. ... ok
+test_ajax_disponiveis_logado (teste.URLsTestCase.test_ajax_disponiveis_logado)
+GET /ajax/disponiveis/ logado \u2192 200. ... ok
+test_ajax_fichas_ausentes_staff (teste.URLsTestCase.test_ajax_fichas_ausentes_staff)
+GET /ajax/fichas-ausentes/ como staff \u2192 200. ... ok
+test_ajax_menu_logado (teste.URLsTestCase.test_ajax_menu_logado)
+GET /ajax/menu/ como staff \u2192 200. ... ok
+test_ajax_mural_logado (teste.URLsTestCase.test_ajax_mural_logado)
+GET /ajax/mural-filtrado/ logado \u2192 200. ... ok
+test_ajax_numeros_disponiveis_logado (teste.URLsTestCase.test_ajax_numeros_disponiveis_logado)
+GET /ajax/numeros-disponiveis/ logado \u2192 200. ... ok
+test_url_aprovar_reserva_nao_staff (teste.URLsTestCase.test_url_aprovar_reserva_nao_staff)
+GET /reserva/1/aprovar/ sem ser staff \u2192 redireciona. ... ok
+test_url_aprovar_reserva_staff (teste.URLsTestCase.test_url_aprovar_reserva_staff)
+GET /reserva/1/aprovar/ como staff \u2192 deve aprovar e redirecionar. ... ok
+test_url_camera_protegida (teste.URLsTestCase.test_url_camera_protegida)
+GET /camera/ sem login \u2192 redireciona (302). ... ok
+test_url_carregar_mural_publico_anonimo (teste.URLsTestCase.test_url_carregar_mural_publico_anonimo)
+GET /carregar-mural-publico/ \u2192 deve retornar 200. ... ok
+test_url_criar_conta_anonimo (teste.URLsTestCase.test_url_criar_conta_anonimo)
+GET /criar/ \u2192 deve retornar 200 (formulário de cadastro). ... ok
+test_url_entrar_anonimo (teste.URLsTestCase.test_url_entrar_anonimo)
+GET /entrar/ \u2192 deve retornar 200 (formulário de login). ... ok
+test_url_home_anonimo (teste.URLsTestCase.test_url_home_anonimo)
+GET / \u2192 deve retornar 200 (página inicial pública). ... ok
+test_url_mural_consulta_anonimo (teste.URLsTestCase.test_url_mural_consulta_anonimo)
+GET /painel/ \u2192 deve retornar 200 (mural público de consulta). ... ok
+test_url_mural_protegida (teste.URLsTestCase.test_url_mural_protegida)
+GET /Logar/ sem login \u2192 redireciona (302) para /entrar/. ... ok
+test_url_painel_reservas_nao_staff (teste.URLsTestCase.test_url_painel_reservas_nao_staff)
+GET /painel-reservas/ sem staff \u2192 redireciona (302). ... ok
+test_url_painel_reservas_staff (teste.URLsTestCase.test_url_painel_reservas_staff)
+GET /painel-reservas/ como staff \u2192 200. ... ok
+test_url_recusar_reserva_staff (teste.URLsTestCase.test_url_recusar_reserva_staff)
+GET /reserva/1/recusar/ como staff \u2192 recusa e redireciona. ... ok
+test_url_tablet_protegida (teste.URLsTestCase.test_url_tablet_protegida)
+GET /tablet/1/ sem login \u2192 retorna 200 com mensagem de erro ... ok
+test_url_unico_protegida (teste.URLsTestCase.test_url_unico_protegida)
+GET /unico/ sem login \u2192 redireciona (302). ... ok
+test_url_verificar_carrinho_nao_staff (teste.URLsTestCase.test_url_verificar_carrinho_nao_staff)
+GET /verificar-carrinho/ sem staff \u2192 302. ... ok
+test_url_verificar_carrinho_staff (teste.URLsTestCase.test_url_verificar_carrinho_staff)
+GET /verificar-carrinho/ como staff \u2192 200. ... ok
+test_alternar_status_notebook_alternar (teste.VerificarCarrinhoTestCase.test_alternar_status_notebook_alternar)
+Alternar status de notebook existente deve inverter ativo/inativo. ... ok
+test_alternar_status_notebook_criar (teste.VerificarCarrinhoTestCase.test_alternar_status_notebook_criar)
+Alternar status de notebook que não existe deve criá-lo como inativo. ... ok
+test_atualizar_faixa_numeracao (teste.VerificarCarrinhoTestCase.test_atualizar_faixa_numeracao)
+POST /verificar-carrinho/atualizar-faixa/ atualiza a faixa. ... ok
+test_verificar_carrinho_carrega (teste.VerificarCarrinhoTestCase.test_verificar_carrinho_carrega)
+GET /verificar-carrinho/ deve carregar com a tabela de equipamentos. ... ok
+
+----------------------------------------------------------------------
+Ran 81 tests in 165.710s
+
+OK
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+System check identified no issues (0 silenced).

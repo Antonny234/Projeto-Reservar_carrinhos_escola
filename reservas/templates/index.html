@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro</title>
+    <link rel="stylesheet" href="{% static 'css/index.css' %}">
+</head>
+<body>
+    <div class="container">
+      <h1>Cadastro</h1>
+      <form method="POST" action="{% url 'index' %}">
+        {% csrf_token %}
+          
+        <label>Usuário</label>
+        <input type="text" name="usuario" placeholder="Digite como você quer ser chamado" required>
+
+        <label>Email</label>
+        <input type="email" name="email" placeholder="Digite seu email escolar" required>
+
+        <label>Senha</label>
+        <input type="password" name="senha" placeholder="Digite sua senha" required>
+
+        <label>Confirmar Senha</label>
+        <input type="password" name="confirmar_senha" placeholder="Confirme sua senha" required>
+        
+        <button type="submit">Cadastrar</button>
+        <div class="login-link">
+          <a href="{% url 'longa' %}">Já tem conta? Entrar</a>
+        </div>
+      </form>
+
+        <!-- Espaço para mensagens de erro -->
+        {% if messages %}
+          {% for message in messages %}
+            {% if message.tags == 'success' %}
+              <div class="message-success">{{ message }}</div>
+            {% else %}
+              <div style="margin-top: 15px; color: red; text-align: center;">
+                {{ message }}
+              </div>
+            {% endif %}
+          {% endfor %}
+      {% endif %}
+    </div> <!-- Fechamento correto da container -->
+</body>
+</html>

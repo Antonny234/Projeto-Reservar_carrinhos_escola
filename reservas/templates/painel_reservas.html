@@ -1,0 +1,122 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservas do Dia - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/painel_reservas.css' %}">
+</head>
+<body>
+    <div class="header">
+        <h1>GTREP Manoel Martins - Reservas do Dia</h1>
+        <div class="header-right">
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
+        </div>
+    </div>
+
+    <div class="painel-reservas">
+        <div class="painel-topo">
+            <h2>📅 Reservas — {{ data_exibicao }}</h2>
+            <div class="filtro-data">
+                <label for="filtro-data">Ver outra data:</label>
+                <input type="date" id="filtro-data" value="{{ data_atual }}"
+                    onchange="window.location.href='?data=' + this.value">
+            </div>
+        <a href="{% url 'painel_reservas_quantidade' %}" class="admin">
+            🔢 Notebooks Avulsos
+        </a>
+        </div>
+
+        <div class="cards-reservas">
+            {% for reserva in reservas %}
+                {% with prof_nome=reserva.professor.get_full_name|default:reserva.professor.username %}
+                {% with inicial=prof_nome|slice:":1" %}
+                <div class="card-reserva {{ reserva.status }} {% if reserva.quantidade %}card-quantidade-vermelha{% endif %}"
+                        onclick="abrirModal"("
+                        '{{ reserva.equipamento.nome }}',
+                        '{{ prof_nome }}',
+                        '{{ reserva.sala.nome }}',
+                        '{{ reserva.horario_inicio|time:"H:i" }}',
+                        '{{ reserva.horario_fim|time:"H:i" }}',
+                        '{{ reserva.status }}',
+                        '{{ reserva.data_uso|date:"d/m/Y" }}'
+                        ")">
+                    <div class="reserva-avatar {{ reserva.status }}">{{ inicial }}</div>
+                    <div class="reserva-info">
+                        <span class="reserva-equipamento">{{ reserva.equipamento.nome }}</span>
+                        <span class="reserva-professor">👤 {{ prof_nome }}</span>
+                        <span class="reserva-detalhe">🏫 Sala {{ reserva.sala.nome }}</span>
+                        <span class="reserva-detalhe">🕐 {{ reserva.horario_inicio|time:"H:i" }} - {{ reserva.horario_fim|time:"H:i" }}</span>
+                        {% if reserva.quantidade %}
+                            <span class="reserva-detalhe">🔢 {{ reserva.quantidade }} unidade{{ reserva.quantidade|pluralize }} reservada{{ reserva.quantidade|pluralize }}</span>
+                            <span class="tag-quantidade-vermelha">Reserva parcial</span>
+                        {% endif %}
+                        <span class="reserva-status status-{{ reserva.status }}">
+                            {% if reserva.status == 'confirmada' %}✓ Confirmada
+                            {% elif reserva.status == 'pendente' %}⏳ Pendente
+                            {% else %}✗ Recusada{% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% endwith %}{% endwith %}
+            {% empty %}
+                <p class="vazio">Nenhuma reserva para esta data.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modal de detalhes -->
+    <div class="modal-overlay" id="modal-reserva" onclick="fecharModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-equipamento">—</h3>
+                <button onclick="fecharModal()" class="btn-fechar">✕</button>
+            </div>
+            <div class="modal-linha">
+                <span class="modal-label">👤 Professor:</span>
+                <span class="modal-valor" id="modal-professor">—</span>
+            </div>
+            <div class="modal-linha">
+                <span class="modal-label">🏫 Sala:</span>
+                <span class="modal-valor" id="modal-sala">—</span>
+            </div>
+            <div class="modal-linha">
+                <span class="modal-label">📅 Data:</span>
+                <span class="modal-valor" id="modal-data">—</span>
+            </div>
+            <div class="modal-linha">
+                <span class="modal-label">🕐 Horário:</span>
+                <span class="modal-valor" id="modal-horario">—</span>
+            </div>
+            <div>
+                <span class="modal-status" id="modal-status-badge">—</span>
+            </div>
+        </div>
+    </div>
+    <script>
+        function abrirModal(equipamento, professor, sala, inicio, fim, status, data) {
+            document.getElementById('modal-equipamento').textContent = equipamento;
+            document.getElementById('modal-professor').textContent = professor;
+            document.getElementById('modal-sala').textContent = sala;
+            document.getElementById('modal-data').textContent = data;
+            document.getElementById('modal-horario').textContent = `${inicio} – ${fim}`;
+
+            const badge = document.getElementById('modal-status-badge');
+            const labels = { confirmada: '✓ Confirmada', pendente: '⏳ Pendente', recusada: '✗ Recusada' };
+            const cores = { confirmada: 'status-confirmada', pendente: 'status-pendente', recusada: 'status-recusada' };
+            badge.textContent = labels[status] || status;
+            badge.className = `modal-status ${cores[status] || ''}`;
+
+            document.getElementById('modal-reserva').classList.add('ativo');
+        }
+
+        function fecharModal() {
+            document.getElementById('modal-reserva').classList.remove('ativo');
+        }
+
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+    </script>
+</body>
+</html>

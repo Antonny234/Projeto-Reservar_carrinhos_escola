@@ -1,0 +1,207 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Carrinhos - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/verificar_carrinho.css' %}">
+</head>
+<body data-pagina="verificar-carrinho">
+
+    <div class="header">
+        <h1>📦 Verificação de Carrinhos</h1>
+        <div class="header-right">
+            <span>Olá, <strong>{{ user.username }}</strong></span>
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
+            {% if user.is_staff %}
+                <span class="badge-admin">ADM</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mensagens-fixas">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+            <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="container">
+        <div class="container-export">
+
+            <div class="painel-admin">
+                <h3>🗂️ Numeração dos Carrinhos</h3>
+                {% if equipamentos %}
+                <table class="tabela-admin">
+                    <tr>
+                        <th>Carrinho</th>
+                        <th>Faixa de Numeração</th>
+                        <th>Quantidade</th>
+                        <th>Ações</th>
+                    </tr>
+                    {% for equipamento in equipamentos %}
+                    <tr>
+                        <td>{{ equipamento.nome }}</td>
+                        <td>
+                            {% if equipamento.numero_inicial and equipamento.numero_final %}
+                                Nº {{ equipamento.numero_inicial }}-{{ equipamento.numero_final }}
+                            {% else %}
+                                <span class="faixa-vazia">Não cadastrada</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ equipamento.quantidade_ativa }}</td>
+                        <td>
+                            <button type="button" class="btn-exportar" onclick="abrirModalNumeracao('{{ equipamento.id }}')">
+                                🔍 Ver Numeração
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <p>Nenhum carrinho cadastrado.</p>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- conteúdo oculto por carrinho: usado para preencher o modal ao clicar -->
+    {% for equipamento in equipamentos %}
+    <div id="dados-carrinho-{{ equipamento.id }}"
+         data-nome="{{ equipamento.nome }}"
+         data-subtitulo="{% if equipamento.numero_inicial and equipamento.numero_final %}Faixa: Nº {{ equipamento.numero_inicial }}–{{ equipamento.numero_final }} · {{ equipamento.lista_numeros|length }} notebooks{% else %}Faixa não cadastrada{% endif %}"
+         style="display:none">
+
+        <form method="POST" action="{% url 'atualizar_faixa_numeracao' %}" class="form-faixa-modal">
+            {% csrf_token %}
+            <input type="hidden" name="equipamento_id" value="{{ equipamento.id }}">
+            <label for="ini-{{ equipamento.id }}">Nº Inicial:</label>
+            <input type="number" id="ini-{{ equipamento.id }}" name="numero_inicial"
+                   value="{{ equipamento.numero_inicial|default_if_none:'' }}" min="0" placeholder="ex: 1">
+            <label for="fim-{{ equipamento.id }}">Nº Final:</label>
+            <input type="number" id="fim-{{ equipamento.id }}" name="numero_final"
+                   value="{{ equipamento.numero_final|default_if_none:'' }}" min="0" placeholder="ex: 40">
+            <button type="submit" class="btn-salvar">Salvar Faixa</button>
+        </form>
+
+        {% if equipamento.numero_inicial and equipamento.numero_final %}
+            <table class="ficha-tabela">
+                <thead>
+                    <tr>
+                        <th>Nº Notebook</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in equipamento.status_numeros %}
+                    <tr>
+                        <td>{{ item.numero }}</td>
+                        <td class="status-cell">
+                            {% if item.ativo %}
+                                <span class="badge-ok">✅ OK</span>
+                            {% else %}
+                                <span class="badge-quebrado">❌ Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" action="{% url 'alternar_status_notebook' %}" class="form-toggle-status">
+                                {% csrf_token %}
+                                <input type="hidden" name="equipamento_id" value="{{ equipamento.id }}">
+                                <input type="hidden" name="numero" value="{{ item.numero }}">
+                                {% if item.ativo %}
+                                    <button type="submit" class="btn-toggle-status marcar-quebrado">Inativo</button>
+                                {% else %}
+                                    <button type="submit" class="btn-toggle-status reativar">Reativar</button>
+                                {% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="faixa-vazia">Configure a faixa acima para ver a numeração.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Modal de numeração por carrinho -->
+    <div class="modal-overlay" id="modal-numeracao" onclick="fecharModalNumeracao()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-numeracao-titulo">Carrinho</h2>
+                    <p id="modal-numeracao-subtitulo" class="modal-info"></p>
+                </div>
+                <div class="modal-acoes">
+                    <button onclick="fecharModalNumeracao()" class="btn-fechar">✕</button>
+                </div>
+            </div>
+            <div id="modal-numeracao-conteudo"></div>
+        </div>
+    </div>
+
+    <script>
+        function abrirModalNumeracao(equipamentoId) {
+            const dados = document.getElementById('dados-carrinho-' + equipamentoId);
+            document.getElementById('modal-numeracao-titulo').textContent = dados.dataset.nome;
+            document.getElementById('modal-numeracao-subtitulo').textContent = dados.dataset.subtitulo;
+            document.getElementById('modal-numeracao-conteudo').innerHTML = dados.innerHTML;
+            document.getElementById('modal-numeracao').style.display = 'flex';
+        }
+
+        function fecharModalNumeracao() {
+            document.getElementById('modal-numeracao').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') fecharModalNumeracao();
+        });
+
+        // Intercepta o envio do formulário de marcar/reativar notebook,
+        // pra atualizar só a linha em vez de recarregar a página e fechar o modal.
+        document.getElementById('modal-numeracao-conteudo').addEventListener('submit', function (e) {
+            const form = e.target;
+            if (!form.classList.contains('form-toggle-status')) return;
+
+            e.preventDefault();
+
+            const botao = form.querySelector('button');
+            const estavaAtivo = botao.classList.contains('marcar-quebrado');
+            const linha = form.closest('tr');
+            const celulaStatus = linha.querySelector('.status-cell');
+
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Falha na requisição');
+
+                if (estavaAtivo) {
+                    celulaStatus.innerHTML = '<span class="badge-quebrado">❌ Inativo</span>';
+                    botao.textContent = 'Reativar';
+                    botao.classList.remove('marcar-quebrado');
+                    botao.classList.add('reativar');
+                } else {
+                    celulaStatus.innerHTML = '<span class="badge-ok">✅ OK</span>';
+                    botao.textContent = 'Inativo';
+                    botao.classList.remove('reativar');
+                    botao.classList.add('marcar-quebrado');
+                }
+            })
+            .catch(() => {
+                alert('Erro ao atualizar o status do notebook. Tente novamente.');
+            });
+        });
+    </script>
+</body>
+</html>

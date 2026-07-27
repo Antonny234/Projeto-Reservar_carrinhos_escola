@@ -1,0 +1,171 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fichas dos Alunos - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/painelestudante.css' %}">
+</head>
+<body data-pagina="painel-fichas">
+
+    <div class="header">
+        <h1>Fichas Preenchidas pelos Alunos - GTREP</h1>
+        <div class="header-right">
+            <span>Olá, <strong>{{ user.username }}</strong></span>
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
+            {% if user.is_staff %}
+                <span class="badge-admin">ADM</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mensagens-fixas">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+            <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="container">
+        <div class="container-export">
+
+            <div class="acoes-admin">
+                <a href="{% url 'exportar_todas_excel' %}" class="btn-exportar">
+                    📥 Exportar Todas as Fichas (Excel)
+                </a>
+            </div>
+            
+            <form method="GET" class="filtro-data" id="form-filtro-data">
+                <label for="filtro-data">📅 Filtrar por data:</label>
+                <input type="date" name="data" id="filtro-data" value="{{ data_selecionada }}"
+                    onchange="document.getElementById('form-filtro-data').submit()">
+                {% if data_selecionada %}
+                    <a href="{% url 'painel_fichas' %}" class="btn-exportar">✕ Limpar filtro</a>
+                {% endif %}
+            </form>
+
+
+                <div class="painel-admin">
+                    <h3>🗂️ Reservas com Fichas Preenchidas</h3>
+                    {% if reservas %}
+                <table class="tabela-admin">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Professor</th>
+                            <th>Sala</th>
+                            <th>Equipamento</th>
+                            <th>Alunos</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reservas %}
+                        <tr>
+                            <td data-label="Data:">{{ r.data_uso|date:"d/m/Y" }}</td>
+                            <td data-label="Professor:">{{ r.professor.get_full_name|default:r.professor.username }}</td>
+                            <td data-label="Sala:">{{ r.sala.nome }}</td>
+                            <td data-label="Equipamento:">{{ r.equipamento.nome }}</td>
+                            <td data-label="Alunos:">{{ r.registrouso_set.all|length }}</td>
+                            <td data-label="Ações:">
+                                <button type="button" class="btn-exportar" onclick="abrirFicha('{{ r.id }}')">Ver</button>
+                                <a href="{% url 'exportar_ficha_excel' r.id %}" class="btn-exportar">Excel</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>Nenhuma ficha preenchida ainda.</p>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal da Ficha -->
+    <div class="modal-overlay" id="modal-ficha" onclick="fecharModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-titulo">Ficha da Turma</h2>
+                    <p id="modal-info" class="modal-info"></p>
+                </div>
+                <div class="modal-acoes">
+                    <a id="modal-btn-excel" href="#" class="btn-exportar">⬇️ Excel</a>
+                    <button onclick="fecharModal()" class="btn-fechar">✕</button>
+                </div>
+            </div>
+            <div id="modal-loading" class="modal-loading">Carregando...</div>
+            <table id="modal-tabela" class="ficha-tabela" style="display:none">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Aluno</th>
+                        <th>Turma</th>
+                        <th>Nº Notebook</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    function abrirFicha(reservaId) {
+        const modal   = document.getElementById('modal-ficha');
+        const loading = document.getElementById('modal-loading');
+        const tabela  = document.getElementById('modal-tabela');
+        const tbody   = document.getElementById('modal-tbody');
+        const titulo  = document.getElementById('modal-titulo');
+        const info    = document.getElementById('modal-info');
+        const btnExcel = document.getElementById('modal-btn-excel');
+
+        modal.style.display = 'flex';
+        loading.style.display = 'block';
+        tabela.style.display = 'none';
+        tbody.innerHTML = '';
+
+        btnExcel.href = `/fichas/${reservaId}/excel/`;
+
+        fetch(`/fichas/${reservaId}/json/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.erro) {
+                    loading.textContent = data.erro;
+                    return;
+                }
+
+                titulo.textContent = `Ficha - ${data.sala} (${data.equipamento})`;
+                info.textContent = `Professor: ${data.professor} | ${data.data} | ${data.horario}`;
+
+                data.registros.forEach((reg, i) => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td>${reg.aluno}</td>
+                            <td>${reg.turma}</td>
+                            <td>${reg.notebook}</td>
+                        </tr>`;
+                });
+
+                loading.style.display = 'none';
+                tabela.style.display = 'table';
+            })
+            .catch(() => {
+                loading.textContent = 'Erro ao carregar a ficha.';
+            });
+    }
+
+    function fecharModal() {
+        document.getElementById('modal-ficha').style.display = 'none';
+    }
+    </script>
+</body>
+</html>

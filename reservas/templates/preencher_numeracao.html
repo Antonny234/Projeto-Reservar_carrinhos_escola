@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numeração dos Notebooks - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+</head>
+<body data-pagina="numeracao">
+
+    <div class="header">
+        <h1>GTREP - Manoel Martins</h1>
+        <div class="header-right">
+            <span>Olá, <strong>{{ user.username }}</strong></span>
+            {% if user.is_staff %}
+                <span class="badge-admin">ADM</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mensagens-fixas">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+            <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="container" style="justify-content:center;">
+        <div class="reserva-box" style="width:420px;">
+            <h3>🔢 Numeração dos Notebooks</h3>
+
+            <p style="margin:0 0 4px;">
+                <span class="label">Carrinho:</span> {{ reserva.equipamento.nome }}
+            </p>
+            <p style="margin:0 0 4px;">
+                <span class="label">Quantidade reservada:</span> {{ reserva.quantidade }} unidade{{ reserva.quantidade|pluralize }}
+            </p>
+            <p style="margin:0 0 4px;">
+                <span class="label">Sala:</span> {{ reserva.sala }}
+            </p>
+            <p style="margin:0 0 16px;">
+                <span class="label">Horário:</span> {{ reserva.horario_inicio|time:"H:i" }} - {{ reserva.horario_fim|time:"H:i" }}
+            </p>
+
+            <form method="POST">
+                {% csrf_token %}
+                {% for i in range_quantidade %}
+                    <input
+                        type="number"
+                        name="numero"
+                        placeholder="Nº do notebook {{ forloop.counter }}"
+                        value="{{ numeros_atuais|slice:i|first|default_if_none:'' }}"
+                        required
+                        min="1"
+                    >
+                {% endfor %}
+                <button type="submit">Salvar Numeração</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
