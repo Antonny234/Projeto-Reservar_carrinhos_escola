@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reservas', '0006_reserva_numeracao_preenchida_numeroreservaquantidade'),
+        ('reservas', '0007_recria_perfiladm_notificacao'),
     ]
 
     operations = [
