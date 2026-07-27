@@ -23,7 +23,7 @@ python-dateutil>=2.9.0       # Manipulação de datas (pandas/django)
 ultralytics==8.4.104 # YOLO (modelo de detecção)
 torch>=2.5.0,<3.0            # PyTorch (CPU-only no Railway)
 torchvision>=0.18.0          # Componentes de visão do PyTorch
-opencv-python-headless==4.10.0  # OpenCV (versão headless, sem GUI)
+opencv-python-headless==4.10.84  # OpenCV (versão headless, sem GUI)
 Pillow>=11.1.0               # Manipulação de imagens
 numpy>=1.24.0                # Computação numérica (requisito do pytorch/yolo)
 
