@@ -1,0 +1,20 @@
+[1mdiff --git a/nixpacks.toml b/nixpacks.toml[m
+[1mindex edb8be7..0f379e5 100644[m
+[1m--- a/nixpacks.toml[m
+[1m+++ b/nixpacks.toml[m
+[36m@@ -6,4 +6,12 @@[m [mcmds = [[m
+   "python -m venv --copies /opt/venv",[m
+   ". /opt/venv/bin/activate && pip install -r requirements.txt",[m
+   ". /opt/venv/bin/activate && pip install --force-reinstall --no-deps opencv-python-headless==4.10.0.84"[m
+[31m-][m
+\ No newline at end of file[m
+[32m+[m[32m][m
+[32m+[m
+[32m+[m[32m[phases.build][m
+[32m+[m[32mcmds = [[m
+[32m+[m[32m  ". /opt/venv/bin/activate && python manage.py collectstatic --no-input"[m
+[32m+[m[32m][m
+[32m+[m
+[32m+[m[32m[start][m
+[32m+[m[32mcmd = ". /opt/venv/bin/activate && python manage.py migrate && gunicorn configuracao.wsgi --log-file - --bind 0.0.0.0:$PORT"[m
+\ No newline at end of file[m
