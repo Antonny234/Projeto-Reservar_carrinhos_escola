@@ -11,26 +11,20 @@ django-sslserver>=0.22       # SSL server para desenvolvimento local
 sqlparse>=0.5.0              # Django ORM depende disso
 tzdata>=2024.2               # Fuso horários (necessário no Windows/Railway)
 typing_extensions>=4.12.0    # Tipos Python modernos
-
 # ─── Planilhas / Excel ──────────────────────────────────────────
 pandas>=2.2.0                # Manipulação de dados / exportar Excel
 openpyxl>=3.1.0              # Leitura/escrita de arquivos .xlsx
 et-xmlfile>=2.0.0            # Dependência do openpyxl
 python-dateutil>=2.9.0       # Manipulação de datas (pandas/django)
-
-# ─── YOLO / Visão Computacional ─────────────────────────────────
-ultralytics>=8.3.0
 ultralytics==8.4.104 # YOLO (modelo de detecção)
 torch>=2.5.0,<3.0            # PyTorch (CPU-only no Railway)
 torchvision>=0.18.0          # Componentes de visão do PyTorch
 opencv-python-headless==4.10.0.84  # OpenCV (versão headless, sem GUI)
 Pillow>=11.1.0               # Manipulação de imagens
 numpy>=1.24.0                # Computação numérica (requisito do pytorch/yolo)
-
 # ─── Segurança ──────────────────────────────────────────────────
 cffi>=1.17.1                 # CFFI para criptografia
 pyOpenSSL>=24.3.0            # SSL/TLS
-
 # ─── Utilitários ────────────────────────────────────────────────
 pluggy>=1.5.0                # Hook system (pytest/django dependem)
 pyparsing>=3.1.0             # Parsing de strings (usado pelo pandas)

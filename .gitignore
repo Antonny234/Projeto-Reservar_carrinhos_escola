@@ -8,7 +8,4 @@ db.sqlite3
 cert.crt
 cert.key
 dados_exportados.sql
-
-# Arquivos Excel (contêm dados sensíveis dos alunos)
-# NÃO sobem para o GitHub pois o repositório é público
-*.xlsx
+.xlsx
