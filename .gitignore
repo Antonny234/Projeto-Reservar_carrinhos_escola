@@ -4,5 +4,11 @@ __pycache__/
 db.sqlite3
 .env
 *.log
+dados_exportados.json
 dados_exportados.sql
+backup_*.sql
 *.xlsx
+*.key
+*.crt
+test_output*.txt
+teste.py
