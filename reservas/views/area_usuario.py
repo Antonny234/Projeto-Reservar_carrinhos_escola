@@ -110,6 +110,14 @@ def mural(request):
         professor_reserva = request.user
         professor_id = request.user.id
 
+        if data_reservae < hoje:
+            messages.error(
+                request,
+                f"⚠️ Não é possível reservar para o dia {data_reservae.strftime('%d/%m/%Y')}, "
+                f"pois hoje é {hoje.strftime('%d/%m/%Y')}. Selecione uma data a partir de hoje."
+            )
+            return redirect(f"/Logar/?data={hoje.strftime('%Y-%m-%d')}")
+
         if data_reservae == hoje and horario_fim_obj < hora_atual:
             messages.error(request, "Este horário já passou e não pode ser reservado!")
             return redirect('/Logar/?data={data_reserva}')
@@ -134,11 +142,9 @@ def mural(request):
             data_uso=data_reservae,
             horario_inicio=horario_inicio_obj,
             horario_fim=horario_fim_obj,
+            status__in=['confirmada', 'pendente']
         ).exists()
 
-        # Soma tudo que já está reservado nesse carrinho/horário:
-        # - reservas com quantidade definida (reserva única) somam o valor exato
-        # - reservas de carrinho inteiro (quantidade=None) consomem a capacidade toda
         reservas_existentes = Reserva.objects.filter(
             equipamento_id=equipamento_id,
             data_uso=data_reservae,
@@ -147,16 +153,8 @@ def mural(request):
             status__in=['confirmada', 'pendente'],
         )
 
-        total_reservado = 0
-        for r in reservas_existentes:
-            if r.quantidade is not None:
-                total_reservado += r.quantidade
-            else:
-                total_reservado += equip_obj.quantidade
 
-        ja_reservado = total_reservado >= equip_obj.quantidade
-
-        if ja_reservado:
+        if reservas_existentes:
             messages.error(request, "Este carrinho já foi reservado para este horário!")
         elif dupla_reserva:
             messages.error(request, "Você ja tem uma reserva nesse horario e para essa turma!")
@@ -166,16 +164,6 @@ def mural(request):
                 status_reserva = 'confirmada'
                 if _professor_requer_aprovacao(professor_reserva):
                     status_reserva = 'pendente'
-
-                nova_reserva = Reserva.objects.create(
-                    professor=professor_reserva,
-                    equipamento=equip_obj,
-                    sala=sala_obj,
-                    horario_inicio=horario_inicio_obj,
-                    horario_fim=horario_fim_obj,
-                    data_uso=data_reservae,
-                    status=status_reserva,
-                )
 
                 if status_reserva == 'pendente':
                     messages.warning(
@@ -190,6 +178,7 @@ def mural(request):
                         f"Equipamento: {equip_obj.nome}\n"
                         f"Sala: {sala_obj.nome}"
                     )
+                    
                 else:
                     messages.success(request, f"Reserva realizada com sucesso para {professor_reserva.username}!")
             except Exception as e:
@@ -672,6 +661,14 @@ def reserva_quantidade(request):
     professor_reserva = request.user
     professor_id = request.user.id
 
+    if data_reservae < hoje:
+        messages.error(
+            request,
+            f"⚠️ Não é possível reservar para o dia {data_reservae.strftime('%d/%m/%Y')}, "
+            f"pois hoje é {hoje.strftime('%d/%m/%Y')}. Selecione uma data a partir de hoje."
+        )
+        return redirect('unico')
+
     if data_reservae == hoje and horario_fim_obj < hora_atual:
         messages.error(request, "Este horário já passou e não pode ser reservado!")
         return redirect(f"/Logar/?data={data_reserva_str}")
@@ -737,6 +734,15 @@ def reserva_quantidade(request):
         messages.warning(
             request,
             f"Reserva de {quantidade_solicitada} unidade(s) enviada! Aguardando aprovação de um administrador."
+        )
+        enviar_telegram(
+            f"📥 <b>Nova reserva pendente</b>\n"
+            f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
+            f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
+            f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
+            f"Equipamento: {equip_obj.nome}\n"
+            f"Sala: {sala_obj.nome}\n"
+            f"Quantidade: {quantidade_solicitada} unidade(s)"
         )
     else:
         messages.success(

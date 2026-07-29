@@ -19,26 +19,6 @@ from openpyxl.utils import get_column_letter
 from ..models import (
     Reserva, RegistroUso, Equipamento, Sala, Notebook
 )
- 
-
-@login_required
-@staff_member_required
-def aprovar_reserva(request, reserva_id):
-    reserva = get_object_or_404(Reserva, id=reserva_id)
-    reserva.status = 'confirmada'
-    reserva.save()
-    messages.success(request, f"Reserva de {reserva.professor.username} aprovada!")
-    return redirect('mural')
-
-@login_required
-@staff_member_required
-def recusar_reserva(request, reserva_id):
-    reserva = get_object_or_404(Reserva, id=reserva_id)
-    reserva.status = 'recusada'
-    reserva.save()
-    messages.warning(request, f"Reserva de {reserva.professor.username} recusada.")
-    return redirect('mural')
-
 
 @staff_member_required
 def exportar_todas_fichas(request):
@@ -334,7 +314,6 @@ def verificar_carrinho(request):
                 fora_de_lugar.append({'numero': n, 'pertence_a': dono.nome})
             else:
                 nao_reconhecidos.append(n)
-
         resultado = {
             'corretos': corretos,
             'faltando': faltando,
@@ -344,6 +323,17 @@ def verificar_carrinho(request):
             'total_esperado': len(faixa_esperada),
             'total_informado': len(numeros_unicos),
         }
+
+        if faltando or fora_de_lugar or nao_reconhecidos:
+            linhas = [f"🔍 <b>Divergência no carrinho {carrinho_selecionado.nome}</b>"]
+            if faltando:
+                linhas.append(f"Faltando: {', '.join(map(str, faltando))}")
+            if fora_de_lugar:
+                itens = ', '.join(f"{f['numero']} (é do {f['pertence_a']})" for f in fora_de_lugar)
+                linhas.append(f"Fora de lugar: {itens}")
+            if nao_reconhecidos:
+                linhas.append(f"Não reconhecidos: {', '.join(map(str, nao_reconhecidos))}")
+            enviar_telegram("\n".join(linhas))
 
     return render(request, 'verificar_carrinho.html', {
         'equipamentos': equipamentos,
@@ -393,6 +383,13 @@ def alternar_status_notebook(request):
 
             status = "ativo" if notebook.ativo else "quebrado"
             messages.success(request, f"Notebook {numero_int} do '{equip.nome}' marcado como {status}.")
+
+            if not notebook.ativo:
+                enviar_telegram(
+                    f"🔧 <b>Notebook marcado como quebrado</b>\n"
+                    f"Carrinho: {equip.nome}\n"
+                    f"Número: {numero_int}"
+                )
         except Exception as e:
             messages.error(request, f"Erro: {e}")
 
