@@ -16,8 +16,7 @@ import pandas as pd
 import re
 
 # Helper
-from .helpers import _professor_requer_aprovacao
-
+from .helpers import _professor_requer_aprovacao, enviar_telegram
 
 def home(request):
     return render(request, 'longa.html')
@@ -168,7 +167,7 @@ def mural(request):
                 if _professor_requer_aprovacao(professor_reserva):
                     status_reserva = 'pendente'
 
-                Reserva.objects.create(
+                nova_reserva = Reserva.objects.create(
                     professor=professor_reserva,
                     equipamento=equip_obj,
                     sala=sala_obj,
@@ -182,6 +181,14 @@ def mural(request):
                     messages.warning(
                         request,
                         "Reserva enviada! Aguardando aprovação de um administrador."
+                    )
+                    enviar_telegram(
+                        f"📥 <b>Nova reserva pendente</b>\n"
+                        f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
+                        f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
+                        f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
+                        f"Equipamento: {equip_obj.nome}\n"
+                        f"Sala: {sala_obj.nome}"
                     )
                 else:
                     messages.success(request, f"Reserva realizada com sucesso para {professor_reserva.username}!")
@@ -227,7 +234,6 @@ def mural(request):
         'form': ReservaForm(),
         'tem_pin': tem_pin,
     })
-
 
 
 @login_required

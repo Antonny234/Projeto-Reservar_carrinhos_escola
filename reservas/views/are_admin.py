@@ -10,6 +10,8 @@ import pandas as pd
 import re
 from collections import defaultdict
 
+#helpers
+from .helpers import enviar_telegram
 
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -459,3 +461,39 @@ def painel_reservas_quantidade(request):
 @staff_member_required
 def menu_ajax(request):
         return render(request, "partials/menu.html")
+
+@login_required
+@staff_member_required
+def aprovar_reserva(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva.status = 'confirmada'
+    reserva.save()
+    messages.success(request, f"Reserva de {reserva.professor.username} aprovada!")
+
+    aprovador = request.user.get_full_name() or request.user.username
+    enviar_telegram(
+        f"✅ <b>Reserva aprovada</b>\n"
+        f"Professor: {reserva.professor.get_full_name() or reserva.professor.username}\n"
+        f"Data: {reserva.data_uso.strftime('%d/%m/%Y')}\n"
+        f"Equipamento: {reserva.equipamento.nome}\n"
+        f"Aprovado por: {aprovador}"
+    )
+    return redirect('mural')
+
+@login_required
+@staff_member_required
+def recusar_reserva(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva.status = 'recusada'
+    reserva.save()
+    messages.warning(request, f"Reserva de {reserva.professor.username} recusada.")
+
+    recusador = request.user.get_full_name() or request.user.username
+    enviar_telegram(
+        f"❌ <b>Reserva recusada</b>\n"
+        f"Professor: {reserva.professor.get_full_name() or reserva.professor.username}\n"
+        f"Data: {reserva.data_uso.strftime('%d/%m/%Y')}\n"
+        f"Equipamento: {reserva.equipamento.nome}\n"
+        f"Recusado por: {recusador}"
+    )
+    return redirect('mural')

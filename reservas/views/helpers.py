@@ -1,6 +1,7 @@
 from django.conf import settings
 from ultralytics import YOLO
 from ..models import PerfilAdm
+import requests
 
 MODEL_PATH = settings.BASE_DIR / "modelos" / "best.pt"
 
@@ -22,3 +23,16 @@ def _professor_requer_aprovacao(user):
         return user.perfil_adm.requer_aprovacao
     except (PerfilAdm.DoesNotExist, AttributeError):
         return False
+
+def enviar_telegram(mensagem):
+    token = settings.TELEGRAM_BOT_TOKEN
+    chat_id = settings.TELEGRAM_CHAT_ID
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    try:
+        requests.post(url, data={
+            "chat_id": chat_id,
+            "text": mensagem,
+            "parse_mode": "HTML"
+        }, timeout=5)
+    except requests.RequestException as e:
+        print(f"Erro ao enviar Telegram: {e}")
