@@ -244,24 +244,33 @@ def verificar_fichas_ausentes(request):
     hoje = agora.date()
     hora_atual = agora.time()
 
-
     reservas_sem_ficha = Reserva.objects.filter(
         data_uso=hoje,
         horario_fim__lt=hora_atual,
         status='confirmada',
         registrouso__isnull=True
-    ).select_related('professor', 'equipamento').distinct()
+    ).select_related('professor', 'equipamento', 'sala').distinct()
 
-    pendencias = [
-        {
+    pendencias = []
+    for r in reservas_sem_ficha:
+        pendencias.append({
             'id': r.id,
             'professor': r.professor.get_full_name() or r.professor.username,
             'sala': r.sala.nome,
             'horario_fim': r.horario_fim.strftime('%H:%M'),
             'equipamento': r.equipamento.nome,
-        }
-        for r in reservas_sem_ficha
-    ]
+        })
+
+        if not r.notificacao_ausencia_enviada:
+            enviar_telegram(
+                f"⚠️ <b>Ficha não preenchida</b>\n"
+                f"Professor: {r.professor.get_full_name() or r.professor.username}\n"
+                f"Sala: {r.sala.nome}\n"
+                f"Carrinho: {r.equipamento.nome}\n"
+                f"Encerrou às: {r.horario_fim.strftime('%H:%M')}"
+            )
+            r.notificacao_ausencia_enviada = True
+            r.save(update_fields=['notificacao_ausencia_enviada'])
 
     return JsonResponse({'pendencias': pendencias})
 
