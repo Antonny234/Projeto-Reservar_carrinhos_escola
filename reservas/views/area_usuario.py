@@ -165,6 +165,16 @@ def mural(request):
                 if _professor_requer_aprovacao(professor_reserva):
                     status_reserva = 'pendente'
 
+                nova_reserva = Reserva.objects.create(
+                    professor=professor_reserva,
+                    equipamento=equip_obj,
+                    sala=sala_obj,
+                    horario_inicio=horario_inicio_obj,
+                    horario_fim=horario_fim_obj,
+                    data_uso=data_reservae,
+                    status=status_reserva,
+                )
+
                 if status_reserva == 'pendente':
                     messages.warning(
                         request,
@@ -178,7 +188,6 @@ def mural(request):
                         f"Equipamento: {equip_obj.nome}\n"
                         f"Sala: {sala_obj.nome}"
                     )
-                    
                 else:
                     messages.success(request, f"Reserva realizada com sucesso para {professor_reserva.username}!")
             except Exception as e:
