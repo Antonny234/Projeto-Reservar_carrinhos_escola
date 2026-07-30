@@ -525,19 +525,19 @@ def view_tablet(request, equipamento_id):
                 if carrinho_id == 1 and num > 40:
                     messages.error(request, f"Erro: {aluno.nome} colocou {num} , mais so tem notebooks de 1 a 40.")
                     erros = True
-                elif carrinho_id == 10 and (num < 41 or num >80 ):
+                elif carrinho_id == 2 and (num < 41 or num >80 ):
                     messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 41 a 80.")
                     erros = True
-                elif carrinho_id == 11 and (num < 81 or num > 120):
+                elif carrinho_id == 3 and (num < 81 or num > 120):
                     messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 81 a 120.")
                     erros = True
-                elif carrinho_id == 12 and (num < 121 or num > 160):
+                elif carrinho_id == 4 and (num < 121 or num > 160):
                     messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 121 a 160.")
                     erros = True
-                elif carrinho_id == 13 and (num < 161 or num > 200):
+                elif carrinho_id == 5 and (num < 161 or num > 200):
                     messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 161 a 200.")
                     erros = True
-                elif carrinho_id == 14 and (num < 201 or num > 240):
+                elif carrinho_id == 6 and (num < 201 or num > 240):
                     messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 201 a 240.")
                     erros = True
             
