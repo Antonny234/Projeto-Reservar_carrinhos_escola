@@ -758,7 +758,15 @@ def reserva_quantidade(request):
             request,
             f"Reserva de {quantidade_solicitada} unidade(s) realizada com sucesso para {professor_reserva.username}!"
         )
-
+        enviar_telegram(
+            f"📥 <b>RESERVA UNICA</b>\n"
+            f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
+            f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
+            f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
+            f"Equipamento: {equip_obj.nome}\n"
+            f"Sala: {sala_obj.nome}\n"
+            f"Quantidade: {quantidade_solicitada} unidade(s)"
+        )
     return redirect('preencher_numeracao_quantidade', reserva_id=nova_reserva.id)
 @login_required
 def preencher_numeracao_quantidade(request, reserva_id):
