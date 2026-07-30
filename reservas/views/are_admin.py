@@ -261,16 +261,14 @@ def verificar_fichas_ausentes(request):
             'equipamento': r.equipamento.nome,
         })
 
-        if not r.notificacao_ausencia_enviada:
-            enviar_telegram(
-                f"⚠️ <b>Ficha não preenchida</b>\n"
-                f"Professor: {r.professor.get_full_name() or r.professor.username}\n"
-                f"Sala: {r.sala.nome}\n"
-                f"Carrinho: {r.equipamento.nome}\n"
-                f"Encerrou às: {r.horario_fim.strftime('%H:%M')}"
-            )
-            r.notificacao_ausencia_enviada = True
-            r.save(update_fields=['notificacao_ausencia_enviada'])
+        enviar_telegram(
+            f"⚠️ <b>Ficha não preenchida</b>\n"
+            f"Professor: {r.professor.get_full_name() or r.professor.username}\n"
+            f"Sala: {r.sala.nome}\n"
+            f"Carrinho: {r.equipamento.nome}\n"
+            f"Encerrou às: {r.horario_fim.strftime('%H:%M')}"
+        )
+        r.save(update_fields=['notificacao_ausencia_enviada'])
 
     return JsonResponse({'pendencias': pendencias})
 
