@@ -17,7 +17,7 @@ from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 from ..models import (
-    Reserva, RegistroUso, Equipamento, Sala, Notebook
+    Reserva, RegistroUso, Equipamento, Sala, Notebook,NotificacaoFichaAusente
 )
 
 @staff_member_required
@@ -248,7 +248,8 @@ def verificar_fichas_ausentes(request):
         data_uso=hoje,
         horario_fim__lt=hora_atual,
         status='confirmada',
-        registrouso__isnull=True,  
+        registrouso__isnull=True,
+        notificacaofichaausente__isnull=True,   # ainda não tem notificação registrada
     ).select_related('professor', 'equipamento', 'sala').distinct()
 
     pendencias = []
@@ -269,8 +270,7 @@ def verificar_fichas_ausentes(request):
             f"Encerrou às: {r.horario_fim.strftime('%H:%M')}"
         )
 
-        r.registrouso__isnull = True  
-        r.save(update_fields=['registrouso__isnull'])
+        NotificacaoFichaAusente.objects.create(reserva=r)
 
     return JsonResponse({'pendencias': pendencias})
 
