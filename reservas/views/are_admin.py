@@ -248,8 +248,7 @@ def verificar_fichas_ausentes(request):
         data_uso=hoje,
         horario_fim__lt=hora_atual,
         status='confirmada',
-        registrouso__isnull=True,
-        notificacao_ausencia_enviada=False,   # <-- só pega quem ainda não foi avisado
+        registrouso__isnull=True,  
     ).select_related('professor', 'equipamento', 'sala').distinct()
 
     pendencias = []
@@ -270,8 +269,8 @@ def verificar_fichas_ausentes(request):
             f"Encerrou às: {r.horario_fim.strftime('%H:%M')}"
         )
 
-        r.notificacao_ausencia_enviada = True   # <-- estava faltando isso
-        r.save(update_fields=['notificacao_ausencia_enviada'])
+        r.registrouso__isnull = True  
+        r.save(update_fields=['registrouso__isnull'])
 
     return JsonResponse({'pendencias': pendencias})
 
