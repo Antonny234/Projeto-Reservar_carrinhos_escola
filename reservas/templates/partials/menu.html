@@ -22,6 +22,10 @@
             <span class="icone"></span> Numerações Pendentes
         </a>
 
+        <a href="https://www.educacao.sp.gov.br/uresaojoaquimdabarra" class="sidebar-link {% if request.resolver_match.url_name == 'exportar_todas_excel' %}ativo{% endif %}">
+            <span class="icone"></span> Abertura de Chamado
+        </a>
+
         <div class="sidebar-section">Exportar</div>
         <a href="{% url 'exportar_excel' %}" class="sidebar-link {% if request.resolver_match.url_name == 'exportar_excel' %}ativo{% endif %}">
             <span class="icone"></span> Reservas (Excel)
