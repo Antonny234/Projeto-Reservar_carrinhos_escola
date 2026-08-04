@@ -19,7 +19,7 @@ from .area_usuario import (
     home, CriarConta, Entrar, mural, excluir_reserva,
     listar_disponiveis, numeros_disponiveis, carregar_mural,
     carregar_mural_publico, carrinho_principal, atualizar_quantidade,
-    importar_de_excel, view_tablet, status_tablet, camera_contagem,
+    importar_de_excel,confirmar_cadastro, reenviar_codigo_cadastro, view_tablet, status_tablet, camera_contagem,
     pagina_unico, reserva_quantidade, preencher_numeracao_quantidade, criar_pin,
 )
 
@@ -31,11 +31,16 @@ from .are_admin import (
     pendentes_numeracao, painel_reservas_quantidade, menu_ajax,
 )
 
+from .redefinir_senha import (
+    redefinir_senha_usuario,
+    redefinir_senha_confirmar,
+)
+
 from .foto import analisar_foto
 
 __all__ = [
-    'home', 'CriarConta', 'Entrar', 'mural', 'excluir_reserva',
-    'listar_disponiveis', 'numeros_disponiveis', 'carregar_mural',
+    'home','confirmar_cadastro','reenviar_codigo_cadastro', 'CriarConta', 'Entrar',
+    'mural', 'excluir_reserva','listar_disponiveis', 'numeros_disponiveis', 'carregar_mural',
     'carregar_mural_publico', 'carrinho_principal', 'atualizar_quantidade',
     'importar_de_excel', 'view_tablet', 'status_tablet', 'camera_contagem',
     'pagina_unico', 'reserva_quantidade', 'preencher_numeracao_quantidade', 'criar_pin',
@@ -44,5 +49,5 @@ __all__ = [
     'painel_fichas', 'ficha_detalhe_json', 'verificar_fichas_ausentes',
     'verificar_carrinho', 'atualizar_faixa_numeracao', 'alternar_status_notebook',
     'pendentes_numeracao', 'painel_reservas_quantidade', 'menu_ajax',
-    'analisar_foto',
+    'analisar_foto','redefinir_senha_usuario', 'redefinir_senha_confirmar',
 ]

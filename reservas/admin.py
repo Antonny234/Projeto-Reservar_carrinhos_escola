@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Equipamento, Reserva, Aluno, RegistroUso, PerfilAdm, NotificacaoFichaAusente, Sala
+from .models import Equipamento, Reserva, Aluno, RegistroUso, PerfilAdm, NotificacaoFichaAusente, Sala,PerfilProfessor, CodigoVerificacao
 from django.utils.safestring import mark_safe
 
 
@@ -95,3 +95,14 @@ class RegistroUsoAdmin(admin.ModelAdmin):
 class SalaAdmin(admin.ModelAdmin):
     list_display = ('nome',)
     search_fields = ('nome',)
+
+@admin.register(PerfilProfessor)
+class PerfilProfessorAdmin(admin.ModelAdmin):
+    list_display = ('usuario', 'whatsapp')
+    search_fields = ('usuario__username', 'whatsapp')
+
+@admin.register(CodigoVerificacao)
+class CodigoVerificacaoAdmin(admin.ModelAdmin):
+    list_display = ('usuario', 'tipo', 'codigo', 'criado_em', 'expira_em', 'usado')
+    list_filter = ('tipo', 'usado')
+    search_fields = ('usuario__username',)

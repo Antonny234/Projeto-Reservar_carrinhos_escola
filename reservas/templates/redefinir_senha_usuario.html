@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir Senha</title>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+<div class="login-box">
+    <h2>Redefinir Senha</h2>
+    <p style="text-align:center;">Digite seu usuário. Enviaremos um link de redefinição para o e-mail cadastrado.</p>
+    
+    <form method="POST" action="{% url 'redefinir_senha_usuario' %}">
+        {% csrf_token %}
+        <div class="input-box">
+            <input type="text" name="usuario" placeholder="Usuário" required>
+        </div>
+        <button type="submit" class="login-btn">Enviar link</button>
+    </form>
+
+    <div class="footer">
+        <p><a href="{% url 'longa' %}">Voltar para o login</a></p>
+    </div>
+
+    {% if messages %}
+        <div style="color: red; text-align: center; margin-top: 15px; font-size: 14px;">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>

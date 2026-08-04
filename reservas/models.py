@@ -1,6 +1,63 @@
 from django.db import models
 from django.contrib.auth.models import User
+import random
+from django.utils import timezone
 
+
+class PerfilProfessor(models.Model):
+    """Dados extras do professor usados na verificação por WhatsApp
+    (cadastro e redefinição de senha)."""
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_professor')
+    whatsapp = models.CharField(
+        "Número de WhatsApp", max_length=20, unique=True,
+        null=True, blank=True,
+        help_text="Formato: DDD + número, ex: 11999998888"
+    )
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.whatsapp}"
+
+    class Meta:
+        verbose_name = "Perfil do Professor"
+        verbose_name_plural = "Perfis dos Professores"
+
+
+class CodigoVerificacao(models.Model):
+    """Código de 4 dígitos enviado por WhatsApp — usado no cadastro
+    e na redefinição de senha."""
+    TIPO_CHOICES = [
+        ('cadastro', 'Confirmação de Cadastro'),
+        ('redefinicao', 'Redefinição de Senha'),
+    ]
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='codigos_verificacao')
+    codigo = models.CharField(max_length=4)
+    tipo = models.CharField(max_length=15, choices=TIPO_CHOICES)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    expira_em = models.DateTimeField()
+    usado = models.BooleanField(default=False)
+
+    MINUTOS_VALIDADE = 15
+
+    @classmethod
+    def gerar(cls, usuario, tipo):
+        cls.objects.filter(usuario=usuario, tipo=tipo, usado=False).update(usado=True)
+        codigo = f"{random.randint(0, 9999):04d}"
+        return cls.objects.create(
+            usuario=usuario,
+            codigo=codigo,
+            tipo=tipo,
+            expira_em=timezone.now() + timezone.timedelta(minutes=cls.MINUTOS_VALIDADE),
+        )
+
+    def valido(self):
+        return (not self.usado) and timezone.now() <= self.expira_em
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.get_tipo_display()} - {self.codigo}"
+
+    class Meta:
+        verbose_name = "Código de Verificação"
+        verbose_name_plural = "Códigos de Verificação"
 
 
 class PerfilAdm(models.Model):

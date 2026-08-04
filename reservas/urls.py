@@ -46,5 +46,17 @@ urlpatterns = [
     path('painel/pendentes-numeracao/', views.pendentes_numeracao, name='pendentes_numeracao'),
     path('painel/reservas-quantidade/', views.painel_reservas_quantidade, name='painel_reservas_quantidade'),
     path("ajax/menu/",views.menu_ajax,name="menu_ajax"),
+    #pin para o envio das fichas
     path('criar-pin/', views.criar_pin, name='criar_pin'),
+
+    #confirmar cadastro com codigo whatsapp
+    path('confirmar-cadastro/', views.confirmar_cadastro, name='confirmar_cadastro'),
+    path('confirmar-cadastro/reenviar/', views.reenviar_codigo_cadastro, name='reenviar_codigo_cadastro'),
+
+    #redefinir senha
+
+    # redefinir senha (novo fluxo por e-mail)
+    path('esqueci-senha/', views.redefinir_senha_usuario, name='redefinir_senha_usuario'),
+    path('esqueci-senha/<uidb64>/<token>/', views.redefinir_senha_confirmar, name='redefinir_senha_confirmar'),
+
 ]

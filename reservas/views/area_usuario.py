@@ -5,6 +5,8 @@ from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from datetime import date, datetime
 from django.db.models import Sum
+from ..models import PerfilProfessor, CodigoVerificacao
+from ..email_utils import enviar_codigo_email, EmailError
 
 from ..models import (
     Aluno, NumeroReservaQuantidade, RegistroUso, Reserva, Equipamento, Sala, Notebook, PerfilAdm
@@ -32,7 +34,7 @@ def CriarConta(request):
         dominio_permitido = "@professor.educacao.sp.gov.br"
 
         if not email.lower().endswith(dominio_permitido):
-            messages.error(request, "Erro: Apenas e-mails corporativo SEDUC!")
+            messages.error(request, "Erro: Apenas e-mails corporativos SEDUC!")
             return render(request, 'index.html')
 
         if senha != confirmar:
@@ -44,28 +46,45 @@ def CriarConta(request):
             return render(request, 'index.html')
 
         if User.objects.filter(email=email).exists():
-            messages.error(request, "Este email esta em uso.")
+            messages.error(request, "Este e-mail já está em uso.")
             return render(request, 'index.html')
 
         user = User.objects.create_user(username=usuario, email=email, password=senha)
+        user.is_active = False  # só ativa depois de confirmar o código
         user.save()
 
-        messages.success(request, "Conta criada com sucesso! Faça login.")
-        return render(request, 'longa.html')
+        # Cria o perfil (sem WhatsApp obrigatório)
+        from ..models import PerfilProfessor
+        PerfilProfessor.objects.create(usuario=user)
+
+        codigo_obj = CodigoVerificacao.gerar(user, tipo='cadastro')
+        try:
+            enviar_codigo_email(email, codigo_obj.codigo)
+        except EmailError as e:
+            user.delete()
+            messages.error(request, str(e))
+            return render(request, 'index.html')
+
+        request.session['cadastro_pendente_user_id'] = user.id
+        messages.success(request, "Cadastro quase concluído! Enviamos um código para o seu e-mail.")
+        return redirect('confirmar_cadastro')
 
     return render(request, 'index.html')
-
-
 def Entrar(request):
     if request.method == "POST":
         usuario_digitado = request.POST.get('usuario')
         senha_digitada = request.POST.get('senha')
 
-        usuario_existe = User.objects.filter(username=usuario_digitado).exists()
+        user_obj = User.objects.filter(username=usuario_digitado).first()
 
-        if not usuario_existe:
+        if not user_obj:
             messages.error(request, "Usuário não encontrado!")
             return render(request, 'longa.html')
+
+        if not user_obj.is_active:
+            messages.error(request, "Você ainda não confirmou seu cadastro pelo e-mail.")
+            request.session['cadastro_pendente_user_id'] = user_obj.id
+            return redirect('confirmar_cadastro')
 
         user = authenticate(request, username=usuario_digitado, password=senha_digitada)
 
@@ -78,9 +97,58 @@ def Entrar(request):
 
     return render(request, 'longa.html')
 
+def confirmar_cadastro(request):
+    user_id = request.session.get('cadastro_pendente_user_id')
+    if not user_id:
+        messages.error(request, "Nenhum cadastro pendente encontrado. Cadastre-se novamente.")
+        return redirect('index')
+
+    user = get_object_or_404(User, id=user_id, is_active=False)
+
+    if request.method == "POST":
+        codigo_digitado = request.POST.get('codigo', '').strip()
+        codigo_obj = CodigoVerificacao.objects.filter(
+            usuario=user, tipo='cadastro', codigo=codigo_digitado
+        ).order_by('-criado_em').first()
+
+        if not codigo_obj or not codigo_obj.valido():
+            messages.error(request, "Código inválido ou expirado.")
+            return render(request, 'confirmar_cadastro.html')
+
+        codigo_obj.usado = True
+        codigo_obj.save()
+
+        user.is_active = True
+        user.save()
+
+        perfil = user.perfil_professor
+        pass
+        perfil.save()
+
+        del request.session['cadastro_pendente_user_id']
+        messages.success(request, "Conta confirmada com sucesso! Faça login.")
+        return redirect('longa')
+
+    return render(request, 'confirmar_cadastro.html')
+
+
+def reenviar_codigo_cadastro(request):
+    user_id = request.session.get('cadastro_pendente_user_id')
+    if not user_id:
+        messages.error(request, "Nenhum cadastro pendente encontrado.")
+        return redirect('index')
+
+    user = get_object_or_404(User, id=user_id, is_active=False)
+    codigo_obj = CodigoVerificacao.gerar(user, tipo='cadastro')
+    try:
+        enviar_codigo_email(user.email, codigo_obj.codigo)
+        messages.success(request, "Reenviamos o código para o seu e-mail.")
+    except EmailError as e:
+        messages.error(request, str(e))
+
+    return redirect('confirmar_cadastro')
 
 # Mural / Reservas
-
 
 @login_required
 def mural(request):
@@ -453,7 +521,6 @@ def importar_de_excel(caminho_arquivo):
 
 # PIN de envio para tablet
 
-
 @login_required
 def criar_pin(request):
     if request.method == "POST":
@@ -475,26 +542,22 @@ def criar_pin(request):
 
 # Tablet / Fichas
 
-
 def view_tablet(request, equipamento_id):
     agora = timezone.localtime()
 
-    reserva = Reserva.objects.filter(
-        equipamento_id=equipamento_id,
-        status='confirmada',
-        data_uso=agora.date(),
-        horario_inicio__lte=agora.time(),
-        horario_fim__gte=agora.time(),
-        quantidade__isnull=True,
-    ).first()
-
-    if not reserva:
-        return HttpResponse("Nenhuma reserva ativa para este carrinho agora.")
-
-    sala = reserva.sala
-    alunos = Aluno.objects.filter(sala=sala)
-
     if request.method == "POST":
+        # A reserva usada no envio é sempre a que foi carregada na tela
+        # (via hidden input), nunca recalculada pelo relógio.
+        reserva_id = request.POST.get('reserva_id')
+        reserva = get_object_or_404(
+            Reserva,
+            id=reserva_id,
+            equipamento_id=equipamento_id,
+            status='confirmada',
+        )
+        sala = reserva.sala
+        alunos = Aluno.objects.filter(sala=sala)
+
         # Validar PIN de envio
         pin_digitado = request.POST.get('pin_envio', '').strip()
         professor = reserva.professor
@@ -514,33 +577,32 @@ def view_tablet(request, equipamento_id):
 
         numeros_usados = {}
         erros = False
-        carrinho_id = reserva.equipamento.id  
+        carrinho_id = reserva.equipamento.id
 
         for aluno in alunos:
             numero_str = request.POST.get(f'aluno_{aluno.id}')
             if numero_str:
                 num = int(numero_str)
 
-                #regra de validação para mandar as fichas
                 if carrinho_id == 1 and num > 40:
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num} , mais so tem notebooks de 1 a 40.")
+                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 1 a 40.")
                     erros = True
-                elif carrinho_id == 2 and (num < 41 or num >80 ):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 41 a 80.")
+                elif carrinho_id == 2 and (num < 41 or num > 80):
+                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 41 a 80.")
                     erros = True
                 elif carrinho_id == 3 and (num < 81 or num > 120):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 81 a 120.")
+                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 81 a 120.")
                     erros = True
                 elif carrinho_id == 4 and (num < 121 or num > 160):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 121 a 160.")
+                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 121 a 160.")
                     erros = True
                 elif carrinho_id == 5 and (num < 161 or num > 200):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 161 a 200.")
+                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 161 a 200.")
                     erros = True
                 elif carrinho_id == 6 and (num < 201 or num > 240):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num} mais so tem notebooks de 201 a 240.")
+                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 201 a 240.")
                     erros = True
-            
+
                 if num in numeros_usados:
                     messages.error(
                         request,
@@ -549,13 +611,13 @@ def view_tablet(request, equipamento_id):
                     erros = True
                 else:
                     numeros_usados[num] = aluno.nome
-        
 
-      
         if erros:
             return render(request, 'tablet_checkin.html', {'reserva': reserva, 'alunos': alunos, 'dados_anteriores': request.POST})
 
-      
+        # Trava de segurança: só mostra sucesso se algo foi realmente salvo
+        registros_salvos = 0
+
         for aluno in alunos:
             numero = request.POST.get(f'aluno_{aluno.id}')
             if numero:
@@ -563,6 +625,11 @@ def view_tablet(request, equipamento_id):
                     reserva=reserva, aluno=aluno,
                     defaults={'numero_notebook': numero}
                 )
+                registros_salvos += 1
+
+        if registros_salvos == 0:
+            messages.error(request, "Nenhuma ficha foi registrada. Verifique se os campos foram preenchidos e tente novamente.")
+            return render(request, 'tablet_checkin.html', {'reserva': reserva, 'alunos': alunos, 'dados_anteriores': request.POST})
 
         return render(request, 'enviado.html', {
             'id': equipamento_id,
@@ -572,7 +639,24 @@ def view_tablet(request, equipamento_id):
             'sala': sala.id,
         })
 
+    # GET continua 100% dinâmico, trocando de turma conforme o horário atual
+    reserva = Reserva.objects.filter(
+        equipamento_id=equipamento_id,
+        status='confirmada',
+        data_uso=agora.date(),
+        horario_inicio__lte=agora.time(),
+        horario_fim__gte=agora.time(),
+        quantidade__isnull=True,
+    ).first()
+
+    if not reserva:
+        return HttpResponse("Nenhuma reserva ativa para este carrinho agora.")
+
+    sala = reserva.sala
+    alunos = Aluno.objects.filter(sala=sala)
+
     return render(request, 'tablet_checkin.html', {'reserva': reserva, 'alunos': alunos})
+
 
 @login_required
 def status_tablet(request, equipamento_id):
