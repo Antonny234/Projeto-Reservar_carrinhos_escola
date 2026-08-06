@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Código de Verificação</title>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+<div class="login-box">
+    <h2>Digite o código</h2>
+    <p style="text-align:center;">Enviamos um código de 4 dígitos para o seu WhatsApp (válido por 15 minutos).</p>
+    <form method="POST" action="{% url 'redefinir_senha_codigo' %}">
+        {% csrf_token %}
+        <div class="input-box">
+            <input type="text" name="codigo" maxlength="4" placeholder="Código de 4 dígitos" required>
+        </div>
+        <button type="submit" class="login-btn">Confirmar</button>
+    </form>
+    {% if messages %}
+        <div style="color: red; text-align: center; margin-top: 15px; font-size: 14px;">
+        {% for message in messages %}{{ message }}{% endfor %}
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>
