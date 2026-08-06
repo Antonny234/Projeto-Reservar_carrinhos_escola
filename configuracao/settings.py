@@ -8,7 +8,7 @@ load_dotenv(override=False)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DJANGO_SECRET_KEY = os.environ.get('DJANG0_SECRET_KEY')
+DJANGO_SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
