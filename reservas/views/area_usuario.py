@@ -6,8 +6,7 @@ from django.utils import timezone
 from datetime import date, datetime
 from django.db.models import Sum
 from ..models import PerfilProfessor, CodigoVerificacao
-from ..email_utils import enviar_codigo_email, EmailError
-
+from ..whatsapp_utils import enviar_codigo_email, EmailError
 from ..models import (
     Aluno, NumeroReservaQuantidade, RegistroUso, Reserva, Equipamento, Sala, Notebook, PerfilAdm
 )

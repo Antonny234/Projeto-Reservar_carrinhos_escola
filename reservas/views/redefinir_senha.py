@@ -7,8 +7,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 
-from ..email_utils import enviar_link_redefinicao, EmailError
-
+from ..whatsapp_utils import enviar_link_redefinicao, EmailError
 
 def redefinir_senha_usuario(request):
     """Etapa 1 — digita o usuário e envia o link por e-mail."""
