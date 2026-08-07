@@ -30,3 +30,4 @@ pluggy>=1.5.0                # Hook system (pytest/django dependem)
 pyparsing>=3.1.0             # Parsing de strings (usado pelo pandas)
 certifi>=2024.0.0            # CA bundle para SSL
 
+resend==2.35.0
