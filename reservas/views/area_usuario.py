@@ -700,7 +700,7 @@ def view_tablet(request, equipamento_id):
             )
             return render(request, 'tablet_checkin.html', contexto_erro)
 
-
+        # 3) Validar PIN (DEPOIS da validação dos alunos)
         pin_digitado = request.POST.get('pin_envio', '').strip()
         professor = reserva.professor
 
@@ -717,6 +717,7 @@ def view_tablet(request, equipamento_id):
             messages.error(request, "PIN inválido! Digite o PIN de 4 dígitos correto.")
             return render(request, 'tablet_checkin.html', contexto_erro)
 
+        # 4) Salvar os registros de uso (número do notebook de cada aluno)
         registros = []
         for aluno in alunos:
             numero_str = request.POST.get(f'aluno_{aluno.id}')
@@ -732,6 +733,7 @@ def view_tablet(request, equipamento_id):
         RegistroUso.objects.filter(reserva=reserva).delete()
         RegistroUso.objects.bulk_create(registros)
 
+        # 5) Envio final (sucesso) — trava reenvio marcando a reserva
         reserva.numeracao_preenchida = True
         reserva.save(update_fields=['numeracao_preenchida'])
 
@@ -742,6 +744,24 @@ def view_tablet(request, equipamento_id):
             'carrinho_id': carrinho_id,
             'sala': sala.id,
         })
+
+    # ── GET: busca dinâmica pela reserva ativa no horário atual ──
+    reserva = buscar_reserva_ativa(equipamento_id, agora)
+
+    if not reserva:
+        return render(request, 'tablet_sem_reserva.html', {
+            'equipamento_id': equipamento_id,
+            'agora': agora,
+        })
+
+    sala = reserva.sala
+    alunos = Aluno.objects.filter(sala=sala)
+
+    return render(request, 'tablet_checkin.html', {
+        'reserva': reserva,
+        'alunos': alunos,
+        'minimo_alunos': MINIMO_ALUNOS_PADRAO,
+    })
 
 
 @login_required
