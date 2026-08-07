@@ -15,12 +15,16 @@
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }}">
             {{ message }}
-            <button class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
+            <button type="button" class="fechar-alert" onclick="this.parentElement.remove()">✕</button>
         </div>
         {% endfor %}
     </div>
     {% endif %}
     {% csrf_token %}
+
+    <!-- CRÍTICO: sem isso o backend nunca sabe qual reserva foi enviada -->
+    <input type="hidden" name="reserva_id" value="{{ reserva.id }}">
+
     <h1>Carrinho: {{ reserva.equipamento.nome }} | Sala: {{ reserva.sala }} | Professor: {{ reserva.professor.username }}</h1>
 
     <p id="erro-minimo" style="color:red; display:none; font-weight:bold;"></p>
@@ -29,7 +33,6 @@
     {% for aluno in alunos %}
         <div class="item-aluno">
             <label for="aluno_{{ aluno.id }}">{{ aluno.nome }}</label>
-
             <input type="number"
                     class="campo-notebook"
                     name="aluno_{{ aluno.id }}"
@@ -43,8 +46,7 @@
     {% endfor %}
     </div>
 
-    <button type="submit" data-minimo="{{ minimo_alunos }}">ENVIAR FICHA</button>
-
+    <button type="submit" data-minimo="{{ minimo_alunos|default:5 }}">ENVIAR FICHA</button>
 </form>
 
 <!-- Modal de Confirmação PIN -->
@@ -52,7 +54,7 @@
     <div class="modal-confirmacao-box">
         <div class="modal-confirmacao-header">
             <h2>📋 Confirmar Envio da Ficha</h2>
-            <button onclick="fecharModalConfirmacao()" class="modal-confirmacao-fechar" title="Cancelar">✕</button>
+            <button type="button" onclick="fecharModalConfirmacao()" class="modal-confirmacao-fechar" title="Cancelar">✕</button>
         </div>
         <div class="modal-confirmacao-body">
             <div class="modal-confirmacao-contagem">
@@ -66,27 +68,28 @@
             <p id="erro-pin" style="color:red; display:none; font-weight:bold; margin:0;"></p>
         </div>
         <div class="modal-confirmacao-footer">
-            <button onclick="fecharModalConfirmacao()" class="modal-confirmacao-btn-cancelar">Cancelar</button>
-            <button onclick="confirmarEnvio()" class="modal-confirmacao-btn-confirmar">✓ Confirmar Envio</button>
+            <button type="button" onclick="fecharModalConfirmacao()" class="modal-confirmacao-btn-cancelar">Cancelar</button>
+            <button type="button" onclick="confirmarEnvio()" class="modal-confirmacao-btn-confirmar">✓ Confirmar Envio</button>
         </div>
     </div>
 </div>
 
 <script>
   const MINIMO = parseInt(document.querySelector('button[type="submit"]').dataset.minimo) || 5;
-  let formularioPronto = false;
+  const RESERVA_ID_ATUAL = "{{ reserva.id }}";
+  let formularioSendoPreenchido = false;
+  let enviando = false;
+
+  document.querySelectorAll('.campo-notebook').forEach(campo => {
+    campo.addEventListener('input', () => { formularioSendoPreenchido = true; });
+  });
 
   document.getElementById('form-ficha').addEventListener('submit', function (e) {
-    e.preventDefault(); // Sempre previne o envio direto
+    e.preventDefault();
 
     const campos = document.querySelectorAll('.campo-notebook');
     let preenchidos = 0;
-
-    campos.forEach(campo => {
-      if (campo.value.trim() !== '') {
-        preenchidos++;
-      }
-    });
+    campos.forEach(campo => { if (campo.value.trim() !== '') preenchidos++; });
 
     const erro = document.getElementById('erro-minimo');
 
@@ -98,8 +101,6 @@
     }
 
     erro.style.display = 'none';
-
-    // Abre o modal de confirmação com PIN
     document.getElementById('qtd-alunos').textContent = preenchidos;
     document.getElementById('pin-confirmacao').value = '';
     document.getElementById('erro-pin').style.display = 'none';
@@ -112,6 +113,7 @@
   }
 
   function confirmarEnvio() {
+    if (enviando) return; // evita duplo clique / envio duplicado
     const pin = document.getElementById('pin-confirmacao').value.trim();
     const erroPin = document.getElementById('erro-pin');
 
@@ -122,8 +124,8 @@
     }
 
     erroPin.style.display = 'none';
+    enviando = true;
 
-    // Adiciona o PIN como campo oculto no formulário e envia
     const form = document.getElementById('form-ficha');
     const inputPin = document.createElement('input');
     inputPin.type = 'hidden';
@@ -131,24 +133,44 @@
     inputPin.value = pin;
     form.appendChild(inputPin);
 
-    // Remove o event listener para não loopar, e submete
+    const btnConfirmar = document.querySelector('.modal-confirmacao-btn-confirmar');
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = 'Enviando...';
+
     form.submit();
   }
 
-  // Fecha modal com ESC
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      fecharModalConfirmacao();
-    }
+    if (e.key === 'Escape') fecharModalConfirmacao();
   });
 
-  // ENTER no campo de PIN confirma o envio
   document.getElementById('pin-confirmacao').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
       confirmarEnvio();
     }
   });
+
+  // ── Troca dinâmica de turma quando o horário virar ──
+
+  setInterval(() => {
+    if (formularioSendoPreenchido || enviando) return;
+
+    fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const novoDoc = parser.parseFromString(html, 'text/html');
+        const novoInput = novoDoc.querySelector('input[name="reserva_id"]');
+        const novoId = novoInput ? novoInput.value : null;
+
+
+        if (novoId && novoId !== RESERVA_ID_ATUAL) {
+          window.location.reload();
+        }
+      })
+      .catch(() => {  });
+  }, 30000); 
 </script>
 
 </body>

@@ -16,8 +16,8 @@ class EmailError(Exception):
 
 def enviar_codigo_email(email: str, codigo: str) -> bool:
     """Envia o código de verificação de 4 dígitos por e-mail."""
-    if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
-        logger.warning("EMAIL_HOST_USER/EMAIL_HOST_PASSWORD não configurados.")
+    if not settings.DEFAULT_FROM_EMAIL or not settings.EMAIL_HOST_PASSWORD:
+        logger.warning("DEFAULT_FROM_EMAIL/EMAIL_HOST_PASSWORD não configurados.")
         raise EmailError("Envio de e-mail não está configurado no servidor.")
 
     assunto = "Código de verificação - Cadastro"
@@ -44,7 +44,7 @@ def enviar_codigo_email(email: str, codigo: str) -> bool:
 
 def enviar_link_redefinicao(request, user) -> bool:
     """Gera e envia o link de redefinição de senha por e-mail."""
-    if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+    if not settings.DEFAULT_FROM_EMAIL or not settings.EMAIL_HOST_PASSWORD:
         raise EmailError("Envio de e-mail não está configurado no servidor.")
 
     uid = urlsafe_base64_encode(force_bytes(user.pk))

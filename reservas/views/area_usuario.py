@@ -16,6 +16,10 @@ from django.contrib.auth import authenticate, login
 import pandas as pd
 import re
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Helper
 from .helpers import _professor_requer_aprovacao, enviar_telegram
 
@@ -35,7 +39,7 @@ def CriarConta(request):
         if not email.lower().endswith(dominio_permitido):
             messages.error(request, "Erro: Apenas e-mails corporativos SEDUC!")
             return render(request, 'index.html')
-
+        
         if senha != confirmar:
             messages.error(request, "As senhas não coincidem!")
             return render(request, 'index.html')
@@ -541,23 +545,98 @@ def criar_pin(request):
 
 # Tablet / Fichas
 
+MINIMO_ALUNOS_PADRAO = 5
+
+LIMITES_CARRINHO = {
+    1: (1, 40),
+    2: (41, 80),
+    3: (81, 120),
+    4: (121, 160),
+    5: (161, 200),
+    6: (201, 240),
+}
+
+
+def notificar_erro_telegram(titulo: str, detalhes: str, equipamento_id, agora, extra: str = ""):
+    """Centraliza o envio de alertas de erro para o Telegram."""
+    try:
+        enviar_telegram(
+            f"🔴 <b>{titulo}</b>\n"
+            f"Equipamento ID: {equipamento_id}\n"
+            f"Horário: {agora.strftime('%d/%m/%Y %H:%M:%S')}\n"
+            f"Detalhes: {detalhes}\n"
+            f"{extra}"
+        )
+    except Exception:
+        # Se o próprio envio do Telegram falhar, não pode derrubar a view.
+        logger.exception("Falha ao enviar notificação de erro pro Telegram")
+
+
+def buscar_reserva_ativa(equipamento_id, agora):
+    """Busca a reserva confirmada e vigente no horário atual para este equipamento."""
+    return Reserva.objects.filter(
+        equipamento_id=equipamento_id,
+        status='confirmada',
+        data_uso=agora.date(),
+        horario_inicio__lte=agora.time(),
+        horario_fim__gte=agora.time(),
+        quantidade__isnull=True,
+    ).first()
+
+
 def view_tablet(request, equipamento_id):
     agora = timezone.localtime()
 
     if request.method == "POST":
-        # A reserva usada no envio é sempre a que foi carregada na tela
-        # (via hidden input), nunca recalculada pelo relógio.
         reserva_id = request.POST.get('reserva_id')
-        reserva = get_object_or_404(
-            Reserva,
-            id=reserva_id,
-            equipamento_id=equipamento_id,
-            status='confirmada',
-        )
+
+        # 1) Localizar a reserva com segurança, sem estourar 404 cru
+        try:
+            if not reserva_id:
+                raise ValueError("Campo reserva_id ausente no POST (formulário sem hidden input).")
+
+            reserva = Reserva.objects.filter(
+                id=reserva_id,
+                equipamento_id=equipamento_id,
+            ).first()
+
+            if not reserva:
+                raise ValueError(f"Nenhuma reserva encontrada com id={reserva_id} para equipamento_id={equipamento_id}.")
+
+            if reserva.status != 'confirmada':
+                raise ValueError(
+                    f"Reserva {reserva.id} encontrada, mas está com status '{reserva.status}' "
+                    f"(esperado 'confirmada'). Provável mudança de status entre a abertura da página e o envio."
+                )
+
+        except ValueError as e:
+            logger.warning(f"Falha ao localizar reserva no envio de ficha: {e}")
+            notificar_erro_telegram(
+                "ERRO NO ENVIO DE FICHA — Reserva não encontrada",
+                str(e),
+                equipamento_id,
+                agora,
+            )
+            messages.error(
+                request,
+                "Não foi possível confirmar sua reserva no momento do envio. "
+                "Isso pode acontecer se a página ficou aberta por muito tempo. "
+                "Recarregue a página e tente novamente. A coordenação já foi avisada."
+            )
+            return redirect('tablet_checkin', equipamento_id=equipamento_id)
+
         sala = reserva.sala
         alunos = Aluno.objects.filter(sala=sala)
+        minimo_alunos = MINIMO_ALUNOS_PADRAO
 
-        # Validar PIN de envio
+        contexto_erro = {
+            'reserva': reserva,
+            'alunos': alunos,
+            'dados_anteriores': request.POST,
+            'minimo_alunos': minimo_alunos,
+        }
+
+        # 2) Validar PIN
         pin_digitado = request.POST.get('pin_envio', '').strip()
         professor = reserva.professor
 
@@ -568,39 +647,39 @@ def view_tablet(request, equipamento_id):
 
         if not pin_correto:
             messages.error(request, "Professor não possui PIN cadastrado. Crie um PIN no mural primeiro.")
-            return render(request, 'tablet_checkin.html', {'reserva': reserva, 'alunos': alunos, 'dados_anteriores': request.POST})
+            return render(request, 'tablet_checkin.html', contexto_erro)
 
         if not pin_digitado or pin_digitado != pin_correto:
             messages.error(request, "PIN inválido! Digite o PIN de 4 dígitos correto.")
-            return render(request, 'tablet_checkin.html', {'reserva': reserva, 'alunos': alunos, 'dados_anteriores': request.POST})
+            return render(request, 'tablet_checkin.html', contexto_erro)
 
-        numeros_usados = {}
-        erros = False
-        carrinho_id = reserva.equipamento.id
+        # 3) Validar preenchimento dos alunos
+        try:
+            numeros_usados = {}
+            erros = False
+            carrinho_id = reserva.equipamento.id
+            limites = LIMITES_CARRINHO.get(carrinho_id)
 
-        for aluno in alunos:
-            numero_str = request.POST.get(f'aluno_{aluno.id}')
-            if numero_str:
+            for aluno in alunos:
+                numero_str = request.POST.get(f'aluno_{aluno.id}')
+                if not numero_str:
+                    continue
+
+                if not numero_str.strip().isdigit():
+                    messages.error(request, f"Erro: {aluno.nome} tem um valor inválido ('{numero_str}').")
+                    erros = True
+                    continue
+
                 num = int(numero_str)
 
-                if carrinho_id == 1 and num > 40:
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 1 a 40.")
-                    erros = True
-                elif carrinho_id == 2 and (num < 41 or num > 80):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 41 a 80.")
-                    erros = True
-                elif carrinho_id == 3 and (num < 81 or num > 120):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 81 a 120.")
-                    erros = True
-                elif carrinho_id == 4 and (num < 121 or num > 160):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 121 a 160.")
-                    erros = True
-                elif carrinho_id == 5 and (num < 161 or num > 200):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 161 a 200.")
-                    erros = True
-                elif carrinho_id == 6 and (num < 201 or num > 240):
-                    messages.error(request, f"Erro: {aluno.nome} colocou {num}, mais só tem notebooks de 201 a 240.")
-                    erros = True
+                if limites:
+                    minimo, maximo = limites
+                    if num < minimo or num > maximo:
+                        messages.error(
+                            request,
+                            f"Erro: {aluno.nome} colocou {num}, mas só tem notebooks de {minimo} a {maximo}."
+                        )
+                        erros = True
 
                 if num in numeros_usados:
                     messages.error(
@@ -611,50 +690,64 @@ def view_tablet(request, equipamento_id):
                 else:
                     numeros_usados[num] = aluno.nome
 
-        if erros:
-            return render(request, 'tablet_checkin.html', {'reserva': reserva, 'alunos': alunos, 'dados_anteriores': request.POST})
+            if erros:
+                return render(request, 'tablet_checkin.html', contexto_erro)
 
-        # Trava de segurança: só mostra sucesso se algo foi realmente salvo
-        registros_salvos = 0
+            # 4) Envio final (sucesso)
+            resultado = render(request, 'enviado.html', {
+                'id': equipamento_id,
+                'reserva_id': reserva.id,
+                'professor_id': reserva.professor_id,
+                'carrinho_id': carrinho_id,
+                'sala': sala.id,
+            })
 
-        for aluno in alunos:
-            numero = request.POST.get(f'aluno_{aluno.id}')
-            if numero:
-                RegistroUso.objects.update_or_create(
-                    reserva=reserva, aluno=aluno,
-                    defaults={'numero_notebook': numero}
-                )
-                registros_salvos += 1
+            return resultado
 
-        if registros_salvos == 0:
-            messages.error(request, "Nenhuma ficha foi registrada. Verifique se os campos foram preenchidos e tente novamente.")
-            return render(request, 'tablet_checkin.html', {'reserva': reserva, 'alunos': alunos, 'dados_anteriores': request.POST})
+        except Exception as e:
+            # Qualquer erro inesperado (bug, campo faltando, banco fora, etc.)
+            logger.exception("Erro inesperado ao processar envio de ficha")
+            notificar_erro_telegram(
+                "ERRO CRÍTICO NO ENVIO DE FICHA",
+                f"{type(e).__name__}: {e}",
+                equipamento_id,
+                agora,
+                extra=f"Professor: {reserva.professor.username if reserva else 'desconhecido'}",
+            )
+            messages.error(
+                request,
+                "Ocorreu um erro inesperado ao processar sua ficha. "
+                "A coordenação já foi avisada automaticamente. Tente novamente em instantes."
+            )
+            return render(request, 'tablet_checkin.html', contexto_erro)
 
-        return render(request, 'enviado.html', {
-            'id': equipamento_id,
-            'reserva_id': reserva.id,
-            'professor_id': reserva.professor_id,
-            'carrinho_id': carrinho_id,
-            'sala': sala.id,
-        })
+    # ── GET: busca dinâmica pela reserva ativa no horário atual ──
+    reserva = buscar_reserva_ativa(equipamento_id, agora)
 
-    # GET continua 100% dinâmico, trocando de turma conforme o horário atual
-    reserva = Reserva.objects.filter(
+    compa = Reserva.objects.filter(
         equipamento_id=equipamento_id,
         status='confirmada',
         data_uso=agora.date(),
         horario_inicio__lte=agora.time(),
         horario_fim__gte=agora.time(),
         quantidade__isnull=True,
-    ).first()
+    ).exists()
 
-    if not reserva:
-        return HttpResponse("Nenhuma reserva ativa para este carrinho agora.")
+    if not reserva and compa != reserva:
+        return render(request, 'tablet_sem_reserva.html', {
+            'equipamento_id': equipamento_id,
+            'agora': agora,
+        })
 
-    sala = reserva.sala
-    alunos = Aluno.objects.filter(sala=sala)
+    else:
+        sala = reserva.sala
+        alunos = Aluno.objects.filter(sala=sala)
 
-    return render(request, 'tablet_checkin.html', {'reserva': reserva, 'alunos': alunos})
+        return render(request, 'tablet_checkin.html', {
+            'reserva': reserva,
+            'alunos': alunos,
+            'minimo_alunos': MINIMO_ALUNOS_PADRAO,
+        })
 
 
 @login_required
@@ -670,6 +763,12 @@ def status_tablet(request, equipamento_id):
         quantidade__isnull=True,
     ).exclude(id=request.GET.get('reserva_atual')).exists()
 
+    if not nova_reserva:
+        return render(request, 'tablet_sem_reserva.html', {
+            'equipamento_id': equipamento_id,
+            'agora': agora,
+        })
+    
     return JsonResponse({'nova_reserva': nova_reserva})
 
 

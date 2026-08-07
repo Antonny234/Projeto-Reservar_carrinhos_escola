@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aguardando Reserva</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tablet_sem_reserva.css' %}">
+</head>
+<body>
+
+    <div class="principal">
+        <div class="relogio">🕐</div>
+        <h1>Nenhuma reserva ativa no momento</h1>
+        <p>Este carrinho não possui uma turma agendada para o horário atual.</p>
+        <h2>Atualizando automaticamente... <span id="pontos">.</span></h2>
+        <p class="hora-atual">Horário atual: <span id="hora-agora">{{ agora|date:"H:i" }}</span></p>
+    </div>
+
+<script>
+    const equipamentoId = "{{ equipamento_id }}";
+    const URL_CARRINHO = "/tablet/" + equipamentoId + "/";
+
+    // Anima os pontinhos "..." pra dar sensação de que a página está viva
+    let pontos = 0;
+    setInterval(() => {
+        pontos = (pontos + 1) % 4;
+        document.getElementById('pontos').textContent = '.'.repeat(pontos || 1);
+    }, 500);
+
+    // Checa a cada 15s se já surgiu uma reserva ativa pra esse carrinho.
+    // Como não há "reserva_atual" ainda (não tem nenhuma reserva na tela),
+    // manda vazio — a view considera qualquer reserva ativa como "nova".
+    function verificarReserva() {
+        fetch(`/tablet/${equipamentoId}/status/?reserva_atual=`)
+            .then(resposta => resposta.json())
+            .then(dados => {
+                if (dados.nova_reserva) {
+                    window.location.href = URL_CARRINHO;
+                }
+            })
+            .catch(erro => console.error("Erro ao verificar reserva:", erro));
+    }
+
+    setInterval(verificarReserva, 15000);
+
+    // Fallback: recarrega a página inteira a cada 60s de qualquer forma,
+    // como garantia extra caso o polling silencie por algum motivo.
+    setInterval(() => window.location.reload(), 60000);
+</script>
+</body>
+</html>
