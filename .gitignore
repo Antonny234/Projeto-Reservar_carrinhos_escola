@@ -12,3 +12,9 @@ backup_*.sql
 *.crt
 test_output*.txt
 teste.py
+# Dados sensíveis
+dados_exportados.json
+*.pem
+*.key
+*.crt
+*.cer

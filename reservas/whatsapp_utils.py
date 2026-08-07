@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 import logging
+import os
+import resend
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +16,10 @@ class EmailError(Exception):
 
 
 def enviar_codigo_email(email: str, codigo: str) -> bool:
-    """Envia o código de verificação de 4 dígitos por e-mail."""
-    if not settings.DEFAULT_FROM_EMAIL or not settings.EMAIL_HOST_PASSWORD:
-        logger.warning("DEFAULT_FROM_EMAIL/EMAIL_HOST_PASSWORD não configurados.")
+    """Envia o código de verificação de 4 dígitos por e-mail via Resend."""
+    resend.api_key = os.environ.get("RESEND_API_KEY")
+    if not resend.api_key or not settings.DEFAULT_FROM_EMAIL:
+        logger.warning("RESEND_API_KEY ou DEFAULT_FROM_EMAIL não configurados.")
         raise EmailError("Envio de e-mail não está configurado no servidor.")
 
     assunto = "Código de verificação - Cadastro"
@@ -29,13 +31,13 @@ def enviar_codigo_email(email: str, codigo: str) -> bool:
     )
 
     try:
-        send_mail(
-            subject=assunto,
-            message=mensagem,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
-        )
+        params = {
+            "from": settings.DEFAULT_FROM_EMAIL,
+            "to": [email],
+            "subject": assunto,
+            "text": mensagem,
+        }
+        resend.Emails.send(params)
         return True
     except Exception as e:
         logger.exception("Falha ao enviar e-mail de código")
@@ -43,8 +45,9 @@ def enviar_codigo_email(email: str, codigo: str) -> bool:
 
 
 def enviar_link_redefinicao(request, user) -> bool:
-    """Gera e envia o link de redefinição de senha por e-mail."""
-    if not settings.DEFAULT_FROM_EMAIL or not settings.EMAIL_HOST_PASSWORD:
+    """Gera e envia o link de redefinição de senha por e-mail via Resend."""
+    resend.api_key = os.environ.get("RESEND_API_KEY")
+    if not resend.api_key or not settings.DEFAULT_FROM_EMAIL:
         raise EmailError("Envio de e-mail não está configurado no servidor.")
 
     uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -65,13 +68,13 @@ def enviar_link_redefinicao(request, user) -> bool:
     )
 
     try:
-        send_mail(
-            subject=assunto,
-            message=mensagem,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        params = {
+            "from": settings.DEFAULT_FROM_EMAIL,
+            "to": [user.email],
+            "subject": assunto,
+            "text": mensagem,
+        }
+        resend.Emails.send(params)
         return True
     except Exception as e:
         logger.exception("Falha ao enviar e-mail de redefinição")

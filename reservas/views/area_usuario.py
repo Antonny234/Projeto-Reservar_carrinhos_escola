@@ -573,7 +573,6 @@ def notificar_erro_telegram(titulo: str, detalhes: str, equipamento_id, agora, e
 
 
 def buscar_reserva_ativa(equipamento_id, agora):
-    """Busca a reserva confirmada e vigente no horário atual para este equipamento."""
     return Reserva.objects.filter(
         equipamento_id=equipamento_id,
         status='confirmada',
@@ -581,7 +580,9 @@ def buscar_reserva_ativa(equipamento_id, agora):
         horario_inicio__lte=agora.time(),
         horario_fim__gte=agora.time(),
         quantidade__isnull=True,
+        numeracao_preenchida=False,  
     ).first()
+
 
 
 def view_tablet(request, equipamento_id):
@@ -609,6 +610,12 @@ def view_tablet(request, equipamento_id):
                     f"(esperado 'confirmada'). Provável mudança de status entre a abertura da página e o envio."
                 )
 
+            if reserva.numeracao_preenchida:
+                raise ValueError(
+                    f"Reserva {reserva.id} já teve a ficha enviada anteriormente. "
+                    f"Provável reenvio/duplo clique ou página recarregada após envio."
+                )
+
         except ValueError as e:
             logger.warning(f"Falha ao localizar reserva no envio de ficha: {e}")
             notificar_erro_telegram(
@@ -620,7 +627,8 @@ def view_tablet(request, equipamento_id):
             messages.error(
                 request,
                 "Não foi possível confirmar sua reserva no momento do envio. "
-                "Isso pode acontecer se a página ficou aberta por muito tempo. "
+                "Isso pode acontecer se a página ficou aberta por muito tempo, "
+                "ou se a ficha já foi enviada antes. "
                 "Recarregue a página e tente novamente. A coordenação já foi avisada."
             )
             return redirect('tablet_checkin', equipamento_id=equipamento_id)
@@ -636,24 +644,7 @@ def view_tablet(request, equipamento_id):
             'minimo_alunos': minimo_alunos,
         }
 
-        # 2) Validar PIN
-        pin_digitado = request.POST.get('pin_envio', '').strip()
-        professor = reserva.professor
-
-        try:
-            pin_correto = professor.perfil_adm.pin_envio
-        except PerfilAdm.DoesNotExist:
-            pin_correto = None
-
-        if not pin_correto:
-            messages.error(request, "Professor não possui PIN cadastrado. Crie um PIN no mural primeiro.")
-            return render(request, 'tablet_checkin.html', contexto_erro)
-
-        if not pin_digitado or pin_digitado != pin_correto:
-            messages.error(request, "PIN inválido! Digite o PIN de 4 dígitos correto.")
-            return render(request, 'tablet_checkin.html', contexto_erro)
-
-        # 3) Validar preenchimento dos alunos
+        # 2) Validar preenchimento dos alunos (ANTES do PIN)
         try:
             numeros_usados = {}
             erros = False
@@ -693,19 +684,7 @@ def view_tablet(request, equipamento_id):
             if erros:
                 return render(request, 'tablet_checkin.html', contexto_erro)
 
-            # 4) Envio final (sucesso)
-            resultado = render(request, 'enviado.html', {
-                'id': equipamento_id,
-                'reserva_id': reserva.id,
-                'professor_id': reserva.professor_id,
-                'carrinho_id': carrinho_id,
-                'sala': sala.id,
-            })
-
-            return resultado
-
         except Exception as e:
-            # Qualquer erro inesperado (bug, campo faltando, banco fora, etc.)
             logger.exception("Erro inesperado ao processar envio de ficha")
             notificar_erro_telegram(
                 "ERRO CRÍTICO NO ENVIO DE FICHA",
@@ -721,32 +700,47 @@ def view_tablet(request, equipamento_id):
             )
             return render(request, 'tablet_checkin.html', contexto_erro)
 
-    # ── GET: busca dinâmica pela reserva ativa no horário atual ──
-    reserva = buscar_reserva_ativa(equipamento_id, agora)
 
-    compa = Reserva.objects.filter(
-        equipamento_id=equipamento_id,
-        status='confirmada',
-        data_uso=agora.date(),
-        horario_inicio__lte=agora.time(),
-        horario_fim__gte=agora.time(),
-        quantidade__isnull=True,
-    ).exists()
+        pin_digitado = request.POST.get('pin_envio', '').strip()
+        professor = reserva.professor
 
-    if not reserva and compa != reserva:
-        return render(request, 'tablet_sem_reserva.html', {
-            'equipamento_id': equipamento_id,
-            'agora': agora,
-        })
+        try:
+            pin_correto = professor.perfil_adm.pin_envio
+        except PerfilAdm.DoesNotExist:
+            pin_correto = None
 
-    else:
-        sala = reserva.sala
-        alunos = Aluno.objects.filter(sala=sala)
+        if not pin_correto:
+            messages.error(request, "Professor não possui PIN cadastrado. Crie um PIN no mural primeiro.")
+            return render(request, 'tablet_checkin.html', contexto_erro)
 
-        return render(request, 'tablet_checkin.html', {
-            'reserva': reserva,
-            'alunos': alunos,
-            'minimo_alunos': MINIMO_ALUNOS_PADRAO,
+        if not pin_digitado or pin_digitado != pin_correto:
+            messages.error(request, "PIN inválido! Digite o PIN de 4 dígitos correto.")
+            return render(request, 'tablet_checkin.html', contexto_erro)
+
+        registros = []
+        for aluno in alunos:
+            numero_str = request.POST.get(f'aluno_{aluno.id}')
+            if numero_str and numero_str.strip().isdigit():
+                registros.append(
+                    RegistroUso(
+                        reserva=reserva,
+                        aluno=aluno,
+                        numero_notebook=int(numero_str)
+                    )
+                )
+
+        RegistroUso.objects.filter(reserva=reserva).delete()
+        RegistroUso.objects.bulk_create(registros)
+
+        reserva.numeracao_preenchida = True
+        reserva.save(update_fields=['numeracao_preenchida'])
+
+        return render(request, 'enviado.html', {
+            'id': equipamento_id,
+            'reserva_id': reserva.id,
+            'professor_id': reserva.professor_id,
+            'carrinho_id': carrinho_id,
+            'sala': sala.id,
         })
 
 
@@ -756,12 +750,15 @@ def status_tablet(request, equipamento_id):
 
     nova_reserva = Reserva.objects.filter(
         equipamento_id=equipamento_id,
-        status__in=['confirmada','pendente'],
+        status__in=['confirmada', 'pendente'],
         data_uso=agora.date(),
         horario_inicio__lte=agora.time(),
         horario_fim__gte=agora.time(),
         quantidade__isnull=True,
+        numeracao_preenchida=False,  
     ).exclude(id=request.GET.get('reserva_atual')).exists()
+
+
 
     if not nova_reserva:
         return render(request, 'tablet_sem_reserva.html', {
