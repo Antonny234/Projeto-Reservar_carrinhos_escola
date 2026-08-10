@@ -10,7 +10,7 @@
 <body>
 <div class="login-box">
     <h2>Defina sua nova senha</h2>
-    <form method="POST" action="{% url 'redefinir_senha_nova' %}">
+    <form method="POST" action="{% url 'redefinir_senha_confirmar' %}">
         {% csrf_token %}
         <div class="input-box">
             <input type="password" name="senha" placeholder="Nova senha" required>

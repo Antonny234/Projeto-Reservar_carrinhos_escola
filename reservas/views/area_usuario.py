@@ -246,7 +246,15 @@ def mural(request):
 
                 ).exists()
 
-                if dupla_reserva == nova_reserva:
+                comparar = Reserva.objects.filter(
+                    professor_id=professor_id,
+                    sala=sala_obj,
+                    data_uso=data_reservae,
+                    horario_inicio=horario_inicio_obj,
+                    horario_fim=horario_fim_obj,
+                    status__in=['confirmada', 'pendente']
+                )
+                if dupla_reserva == comparar:
                     messages.error(request, "Você ja tem uma reserva nesse horario e para essa turma!")
                     return redirect("mural")
 
