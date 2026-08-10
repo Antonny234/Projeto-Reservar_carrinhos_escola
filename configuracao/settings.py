@@ -189,5 +189,5 @@ LOGGING = {
     },
 }
 
-# ─── E-MAIL (Gmail) ─────────────────────────────────────────────
-DEFAULT_FROM_EMAIL = 'onboarding@resend.dev'
+# ─── E-MAIL ─────────────────────────────────────────────
+DEFAULT_FROM_EMAIL = 'verificacao@gtrep.com.br'

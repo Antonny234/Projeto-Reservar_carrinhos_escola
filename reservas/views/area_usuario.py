@@ -222,6 +222,8 @@ def mural(request):
             horario_inicio=horario_inicio_obj,
             horario_fim=horario_fim_obj,
             status__in=['confirmada', 'pendente'],
+            quantidade__isnull=True,
+            numero_notebook_unico__isnull=True,
         )
 
 
