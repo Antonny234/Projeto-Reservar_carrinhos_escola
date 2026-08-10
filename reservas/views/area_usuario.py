@@ -207,16 +207,6 @@ def mural(request):
             messages.error(request, "Equipamento não encontrado!")
             return redirect('mural')
 
-        dupla_reserva = Reserva.objects.filter(
-            professor_id=professor_id,
-            sala=sala_obj,
-            data_uso=data_reservae,
-            horario_inicio=horario_inicio_obj,
-            horario_fim=horario_fim_obj,
-            status__in=['confirmada', 'pendente']
-
-        ).exists()
-
         reservas_existentes = Reserva.objects.filter(
             equipamento_id=equipamento_id,
             data_uso=data_reservae,
@@ -225,14 +215,12 @@ def mural(request):
             status__in=['confirmada', 'pendente'],
             quantidade__isnull=True,
             numero_notebook_unico__isnull=True,
-        )
+        ).exists()
 
 
         if reservas_existentes:
             messages.error(request, "Este carrinho já foi reservado para este horário!")
-        elif dupla_reserva == nova_reserva:
-            messages.error(request, "Você ja tem uma reserva nesse horario e para essa turma!")
-            return redirect("mural")
+
         else:
             try:
                 status_reserva = 'confirmada'
@@ -248,6 +236,20 @@ def mural(request):
                     data_uso=data_reservae,
                     status=status_reserva,
                 )
+                dupla_reserva = Reserva.objects.filter(
+                    professor_id=professor_id,
+                    sala=sala_obj,
+                    data_uso=data_reservae,
+                    horario_inicio=horario_inicio_obj,
+                    horario_fim=horario_fim_obj,
+                    status__in=['confirmada', 'pendente']
+
+                ).exists()
+
+                if dupla_reserva == nova_reserva:
+                    messages.error(request, "Você ja tem uma reserva nesse horario e para essa turma!")
+                    return redirect("mural")
+
 
                 if status_reserva == 'pendente':
                     messages.warning(
