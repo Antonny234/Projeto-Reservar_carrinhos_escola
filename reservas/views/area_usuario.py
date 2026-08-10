@@ -214,8 +214,7 @@ def mural(request):
             horario_inicio=horario_inicio_obj,
             horario_fim=horario_fim_obj,
             status__in=['confirmada', 'pendente']
-            quantidade__isnull=True,
-            numero_notebook_unico__isnull=True,
+
         ).exists()
 
         reservas_existentes = Reserva.objects.filter(
@@ -231,7 +230,7 @@ def mural(request):
 
         if reservas_existentes:
             messages.error(request, "Este carrinho já foi reservado para este horário!")
-        elif dupla_reserva:
+        elif dupla_reserva == nova_reserva:
             messages.error(request, "Você ja tem uma reserva nesse horario e para essa turma!")
             return redirect("mural")
         else:
