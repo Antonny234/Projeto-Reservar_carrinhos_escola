@@ -207,6 +207,7 @@ def mural(request):
             messages.error(request, "Equipamento não encontrado!")
             return redirect('mural')
 
+        # 1. Verifica se o EQUIPAMENTO já está reservado nesse horário
         reservas_existentes = Reserva.objects.filter(
             equipamento_id=equipamento_id,
             data_uso=data_reservae,
@@ -217,65 +218,56 @@ def mural(request):
             numero_notebook_unico__isnull=True,
         ).exists()
 
-
         if reservas_existentes:
             messages.error(request, "Este carrinho já foi reservado para este horário!")
+            return redirect(f"/Logar/?data={data_reserva}")
 
-        else:
-            try:
-                status_reserva = 'confirmada'
-                if _professor_requer_aprovacao(professor_reserva):
-                    status_reserva = 'pendente'
+        ja_tem_reserva = Reserva.objects.filter(
+            professor=professor_reserva,
+            sala=sala_obj,
+            data_uso=data_reservae,
+            horario_inicio=horario_inicio_obj,
+            horario_fim=horario_fim_obj,
+            status__in=['confirmada', 'pendente']
+        ).exists()
 
-                nova_reserva = Reserva.objects.create(
-                    professor=professor_reserva,
-                    equipamento=equip_obj,
-                    sala=sala_obj,
-                    horario_inicio=horario_inicio_obj,
-                    horario_fim=horario_fim_obj,
-                    data_uso=data_reservae,
-                    status=status_reserva,
+        if ja_tem_reserva:
+            messages.error(request, "Você já tem uma reserva para este horário e sala!")
+            return redirect(f"/Logar/?data={data_reserva}")
+
+        try:
+            status_reserva = 'confirmada'
+            if _professor_requer_aprovacao(professor_reserva):
+                status_reserva = 'pendente'
+
+            nova_reserva = Reserva.objects.create(
+                professor=professor_reserva,
+                equipamento=equip_obj,
+                sala=sala_obj,
+                horario_inicio=horario_inicio_obj,
+                horario_fim=horario_fim_obj,
+                data_uso=data_reservae,
+                status=status_reserva,
+            )
+
+            if status_reserva == 'pendente':
+                messages.warning(
+                    request,
+                    "Reserva enviada! Aguardando aprovação de um administrador."
                 )
-                dupla_reserva = Reserva.objects.filter(
-                    professor_id=professor_id,
-                    sala=sala_obj,
-                    data_uso=data_reservae,
-                    horario_inicio=horario_inicio_obj,
-                    horario_fim=horario_fim_obj,
-                    status__in=['confirmada', 'pendente']
-
-                ).exists()
-
-                comparar = Reserva.objects.filter(
-                    professor_id=professor_id,
-                    sala=sala_obj,
-                    data_uso=data_reservae,
-                    horario_inicio=horario_inicio_obj,
-                    horario_fim=horario_fim_obj,
-                    status__in=['confirmada', 'pendente']
+                enviar_telegram(
+                    f"📥 <b>Nova reserva pendente</b>\n"
+                    f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
+                    f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
+                    f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
+                    f"Equipamento: {equip_obj.nome}\n"
+                    f"Sala: {sala_obj.nome}"
                 )
-                if dupla_reserva == comparar:
-                    messages.error(request, "Você ja tem uma reserva nesse horario e para essa turma!")
-                    return redirect("mural")
+            else:
+                messages.success(request, f"Reserva realizada com sucesso para {professor_reserva.username}!")
 
-
-                if status_reserva == 'pendente':
-                    messages.warning(
-                        request,
-                        "Reserva enviada! Aguardando aprovação de um administrador."
-                    )
-                    enviar_telegram(
-                        f"📥 <b>Nova reserva pendente</b>\n"
-                        f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
-                        f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
-                        f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
-                        f"Equipamento: {equip_obj.nome}\n"
-                        f"Sala: {sala_obj.nome}"
-                    )
-                else:
-                    messages.success(request, f"Reserva realizada com sucesso para {professor_reserva.username}!")
-            except Exception as e:
-                messages.error(request, f"Erro ao salvar: {e}")
+        except Exception as e:
+            messages.error(request, f"Erro ao salvar: {e}")
 
         return redirect(f"/Logar/?data={data_reserva}")
 
@@ -327,7 +319,7 @@ def excluir_reserva(request, reserva_id):
         messages.success(request, "Reserva excluída com sucesso!")
         
 
-    return redirect('mural')
+    return redirect('data_reserva', data=reserva.data_uso.strftime('%Y-%m-%d'))
 
 @login_required
 def listar_disponiveis(request):
@@ -900,7 +892,7 @@ def reserva_quantidade(request):
             professor_reserva = User.objects.get(id=professor_id)
         except User.DoesNotExist:
             messages.error(request, "Erro: Professor não encontrado!")
-            return redirect('mural')
+            return redirect('unico')
 
     equip_obj = Equipamento.objects.get(id=equipamento_id)
 
