@@ -319,7 +319,7 @@ def excluir_reserva(request, reserva_id):
         messages.success(request, "Reserva excluída com sucesso!")
         
 
-    return redirect('mural.html', data=reserva.data_uso.strftime('%Y-%m-%d'))
+    return redirect('mural')
 
 @login_required
 def listar_disponiveis(request):
