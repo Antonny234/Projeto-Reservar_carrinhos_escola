@@ -164,11 +164,26 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    campoData.addEventListener('change', () => {
+        atualizarMural();
+        atualizarCarrinhos();
+        desabilitarHorariosPassados(); // reativa também
+    });
+
     campoPeriodo.addEventListener('change', () => {
         definirHorarios();
         atualizarCarrinhos();
-        atualizarMural(); // Agora dispara o filtro no mural
+        atualizarMural();
     });
+
+    // NOVO: atualiza o mural sozinho a cada 1 minuto,
+    // pra refletir reservas que "venceram" o horário sem precisar de F5
+    setInterval(() => {
+        atualizarMural();
+        desabilitarHorariosPassados();
+    }, 60000);
+
+    desabilitarHorariosPassados(); // já roda uma vez ao carregar a página
 
     // Quando ligar/desligar "aula seguida", refaz a busca de carrinhos
     // (o backend passa a exigir disponibilidade nos dois horários).
@@ -179,12 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    //desabilitarHorariosPassados();
-   campoData.addEventListener('change', () => {
-        atualizarMural();
-        atualizarCarrinhos();
-        //desabilitarHorariosPassados();
-    });
+
 
     window.definirHorarios = definirHorarios;
     atualizarMural();
