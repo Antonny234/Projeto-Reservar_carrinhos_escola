@@ -3,12 +3,16 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from django.utils import timezone
 import openpyxl
 import pandas as pd
 import re
 from collections import defaultdict
+from django.contrib.auth.models import User
+from django.db.models import Count
+from django.db.models.functions import ExtractWeekDay
+
 
 #helpers
 from .helpers import enviar_telegram
@@ -19,6 +23,8 @@ from openpyxl.utils import get_column_letter
 from ..models import (
     Reserva, RegistroUso, Equipamento, Sala, Notebook,NotificacaoFichaAusente
 )
+from ..forms import ReservaFixaForm
+import uuid
 
 @staff_member_required
 def exportar_todas_fichas(request):
@@ -276,6 +282,56 @@ def verificar_fichas_ausentes(request):
 
 @login_required
 @staff_member_required
+def notebooks_quebrados(request):
+    """Página admin que lista todos os notebooks denunciados como quebrados,
+    agrupados por carrinho, com ação para marcá-los como consertados."""
+    # Agrupa os notebooks inativos por carrinho
+    grupos = defaultdict(list)
+    quebrados = Notebook.objects.filter(
+        ativo=False
+    ).select_related('equipamento').order_by('equipamento__nome', 'numero')
+
+    for nb in quebrados:
+        grupos[nb.equipamento].append(nb)
+
+    total_quebrados = quebrados.count()
+
+    return render(request, 'notebooks_quebrados.html', {
+        'grupos': dict(grupos),
+        'total_quebrados': total_quebrados,
+    })
+
+
+@login_required
+@staff_member_required
+def reativar_notebook(request):
+    """Marca um notebook denunciado como quebrado de volta para 'ativo' (consertado)."""
+    if request.method != "POST":
+        messages.error(request, "Método inválido.")
+        return redirect('notebooks_quebrados')
+
+    notebook_id = request.POST.get('notebook_id')
+    try:
+        notebook = get_object_or_404(Notebook, id=notebook_id)
+        notebook.ativo = True
+        notebook.save()
+
+        messages.success(request, f"Notebook {notebook.numero} do '{notebook.equipamento.nome}' marcado como consertado.")
+
+        enviar_telegram(
+            f"✅ <b>Notebook consertado</b>\n"
+            f"Carrinho: {notebook.equipamento.nome}\n"
+            f"Número: {notebook.numero}\n"
+            f"Atualizado por: {request.user.get_full_name() or request.user.username}"
+        )
+    except Exception as e:
+        messages.error(request, f"Erro: {e}")
+
+    return redirect('notebooks_quebrados')
+
+
+@login_required
+@staff_member_required
 def verificar_carrinho(request):
     """
     Permite que um admin escolha um carrinho e digite os números de notebook
@@ -503,3 +559,218 @@ def recusar_reserva(request, reserva_id):
         f"Recusado por: {recusador}"
     )
     return redirect('mural')
+
+@staff_member_required
+def reserva_fixas_web(request):
+    if request.method == 'POST':
+        form = ReservaFixaForm(request.POST)
+        if form.is_valid():
+            d = form.cleaned_data
+            grupo = uuid.uuid4()
+            criadas, conflitos = 0, 0
+            for dia_semana in [int(x) for x in d['dias_semana']]:
+                data_atual = d['data_inicio']
+                data_atual += timedelta(days=(dia_semana -data_atual.weekday()) % 7)
+                while data_atual <= d['data_fim']:
+                    existe = Reserva.objects.filter(
+                        equipamento =d ['equipamento'], data_uso = data_atual,
+                        horario_inicio =d ['horario_inicio'] 
+                    ).exists()
+                    if existe:
+                        conflitos += 1
+                    else:
+                        Reserva.objects.create(
+                            professor=d['professor'], equipamento=d['equipamento'],
+                            sala= d['sala'], data_uso = data_atual,
+                            horario_inicio=d['horario_inicio'], horario_fim=d['horario_fim'],
+                            status = 'confirmada',
+                            grupo_fixo = grupo,
+                        )
+                        criadas += 1
+                    data_atual += timedelta(days=7)
+            messages.success(request, f"{criadas} reservas crisadas. {conflitos} conflitos ignorados (já existiam).")
+            return redirect('reservas_fixas_web')
+    else:
+        form = ReservaFixaForm()
+        
+    # monta os grupos para exibir na tabela
+    ids = Reserva.objects.filter(grupo_fixo__isnull=False).values_list('grupo_fixo', flat=True).distinct()
+    grupos = []
+    for grupo_id in ids:
+        qs = Reserva.objects.filter(grupo_fixo=grupo_id).select_related('professor', 'sala', 'equipamento').order_by('data_uso')
+        if not qs.exists():
+            continue
+        primeira, ultima = qs.first(), qs.last()
+        grupos.append({
+            'id': grupo_id,
+            'professor': primeira.professor.get_full_name() or primeira.professor.username,
+            'sala': primeira.sala.nome,
+            'equipamento': primeira.equipamento.nome,
+            'horario_inicio': primeira.horario_inicio.strftime('%H:%M'),
+            'periodo': f"{primeira.data_uso.strftime('%d/%m/%Y')} - {ultima.data_uso.strftime('%d/%m/%Y')}",
+            'qtd_reservas': qs.count(),
+        })
+
+    return render(request, 'reservas_fixas.html', {'form': form, 'grupos': grupos})
+@login_required
+@staff_member_required
+def lista_reservas_fixas(request):
+    ids = Reserva.objects.filter(grupo_fixo__isnull=False).values_list('grupo_fixo', flat=True).distinct()
+    grupos = []
+    for grupo_id in ids:
+        qs = Reserva.objects.filter(grupo_fixo=grupo_id).select_related('professor', 'sala', 'equipamento').order_by('data_uso')
+        if not qs.exists():
+            continue
+        primeira, ultima = qs.first(), qs.last()
+        grupos.append({
+            'id': grupo_id,
+            'professor': primeira.professor.get_full_name() or primeira.professor.username,
+            'sala': primeira.sala.nome,
+            'equipamento': primeira.equipamento.nome,
+            'horario':f"{primeira.horario_inicio.strftime('%H:%M')} - {primeira.horario_fim.strftime('%H:%M')}",
+            'total': qs.count(),
+            'de': primeira.data_uso,
+            'ate': ultima.data_uso,
+        })
+    return render(request, 'reservas_fixas.html', {'grupos': grupos})
+
+@staff_member_required
+def excluir_reserva_fixa(request, grupo_id):
+    if request.method == 'POST':
+        qtd, _ = Reserva.objects.filter(grupo_fixo = grupo_id).delete()
+        messages.success(request, f"{qtd} reservas excluidas de todos os dias. ")
+    return redirect('reserva_fixas_web')
+
+
+@login_required
+@staff_member_required
+def analise_sistema(request):
+    """Painel de análise estatística de fichas, professores e equipamentos."""
+    from django.contrib.auth.models import User
+    from django.db.models import Count
+    from django.db.models.functions import ExtractWeekDay
+
+    # 1. Total de reservas e fichas
+    total_reservas = Reserva.objects.count()
+    reservas_confirmadas = Reserva.objects.filter(status='confirmada').count()
+    total_fichas_entregues = RegistroUso.objects.values('reserva').distinct().count()
+
+    # 2. Professores com reservas confirmadas e fichas entregues
+    professores_stats = []
+    todos_professores = User.objects.filter(reserva__isnull=False).distinct()
+
+    for prof in todos_professores:
+        res_total = Reserva.objects.filter(professor=prof, status='confirmada').count()
+        fichas_entregues = RegistroUso.objects.filter(reserva__professor=prof).values('reserva').distinct().count()
+        taxa = (fichas_entregues / res_total * 100) if res_total > 0 else 0
+        professores_stats.append({
+            'nome': prof.get_full_name() or prof.username,
+            'reservas_confirmadas': res_total,
+            'fichas_entregues': fichas_entregues,
+            'taxa_entrega': round(taxa, 1)
+        })
+
+    professores_mais_entregues = sorted(professores_stats, key=lambda x: x['fichas_entregues'], reverse=True)
+    professores_menos_entregues = sorted(professores_stats, key=lambda x: x['fichas_entregues'])
+
+    # 3. Status dos Equipamentos e Notebooks Quebrados
+    equipamentos = Equipamento.objects.all()
+    equipamentos_data = []
+    for eq in equipamentos:
+        total_nb = eq.quantidade_ativa() + Notebook.objects.filter(equipamento=eq, ativo=False).count()
+        quebrados_nb = Notebook.objects.filter(equipamento=eq, ativo=False).count()
+        ativos_nb = eq.quantidade_ativa()
+        equipamentos_data.append({
+            'nome': eq.nome,
+            'tipo': eq.get_tipo_display(),
+            'total': total_nb,
+            'ativos': ativos_nb,
+            'quebrados': quebrados_nb
+        })
+
+    # --- Dicionário de nomes de dias e ordem de exibição (Segunda a Domingo) ---
+    dias_semana_nomes = {
+        1: 'Domingo', 2: 'Segunda-feira', 3: 'Terça-feira', 4: 'Quarta-feira',
+        5: 'Quinta-feira', 6: 'Sexta-feira', 7: 'Sábado'
+    }
+    ordem_dias = [2, 3, 4, 5, 6, 7, 1]  # Segunda -> Domingo
+
+    # 4. Total de reservas por dia da semana (visão geral / gráfico)
+    reservas_por_dia_semana_raw = (
+        Reserva.objects
+        .filter(status='confirmada')
+        .annotate(dia_semana=ExtractWeekDay('data_uso'))
+        .values('dia_semana')
+        .annotate(total=Count('id'))
+    )
+    totais_por_dia_num = {item['dia_semana']: item['total'] for item in reservas_por_dia_semana_raw}
+    reservas_por_dia_semana = [
+        {'dia': dias_semana_nomes[num], 'total': totais_por_dia_num.get(num, 0)}
+        for num in ordem_dias if totais_por_dia_num.get(num, 0) > 0
+    ]
+    reservas_por_dia_semana_ord = sorted(reservas_por_dia_semana, key=lambda x: x['total'], reverse=True)
+    dia_semana_mais = reservas_por_dia_semana_ord[0] if reservas_por_dia_semana_ord else None
+    dia_semana_menos = reservas_por_dia_semana_ord[-1] if reservas_por_dia_semana_ord else None
+
+    # 5. Detalhamento: reservas por Dia da Semana + Horário de Início
+    #    (para a coordenação identificar o melhor dia/horário para provas e atividades)
+    matriz_bruta = (
+        Reserva.objects
+        .filter(status='confirmada')
+        .annotate(dia_semana=ExtractWeekDay('data_uso'))
+        .values('dia_semana', 'horario_inicio')
+        .annotate(total=Count('id'))
+        .order_by('dia_semana', 'horario_inicio')
+    )
+
+    horarios_por_dia_num = {}
+    for item in matriz_bruta:
+        horarios_por_dia_num.setdefault(item['dia_semana'], []).append({
+            'horario': item['horario_inicio'],
+            'total': item['total']
+        })
+
+    reservas_dia_horario = []
+    for num in ordem_dias:
+        horarios = horarios_por_dia_num.get(num)
+        if not horarios:
+            continue
+        horarios_ordenados = sorted(horarios, key=lambda x: x['horario'])  # ordem cronológica
+        horarios_por_movimento = sorted(horarios, key=lambda x: x['total'])  # menor -> maior
+        total_dia = sum(h['total'] for h in horarios)
+        reservas_dia_horario.append({
+            'dia': dias_semana_nomes[num],
+            'total_dia': total_dia,
+            'horarios': horarios_ordenados,
+            'horario_menos_movimentado': horarios_por_movimento[0],
+            'horario_mais_movimentado': horarios_por_movimento[-1],
+        })
+
+    # 6. Ranking geral das 10 combinações (dia + horário) com MENOS reservas
+    #    -> sugestão direta de melhor momento para agendar prova/atividade
+    ranking_menos_movimentado = sorted(
+        [
+            {
+                'dia': dias_semana_nomes[item['dia_semana']],
+                'horario': item['horario_inicio'],
+                'total': item['total']
+            }
+            for item in matriz_bruta
+        ],
+        key=lambda x: x['total']
+    )[:10]
+
+    context = {
+        'total_reservas': total_reservas,
+        'reservas_confirmadas': reservas_confirmadas,
+        'total_fichas_entregues': total_fichas_entregues,
+        'professores_mais_entregues': professores_mais_entregues[:5],
+        'professores_menos_entregues': professores_menos_entregues[:5],
+        'equipamentos_data': equipamentos_data,
+        'dia_semana_mais': dia_semana_mais,
+        'dia_semana_menos': dia_semana_menos,
+        'reservas_por_dia_semana': reservas_por_dia_semana,
+        'reservas_dia_horario': reservas_dia_horario,
+        'ranking_menos_movimentado': ranking_menos_movimentado,
+    }
+    return render(request, 'analise_sistema.html', context)

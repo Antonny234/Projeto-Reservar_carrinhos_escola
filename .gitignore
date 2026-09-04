@@ -15,6 +15,6 @@ teste.py
 # Dados sensíveis
 dados_exportados.json
 *.pem
-*.key
+g*.key
 *.crt
-*.cerreservas/app/
+*.cer

@@ -1,0 +1,301 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar {{ equipamento.nome }} - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/painelestudante.css' %}">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    {{ form_liberacao.media }}
+    <style>
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container .select2-selection--single {
+            height: 40px !important;
+            padding: 6px 10px;
+            border: 1px solid #d8dce1 !important;
+            border-radius: 6px !important;
+        }
+
+        .select2-container .select2-selection__rendered {
+            line-height: 28px !important;
+            font-size: 14px;
+        }
+
+        .select2-container .select2-selection__arrow {
+            height: 38px !important;
+        }
+        .duas-colunas-cadastro {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 1000px) {
+            .duas-colunas-cadastro { grid-template-columns: 1fr; }
+        }
+        .secao-cadastro {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            margin-bottom: 25px;
+        }
+        .secao-cadastro h3 {
+            color: #1e3a5f;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eef0f2;
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+        .form-cadastro {
+            background: #f8f9fb;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+        .form-cadastro h4 { font-size: 14px; color: #1e3a5f; margin-bottom: 12px; }
+        .form-row { margin-bottom: 12px; }
+        .form-row label { display: block; font-size: 13px; font-weight: bold; color: #444; margin-bottom: 4px; }
+        .form-control {
+            width: 100%; padding: 8px 10px; border: 1px solid #d8dce1;
+            border-radius: 6px; font-size: 14px; box-sizing: border-box;
+        }
+        .form-check-inline { display: flex; align-items: center; gap: 8px; }
+        .form-check-inline label { margin-bottom: 0; font-weight: normal; }
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .erro-form { color: #dc3545; font-size: 12px; margin-top: 3px; }
+        .btn-salvar {
+            background: #1e3a5f; color: white; border: none; padding: 9px 18px;
+            border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;
+        }
+        .btn-salvar:hover { background: #16304d; }
+        .acoes-tabela { display: flex; gap: 8px; }
+        .btn-icone { border: none; background: none; cursor: pointer; font-size: 15px; padding: 4px 6px; border-radius: 5px; text-decoration: none; }
+        .btn-excluir { color: #dc3545; }
+        .btn-excluir:hover { background: #fdecea; }
+        .badge-status { font-size: 12px; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
+        .badge-sim { background: #e6f7ec; color: #28a745; }
+        .badge-nao { background: #fdecea; color: #dc3545; }
+        .mensagens { margin-bottom: 20px; }
+        .mensagem { padding: 10px 15px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; }
+        .mensagem.success { background: #e6f7ec; color: #1e6d38; }
+        .mensagem.error { background: #fdecea; color: #a12a1f; }
+        .mensagem.warning { background: #fff3cd; color: #856404; }
+        .btn-voltar-cinza {
+            display: inline-block; background: #6c757d; color: white; padding: 8px 16px;
+            border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; margin-bottom: 16px;
+        }
+        .info-vazio { color: #888; font-size: 13px; padding: 10px 0; }
+    </style>
+</head>
+
+{% if user.is_staff %}
+<body class="tem-sidebar" data-pagina="professor">
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        {% include 'partials/menu.html' %}
+    </aside>
+{% endif %}
+
+    <div class="header">
+        <h1>✏️ Editar {{ equipamento.nome }}</h1>
+        <div class="header-right">
+            <span>Olá, <strong>{{ user.username }}</strong></span>
+            {% if user.is_staff %}<span class="badge-admin">ADM</span>{% endif %}
+        </div>
+    </div>
+
+    <div class="container" style="flex-direction: column;">
+        <a href="{% url 'cadastros' %}" class="btn-voltar-cinza">← Voltar aos Cadastros</a>
+
+        {% if messages %}
+        <div class="mensagens">
+            {% for message in messages %}
+            <div class="mensagem {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="duas-colunas-cadastro">
+
+            <!-- ===== DADOS DO EQUIPAMENTO ===== -->
+            <div class="secao-cadastro">
+                <h3>💻 Dados do Equipamento</h3>
+                <form method="post" class="form-cadastro">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="salvar_equipamento">
+
+                    <div class="form-row">
+                        <label for="{{ form.nome.id_for_label }}">Nome do carrinho</label>
+                        {{ form.nome }}
+                        {% for erro in form.nome.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+                    </div>
+
+                    <div class="form-row">
+                        <label for="{{ form.tipo.id_for_label }}">Tipo</label>
+                        {{ form.tipo }}
+                    </div>
+
+                    <div class="form-row">
+                        <label for="{{ form.quantidade.id_for_label }}">Quantidade (tablets)</label>
+                        {{ form.quantidade }}
+                    </div>
+
+                    <div class="form-row form-grid-2">
+                        <div>
+                            <label for="{{ form.numero_inicial.id_for_label }}">Nº inicial (notebooks)</label>
+                            {{ form.numero_inicial }}
+                        </div>
+                        <div>
+                            <label for="{{ form.numero_final.id_for_label }}">Nº final (notebooks)</label>
+                            {{ form.numero_final }}
+                        </div>
+                    </div>
+                    {% for erro in form.numero_final.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+
+                    <div class="form-row form-check-inline">
+                        {{ form.disponivel }}
+                        <label for="{{ form.disponivel.id_for_label }}">Disponível para reserva</label>
+                    </div>
+
+                    <button type="submit" class="btn-salvar">Salvar Alterações</button>
+                </form>
+            </div>
+
+            <!-- ===== PROFESSORES LIBERADOS ===== -->
+            <div class="secao-cadastro">
+                <h3>🔓 Professores Liberados (sem aprovação)</h3>
+                <p style="font-size:13px;color:#666;margin-top:-10px;margin-bottom:16px;">
+                    Se a lista abaixo estiver vazia, <strong>qualquer professor</strong> pode reservar este carrinho normalmente.
+                    Assim que adicionar alguém aqui, <strong>somente os listados</strong> reservam direto — os demais precisarão de aprovação de um admin.
+                </p>
+
+                <form method="post" class="form-cadastro">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="liberar_professor">
+                    <div class="form-row">
+                        <label for="{{ form_liberacao.professor.id_for_label }}">Adicionar professor liberado</label>
+                        {{ form_liberacao.professor }}
+                        {% for erro in form_liberacao.professor.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+                    </div>
+                    <button type="submit" class="btn-salvar">Liberar Professor</button>
+                </form>
+
+                <table class="tabela-admin">
+                    <thead>
+                        <tr><th>Professor</th><th>Ações</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for lib in liberados %}
+                        <tr>
+                            <td data-label="Professor:">{{ lib.professor.get_full_name|default:lib.professor.username }}</td>
+                            <td data-label="Ações:">
+                                <div class="acoes-tabela">
+                                    <form method="post" action="{% url 'remover_liberacao' equipamento.id lib.id %}" onsubmit="return confirm('Remover a liberação de {{ lib.professor.username|escapejs }}?');" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-icone btn-excluir" title="Remover">🗑️</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="2" class="info-vazio">Nenhum professor liberado — carrinho livre para todos.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- ===== BLOQUEIO DE HORÁRIOS ===== -->
+        <div class="secao-cadastro">
+            <h3>🚫 Bloquear Horários (indisponibilizar temporariamente)</h3>
+            <p style="font-size:13px;color:#666;margin-top:-10px;margin-bottom:16px;">
+                O carrinho simplesmente <strong>some da lista de disponíveis</strong> para os professores nesse período. Use para quebra, manutenção, empréstimo etc.
+            </p>
+
+            <form method="post" class="form-cadastro">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="adicionar_bloqueio">
+
+                <div class="form-row form-grid-2">
+                    <div>
+                        <label for="{{ form_bloqueio.data.id_for_label }}">Data</label>
+                        {{ form_bloqueio.data }}
+                    </div>
+                    <div></div>
+                </div>
+
+                <div class="form-row form-grid-2">
+                    <div>
+                        <label for="{{ form_bloqueio.horario_inicio.id_for_label }}">Bloqueado a partir de</label>
+                        {{ form_bloqueio.horario_inicio }}
+                    </div>
+                    <div>
+                        <label for="{{ form_bloqueio.horario_fim.id_for_label }}">Bloqueado até</label>
+                        {{ form_bloqueio.horario_fim }}
+                    </div>
+                </div>
+                {% for erro in form_bloqueio.horario_fim.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+
+                <div class="form-row">
+                    <label for="{{ form_bloqueio.motivo.id_for_label }}">Motivo (opcional)</label>
+                    {{ form_bloqueio.motivo }}
+                </div>
+
+                <button type="submit" class="btn-salvar">Bloquear Horário</button>
+            </form>
+
+            <table class="tabela-admin">
+                <thead>
+                    <tr>
+                        <th>Data</th><th>Horário</th><th>Motivo</th><th>Criado por</th><th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bloqueios %}
+                    <tr>
+                        <td data-label="Data:">{{ b.data|date:"d/m/Y" }}</td>
+                        <td data-label="Horário:">{{ b.horario_inicio|time:"H:i" }} - {{ b.horario_fim|time:"H:i" }}</td>
+                        <td data-label="Motivo:">{{ b.motivo|default:"—" }}</td>
+                        <td data-label="Criado por:">{{ b.criado_por.username|default:"—" }}</td>
+                        <td data-label="Ações:">
+                            <div class="acoes-tabela">
+                                <form method="post" action="{% url 'remover_bloqueio' equipamento.id b.id %}" onsubmit="return confirm('Remover este bloqueio?');" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-icone btn-excluir" title="Remover">🗑️</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="info-vazio">Nenhum bloqueio futuro cadastrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar && toggleBtn && overlay) {
+            toggleBtn.addEventListener('click', function () {
+                const aberta = sidebar.classList.toggle('aberta');
+                overlay.classList.toggle('ativo');
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('aberta');
+                overlay.classList.remove('ativo');
+            });
+        }
+    </script>
+</body>
+</html>

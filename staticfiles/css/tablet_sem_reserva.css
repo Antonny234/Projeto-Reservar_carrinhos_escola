@@ -1,0 +1,78 @@
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2c3e50 0%, #4a5568 100%);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+}
+
+.principal {
+    text-align: center;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    padding: 48px 56px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    max-width: 480px;
+}
+
+.relogio {
+    font-size: 64px;
+    margin-bottom: 16px;
+    animation: balancar 2s ease-in-out infinite;
+}
+
+@keyframes balancar {
+    0%, 100% { transform: rotate(-8deg); }
+    50% { transform: rotate(8deg); }
+}
+
+.principal h1 {
+    font-size: 26px;
+    margin: 0 0 12px;
+    font-weight: 600;
+}
+
+.principal p {
+    font-size: 16px;
+    color: #d1d5db;
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.principal h2 {
+    font-size: 15px;
+    font-weight: 400;
+    color: #9ca3af;
+    margin: 0 0 16px;
+}
+
+#pontos {
+    display: inline-block;
+    width: 20px;
+    text-align: left;
+}
+
+.hora-atual {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Ajustes pro "monstro" não competir visualmente com o card central,
+   caso ele já venha posicionado de forma fixa via estiloMural.css */
+.monstro {
+    position: fixed;
+    z-index: 0;
+}
+
+.principal {
+    position: relative;
+    z-index: 1;
+}

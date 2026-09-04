@@ -1,0 +1,45 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Excluir Equipamento</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; }
+        .header { background: #1e3a5f; color: #fff; padding: 16px 24px; }
+        .container { max-width: 500px; margin: 24px auto; padding: 0 16px; }
+        .card { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .aviso { background: #f8d7da; color: #721c24; padding: 14px; border-radius: 8px; margin-bottom: 16px; }
+        .btn { display: inline-block; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; border: none; cursor: pointer; }
+        .btn-excluir { background: #dc3545; color: #fff; }
+        .btn-cancelar { background: #6c757d; color: #fff; margin-left: 8px; }
+        .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="header"><h2>🗑️ Excluir Equipamento</h2></div>
+
+<div class="container">
+    <div class="card">
+        <div class="aviso">
+            ⚠️ Essa ação não pode ser desfeita. O histórico de transferências desse equipamento também será apagado.
+        </div>
+
+        <div class="info-row"><span>Tipo</span><span>{{ equipamento.tipo }}</span></div>
+        <div class="info-row"><span>Patrimônio</span><span>{{ equipamento.numero_patrimonio }}</span></div>
+        <div class="info-row"><span>N/S</span><span>{{ equipamento.numero_serie }}</span></div>
+        <div class="info-row"><span>Localização atual</span><span>{{ equipamento.localizacao_atual }}</span></div>
+
+        <p style="margin-top:16px;">Tem certeza que deseja excluir <strong>{{ equipamento }}</strong>?</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-excluir">Sim, excluir</button>
+            <a href="{% url 'inventario_detalhe' equipamento.pk %}" class="btn btn-cancelar">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

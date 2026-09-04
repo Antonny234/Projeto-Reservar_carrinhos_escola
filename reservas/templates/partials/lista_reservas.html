@@ -21,7 +21,7 @@
 
     {% if user.is_authenticated %}
         {% if user == reserva.professor or user.is_staff %}
-        <form method="POST" action="{% url 'excluir_reserva' reserva.id %}" style="display:inline">
+        <form method="POST" action="{% url 'excluir_reserva' reserva.id %}" class="form-excluir" style="display:inline">
             {% csrf_token %}
             <button type="submit" class="btn-excluir" onclick="return confirm('Excluir esta reserva?')">Excluir</button>
         </form>

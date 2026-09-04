@@ -63,6 +63,7 @@
             </div>
             {% endif %}
 
+
             <div class="container">
                 {% if user.is_staff %}
                 <div class="container-export">
@@ -118,35 +119,35 @@
                     <h3>Reservar Equipamento</h3>
                     <form method="POST" id="form-reserva">
                         {% csrf_token %}
+                        <p>Esse botão é para quem for reservar uma pequena quantidade de notebooks ⚠️</p>
+                        <a href="{% url 'unico' %}" class="btn-unico">reserva unica</a>
 
                         <label for="id_data">Data da Reserva:</label>
                         <input type="date" name="data" id="id_data" value="{{ hoje }}" required>
 
                         <label for="id_periodo">Período/Horário:</label>
+                        {% regroup horarios by get_periodo_display as horarios_agrupados %}
                         <select id="id_periodo" required onchange="definirHorarios()">
                             <option value="">Selecione o Horário</option>
-                            <optgroup label="1º Período Manhã/Tarde">
-                                <option value="07:00|07:50">1º Horário (07:00 - 07:50)</option>
-                                <option value="07:50|08:40">2º Horário (07:50 - 08:40)</option>
-                                <option value="08:40|09:30">3º Horário (08:40 - 09:30)</option>
-                                <option value="09:50|10:40">4º Horário (09:50 - 10:40)</option>
-                                <option value="10:40|11:30">5º Horário (10:40 - 11:30)</option>
-                                <option value="12:20|13:10">6º Horário (12:20 - 13:10)</option>
-                                <option value="13:10|14:00">7º Horário (13:10 - 14:00)</option>
-                            </optgroup>
-                            <optgroup label="2º Período Tarde/Noite">
-                                <option value="14:15|15:05">1º Horário (14:15 - 15:05)</option>
-                                <option value="15:05|15:55">2º Horário (15:05 - 15:55)</option>
-                                <option value="15:55|16:45">3º Horário (15:55 - 16:45)</option>
-                                <option value="17:05|17:55">4º Horário (17:05 - 17:55)</option>
-                                <option value="17:55|18:45">5º Horário (17:55 - 18:45)</option>
-                                <option value="19:35|20:25">6º Horário (19:35 - 20:25)</option>
-                                <option value="20:25|21:15">7º Horário (20:25 - 21:15)</option>
-                            </optgroup>
+                            {% for grupo in horarios_agrupados %}
+                                <optgroup label="{{ grupo.grouper }}">
+                                    {% for h in grupo.list %}
+                                        <option value="{{ h.horario_inicio|time:'H:i' }}|{{ h.horario_fim|time:'H:i' }}">
+                                            {{ h.numero }}º Horário ({{ h.horario_inicio|time:"H:i" }} - {{ h.horario_fim|time:"H:i" }})
+                                        </option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
                         </select>
-
+                        
                         <input type="hidden" name="horario_inicio" id="horario_inicio">
                         <input type="hidden" name="horario_fim" id="horario_fim">
+
+                        <p>Este botão é somente para quem for ter aula dupla na mesma sala ⚠️</p>
+                        <input type="hidden" name="aula_seguida" id="aula_seguida" value="nao">
+                        <button type="button" id="btn-aula-seguida" class="btn-aula-seguida" onclick="toggleAulaSeguida()">
+                            Aula seguida: Não
+                        </button>
 
                         <label for="carrinho">Carrinho:</label>
                         <select name="equipamento" id="carrinho" required>
@@ -159,16 +160,15 @@
                         <label for="sala">Sala:</label>
                         {{ form.sala }}
 
-                        {% if user.is_staff %}
+    {% if user.is_staff %}
                         <label for="id_professor">Nome do Profº (Username):</label>
                         {{ form.professor }}
                         {% endif %}
 
                         <button type="submit" id="btn-reservar">Enviar para o Mural</button>
-                        <a href="{% url 'unico' %}" class="btn-unico">reserva unica</a>
-                    </form>
-                </div>
-
+                        
+            </form>
+        </div>
                 <div class="mural">
                     <h2>Mural de Reservas</h2>
                     <div class="grid-mural" id="grid-mural">
@@ -209,6 +209,25 @@
     </div>
 
     <script src="{% static 'js/scriptMural.js' %}"></script>
+
+    <script>
+    // Alterna o botão de "aula seguida" entre Não e Sim, atualizando o hidden input
+    // que a view lê via request.POST.get('aula_seguida').
+    function toggleAulaSeguida() {
+        const input = document.getElementById('aula_seguida');
+        const btn = document.getElementById('btn-aula-seguida');
+
+        if (input.value === 'nao') {
+            input.value = 'sim';
+            btn.textContent = 'Aula seguida: Sim';
+            btn.classList.add('estado-sim');
+        } else {
+            input.value = 'nao';
+            btn.textContent = 'Aula seguida: Não';
+            btn.classList.remove('estado-sim');
+        }
+    }
+    </script>
 
     {% if user.is_staff %}
     <script>
@@ -276,8 +295,8 @@
             <form method="POST" action="{% url 'criar_pin' %}" style="padding:20px;display:flex;flex-direction:column;gap:16px;">
                 {% csrf_token %}
                 <label for="pin-input" style="font-weight:600;font-size:14px;">Digite um PIN de 4 dígitos:</label>
-                <input type="password" id="pin-input" name="pin" maxlength="4" pattern="\d{4}" inputmode="numeric" 
-                    style="padding:12px;font-size:24px;text-align:center;letter-spacing:8px;border:2px solid #1e3a5f;border-radius:8px;outline:none;" 
+                <input type="password" id="pin-input" name="pin" maxlength="4" pattern="\d{4}" inputmode="numeric"
+                    style="padding:12px;font-size:24px;text-align:center;letter-spacing:8px;border:2px solid #1e3a5f;border-radius:8px;outline:none;"
                     required autocomplete="off">
                 <p style="color:#666;font-size:12px;text-align:center;">Este PIN será usado para enviar fichas no tablet.</p>
                 <button type="submit" style="padding:12px;background:#1e3a5f;color:white;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;">Salvar PIN</button>

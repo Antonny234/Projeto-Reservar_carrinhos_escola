@@ -1,0 +1,373 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastros - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/painelestudante.css' %}">
+    <style>
+        .duas-colunas-cadastro {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 1000px) {
+            .duas-colunas-cadastro {
+                grid-template-columns: 1fr;
+            }
+        }
+        .secao-cadastro {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            margin-bottom: 25px;
+        }
+        .secao-cadastro h3 {
+            color: #1e3a5f;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eef0f2;
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+        .form-cadastro {
+            background: #f8f9fb;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+        .form-cadastro h4 {
+            font-size: 14px;
+            color: #1e3a5f;
+            margin-bottom: 12px;
+        }
+        .form-row {
+            margin-bottom: 12px;
+        }
+        .form-row label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #444;
+            margin-bottom: 4px;
+        }
+        .form-row .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 3px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #d8dce1;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-check-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-check-inline label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .erro-form {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+        .btn-salvar {
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-salvar:hover {
+            background: #16304d;
+        }
+        .acoes-tabela {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-icone {
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 15px;
+            padding: 4px 6px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+        .btn-editar { color: #1e3a5f; }
+        .btn-editar:hover { background: #eef2f7; }
+        .btn-excluir { color: #dc3545; }
+        .btn-excluir:hover { background: #fdecea; }
+        .badge-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .badge-sim { background: #e6f7ec; color: #28a745; }
+        .badge-nao { background: #fdecea; color: #dc3545; }
+        .mensagens {
+            margin-bottom: 20px;
+        }
+        .mensagem {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .mensagem.success { background: #e6f7ec; color: #1e6d38; }
+        .mensagem.error { background: #fdecea; color: #a12a1f; }
+    </style>
+</head>
+
+<body data-pagina="cadastros">
+
+{% if user.is_staff %}
+<body class="tem-sidebar" data-pagina="professor">
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        {% include 'partials/menu.html' %}
+    </aside>
+{% endif %}
+
+    <div class="header">
+        <h1>🗂️ Cadastros - Equipamentos e Horários</h1>
+        <div class="header-right">
+            <span>Olá, <strong>{{ user.username }}</strong></span>
+            {% if user.is_staff %}
+                <span class="badge-admin">ADM</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container" style="flex-direction: column;">
+
+        {% if messages %}
+        <div class="mensagens">
+            {% for message in messages %}
+            <div class="mensagem {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="duas-colunas-cadastro">
+
+            <!-- ===================== EQUIPAMENTOS ===================== -->
+            <div class="secao-cadastro">
+                <h3>💻 Equipamentos</h3>
+
+                <div class="form-cadastro">
+                    <h4>Adicionar novo equipamento</h4>
+                    <form method="post" action="{% url 'adicionar_equipamento' %}">
+                        {% csrf_token %}
+
+                        <div class="form-row">
+                            <label for="{{ form_equipamento.nome.id_for_label }}">Nome do carrinho</label>
+                            {{ form_equipamento.nome }}
+                            {% for erro in form_equipamento.nome.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+                        </div>
+
+                        <div class="form-row">
+                            <label for="{{ form_equipamento.tipo.id_for_label }}">Tipo</label>
+                            {{ form_equipamento.tipo }}
+                            {% for erro in form_equipamento.tipo.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+                        </div>
+
+                        <div class="form-row">
+                            <label for="{{ form_equipamento.quantidade.id_for_label }}">Quantidade (tablets)</label>
+                            {{ form_equipamento.quantidade }}
+                            <div class="help-text">{{ form_equipamento.fields.quantidade.help_text }}</div>
+                        </div>
+
+                        <div class="form-row form-grid-2">
+                            <div>
+                                <label for="{{ form_equipamento.numero_inicial.id_for_label }}">Nº inicial (notebooks)</label>
+                                {{ form_equipamento.numero_inicial }}
+                            </div>
+                            <div>
+                                <label for="{{ form_equipamento.numero_final.id_for_label }}">Nº final (notebooks)</label>
+                                {{ form_equipamento.numero_final }}
+                            </div>
+                        </div>
+                        {% for erro in form_equipamento.numero_final.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+
+                        <div class="form-row form-check-inline">
+                            {{ form_equipamento.disponivel }}
+                            <label for="{{ form_equipamento.disponivel.id_for_label }}">Disponível para reserva</label>
+                        </div>
+
+                        <button type="submit" class="btn-salvar">Salvar Equipamento</button>
+                    </form>
+                </div>
+
+                <table class="tabela-admin">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Disponível</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eq in equipamentos %}
+                        <tr>
+                            <td data-label="Nome:">{{ eq.nome }}</td>
+                            <td data-label="Tipo:">{{ eq.get_tipo_display }}</td>
+                            <td data-label="Disponível:">
+                                {% if eq.disponivel %}
+                                    <span class="badge-status badge-sim">Sim</span>
+                                {% else %}
+                                    <span class="badge-status badge-nao">Não</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Ações:">
+                                <div class="acoes-tabela">
+                                    <a class="btn-icone btn-editar" href="{% url 'editar_equipamento' eq.id %}" title="Editar">✏️</a>
+                                    <form method="post" action="{% url 'excluir_equipamento' eq.id %}" onsubmit="return confirm('Excluir o equipamento {{ eq.nome|escapejs }}? Essa ação não pode ser desfeita.');" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-icone btn-excluir" title="Excluir">🗑️</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4">Nenhum equipamento cadastrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ===================== HORÁRIOS DE AULA ===================== -->
+            <div class="secao-cadastro">
+                <h3>⏰ Horários de Aula</h3>
+
+                <div class="form-cadastro">
+                    <h4>Adicionar novo horário</h4>
+                    <form method="post" action="{% url 'adicionar_horario' %}">
+                        {% csrf_token %}
+
+                        <div class="form-row">
+                            <label for="{{ form_horario.numero.id_for_label }}">Número do horário</label>
+                            {{ form_horario.numero }}
+                            {% for erro in form_horario.numero.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+                        </div>
+
+                        <div class="form-row">
+                            <label for="{{ form_horario.periodo.id_for_label }}">Período</label>
+                            {{ form_horario.periodo }}
+                            {% for erro in form_horario.periodo.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+                        </div>
+
+                        <div class="form-row form-grid-2">
+                            <div>
+                                <label for="{{ form_horario.horario_inicio.id_for_label }}">Início</label>
+                                {{ form_horario.horario_inicio }}
+                            </div>
+                            <div>
+                                <label for="{{ form_horario.horario_fim.id_for_label }}">Fim</label>
+                                {{ form_horario.horario_fim }}
+                            </div>
+                        </div>
+                        {% for erro in form_horario.horario_fim.errors %}<div class="erro-form">{{ erro }}</div>{% endfor %}
+
+                        <div class="form-row form-check-inline">
+                            {{ form_horario.ativo }}
+                            <label for="{{ form_horario.ativo.id_for_label }}">Disponível para reserva</label>
+                        </div>
+
+                        <button type="submit" class="btn-salvar">Salvar Horário</button>
+                    </form>
+                </div>
+
+                <table class="tabela-admin">
+                    <thead>
+                        <tr>
+                            <th>Nº</th>
+                            <th>Período</th>
+                            <th>Início</th>
+                            <th>Fim</th>
+                            <th>Ativo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in horarios %}
+                        <tr>
+                            <td data-label="Nº:">{{ h.numero }}º</td>
+                            <td data-label="Período:">{{ h.get_periodo_display }}</td>
+                            <td data-label="Início:">{{ h.horario_inicio|time:"H:i" }}</td>
+                            <td data-label="Fim:">{{ h.horario_fim|time:"H:i" }}</td>
+                            <td data-label="Ativo:">
+                                {% if h.ativo %}
+                                    <span class="badge-status badge-sim">Sim</span>
+                                {% else %}
+                                    <span class="badge-status badge-nao">Não</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Ações:">
+                                <div class="acoes-tabela">
+                                    <a class="btn-icone btn-editar" href="{% url 'editar_horario' h.id %}" title="Editar">✏️</a>
+                                    <form method="post" action="{% url 'excluir_horario' h.id %}" onsubmit="return confirm('Excluir o {{ h.numero }}º horário? Essa ação não pode ser desfeita.');" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-icone btn-excluir" title="Excluir">🗑️</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6">Nenhum horário cadastrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar && toggleBtn && overlay) {
+            toggleBtn.addEventListener('click', function () {
+                const aberta = sidebar.classList.toggle('aberta');
+                overlay.classList.toggle('ativo');
+                toggleBtn.setAttribute('aria-expanded', aberta);
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('aberta');
+                overlay.classList.remove('ativo');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    sidebar.classList.remove('aberta');
+                    overlay.classList.remove('ativo');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

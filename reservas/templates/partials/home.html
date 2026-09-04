@@ -1,0 +1,95 @@
+{% raw %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Início</title>
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.ativo { display: flex; }
+        .modal-box {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            width: 300px;
+        }
+        .modal-box input {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        #mensagem-erro { color: red; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <button id="btn-carrinho">Escolher Carrinho</button>
+
+    <!-- Modal de login -->
+    <div class="modal-overlay" id="modal-login">
+        <div class="modal-box">
+            <h3>Faça login para continuar</h3>
+            <form id="login-form">
+                {% csrf_token %}
+                <input type="text" id="username" name="username" placeholder="Usuário" required>
+                <input type="password" id="password" name="password" placeholder="Senha" required>
+                <button type="submit">Entrar</button>
+                <button type="button" id="btn-cancelar">Cancelar</button>
+                <p id="mensagem-erro"></p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const btnCarrinho = document.getElementById('btn-carrinho');
+        const modal = document.getElementById('modal-login');
+        const btnCancelar = document.getElementById('btn-cancelar');
+        const form = document.getElementById('login-form');
+        const mensagemErro = document.getElementById('mensagem-erro');
+
+        // Ao clicar no botão, abre o modal de login
+        btnCarrinho.addEventListener('click', function() {
+            modal.classList.add('ativo');
+        });
+
+        btnCancelar.addEventListener('click', function() {
+            modal.classList.remove('ativo');
+            mensagemErro.innerText = '';
+            form.reset();
+        });
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            mensagemErro.innerText = '';
+
+            const formData = new FormData(form);
+            const csrftoken = formData.get('csrfmiddlewaretoken');
+
+            fetch("{% url 'login_ajax' %}", {
+                method: "POST",
+                body: formData,
+                headers: { "X-CSRFToken": csrftoken }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Login OK -> redireciona para a tela de escolha
+                    window.location.href = data.redirect_url;
+                } else {
+                    mensagemErro.innerText = data.error;
+                }
+            })
+            .catch(() => {
+                mensagemErro.innerText = "Erro ao conectar. Tente novamente.";
+            });
+        });
+    </script>
+</body>
+</html>{% endraw %}

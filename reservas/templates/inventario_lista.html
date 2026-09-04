@@ -1,0 +1,286 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventário - PROATI</title>
+
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--sidebar-bg);
+            transform: translateX(-100%);
+            transition: transform .3s ease;
+            z-index: 9999;
+            overflow-y: auto;
+            box-shadow: 5px 0 15px rgba(0,0,0,.35);
+        }
+        .sidebar.aberta { transform: translateX(0); }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .3s;
+            z-index: 9998;
+        }
+        .sidebar-overlay.ativo { opacity: 1; visibility: visible; }
+
+        .conteudo-principal {
+            margin-left: 0 !important;
+            width: 100%;
+            max-width: 100%;
+            flex: 1;
+        }
+
+        .sidebar-logo { padding: 20px; border-bottom: 1px solid rgba(255,255,255,.1); }
+        .sidebar-logo span { color: var(--sidebar-text); font-size: .75rem; font-weight: bold; letter-spacing: .12em; }
+
+        .sidebar-nav {
+            padding-top: 50px;
+            padding-bottom: 10px;
+        }
+        .sidebar-section { padding: 12px 18px 6px; color: rgba(255,255,255,.45); font-size: .72rem; text-transform: uppercase; font-weight: bold; }
+
+        .sidebar-link {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 18px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            border-left: 4px solid transparent;
+            transition: .2s;
+        }
+        .sidebar-link:hover { background: var(--sidebar-hover); color: #fff; border-left-color: var(--sidebar-accent); }
+        .sidebar-link.ativo { background: var(--sidebar-active); color: #fff; border-left-color: var(--sidebar-accent); }
+
+        .icone {
+            width: 22px; min-width: 22px;
+            display: inline-flex; justify-content: center; align-items: center;
+            font-size: 20px;
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+        }
+
+        .acoes-admin { display: none !important; }
+        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; }
+        .header { background: #1e3a5f; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .container { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+        .filtros { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filtros input { flex: 1; min-width: 220px; padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
+        .filtros button { padding: 8px 16px; border: none; border-radius: 6px; background: #1f7299; color: #fff; cursor: pointer; }
+        .btn-novo { background: #28a745; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; }
+
+        /* grid de grupos */
+        .grid-grupos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+        .card-grupo {
+            background: #fff; border-radius: 12px; padding: 22px; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07); text-decoration: none; color: #1e3a5f;
+            border-top: 4px solid #1f7299; transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        :root {
+            --sidebar-w: 300px;
+            --sidebar-bg: #1f3d63;
+            --sidebar-hover: #16304f;
+            --sidebar-active: #0f2340;
+            --sidebar-accent: #3b82f6;
+            --sidebar-text: #c8d8ea;
+            --sidebar-text-bright: #fff;
+        }
+        .nome {
+            margin-left: 96px;
+        }
+        .card-grupo {
+            position: relative; /* necessário para o link e o botão se sobreporem certo */
+            background: #fff; border-radius: 12px; padding: 22px; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07); color: #1e3a5f;
+            border-top: 4px solid #1f7299; transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .card-grupo:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(0,0,0,0.12); }
+        .card-grupo h3 { margin: 6px 0 4px; font-size: 18px; }
+        .card-grupo .qtd { font-size: 13px; color: #888; }
+        .card-grupo .icone { font-size: 30px; }
+
+        .card-grupo-link {
+            position: absolute;
+            inset: 0;
+            z-index: 1; /* fica por baixo do botão de excluir */
+        }
+
+        .btn-excluir-grupo {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 2; /* fica por cima do link */
+            background: #fdecea;
+            color: #b02a20;
+            border: 1px solid #f5c6cb;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease;
+        }
+        .btn-excluir-grupo:hover {
+            background: #f8d7da;
+        }
+        .card-grupo:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(0,0,0,0.12); }
+        .card-grupo h3 { margin: 6px 0 4px; font-size: 18px; }
+        .card-grupo .qtd { font-size: 13px; color: #888; }
+        .card-grupo .icone { font-size: 30px; }
+
+        /* tabela de resultados de busca */
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #eef2f5; }
+        .tag-grupo { background: #dbeafe; color: #1e3a5f; padding: 2px 10px; border-radius: 10px; font-size: 12px; }
+        .link-ver { color: #1f7299; font-weight: bold; text-decoration: none; float: right; }
+        .sidebar-toggle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            position: fixed;
+            top: 15px;
+            left: 15px;
+
+            width: 40px;
+            height: 50px;
+
+            background: #1B3A5C;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 10000;
+            font-size: 28px;
+        }
+        .acoes-admin { display: none !important; }
+    </style>
+</head>
+
+<div class="header">
+    <div class="tem-sidebar" data-pagina="professor">
+            {% if user.is_staff %}
+            <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+            <aside class="sidebar" id="sidebar">
+                {% include 'partials/menu.html' %}
+            </aside>
+        {% endif %}
+    </div>
+    <h2 class="nome"> Inventário de Equipamentos</h2>
+    {% if user.is_staff %}
+        <div>
+            <a href="{% url 'equipamento_novo' %}" class="btn-novo">+ Novo Equipamento</a>
+            <a href="{% url 'grupo_novo' %}" class="btn-novo">+ Novo Grupo</a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="container">
+
+    <form method="get" class="filtros">
+        <input type="text" name="q" placeholder="Buscar por N/S, patrimônio, ID, tipo ou local..." value="{{ termo }}">
+        <button type="submit" class="busca">Buscar</button>
+    </form>
+
+    {% if modo == 'grupos' %}
+        <div class="grid-grupos">
+            {% for grupo in grupos %}
+            <div class="card-grupo">
+                <a href="{% url 'grupo_equipamentos' grupo.id %}" class="card-grupo-link" aria-label="Abrir {{ grupo.nome }}"></a>
+
+                <span class="icone">📁</span>
+                <h3>{{ grupo.nome }}</h3>
+                <span class="qtd">{{ grupo.total }} equipamento{{ grupo.total|pluralize }}</span>
+
+                {% if user.is_staff %}
+                <form method="POST" action="{% url 'grupo_excluir' grupo.id %}"
+                    onsubmit="return confirm('Excluir o grupo &quot;{{ grupo.nome }}&quot;? Essa ação não pode ser desfeita.')"
+                    style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-excluir-grupo" title="Excluir grupo">🗑</button>
+                </form>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p style="color:#888;" class="mensagem">Nenhum grupo cadastrado ainda.</p>
+            {% endfor %}
+        </div>
+
+    {% else %}
+        <p style="color:#666; margin-bottom:10px;" class="buscar-equi">
+            Resultado da busca por "<strong>{{ termo }}</strong>"
+            — <a href="{% url 'inventario_lista' %}">voltar aos grupos</a>
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Grupo</th>
+                    <th>Tipo</th>
+                    <th>Patrimônio</th>
+                    <th>N/S</th>
+                    <th>Localização atual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for equip in equipamentos %}
+                <tr>
+                    <td><span class="tag-grupo">{{ equip.grupo.nome }}</span></td>
+                    <td>{{ equip.tipo }}</td>
+                    <td>{{ equip.numero_patrimonio }}</td>
+                    <td>{{ equip.numero_serie }}</td>
+                    <td>
+                        {{ equip.localizacao_atual }}
+                        <a href="{% url 'inventario_detalhe' equip.pk %}" class="link-ver">Ver →</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" style="color:#888;">Nenhum equipamento encontrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+</div>
+
+<script>
+        // Menu lateral (mesmo comportamento das outras páginas do painel)
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar && toggleBtn && overlay) {
+            toggleBtn.addEventListener('click', function () {
+                const aberta = sidebar.classList.toggle('aberta');
+                overlay.classList.toggle('ativo');
+                toggleBtn.setAttribute('aria-expanded', aberta);
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('aberta');
+                overlay.classList.remove('ativo');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    sidebar.classList.remove('aberta');
+                    overlay.classList.remove('ativo');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+</script>
+
+</body>
+</html>

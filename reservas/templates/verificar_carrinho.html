@@ -10,11 +10,20 @@
 </head>
 <body data-pagina="verificar-carrinho">
 
+{% if user.is_staff %}
+<body class="tem-sidebar" data-pagina="professor">
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        {% include 'partials/menu.html' %}
+    </aside>
+{% endif %}
+
     <div class="header">
         <h1>📦 Verificação de Carrinhos</h1>
         <div class="header-right">
             <span>Olá, <strong>{{ user.username }}</strong></span>
-            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
             {% if user.is_staff %}
                 <span class="badge-admin">ADM</span>
             {% endif %}
@@ -202,6 +211,31 @@
                 alert('Erro ao atualizar o status do notebook. Tente novamente.');
             });
         });
+
+        // Menu lateral (mesmo comportamento das outras páginas do painel)
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar && toggleBtn && overlay) {
+            toggleBtn.addEventListener('click', function () {
+                const aberta = sidebar.classList.toggle('aberta');
+                overlay.classList.toggle('ativo');
+                toggleBtn.setAttribute('aria-expanded', aberta);
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('aberta');
+                overlay.classList.remove('ativo');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    sidebar.classList.remove('aberta');
+                    overlay.classList.remove('ativo');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
     </script>
 </body>
 </html>

@@ -9,11 +9,16 @@
     <link rel="stylesheet" href="{% static 'css/painel_reservas.css' %}">
 </head>
 <body>
+
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        {% include 'partials/menu.html' %}
+    </aside>
+
     <div class="header">
         <h1>GTREP Manoel Martins - Reservas do Dia</h1>
-        <div class="header-right">
-            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
-        </div>
     </div>
 
     <div class="painel-reservas">
@@ -117,6 +122,32 @@
         }
 
         document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+
+
+        // Menu lateral (mesmo comportamento das outras páginas do painel)
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar && toggleBtn && overlay) {
+            toggleBtn.addEventListener('click', function () {
+                const aberta = sidebar.classList.toggle('aberta');
+                overlay.classList.toggle('ativo');
+                toggleBtn.setAttribute('aria-expanded', aberta);
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('aberta');
+                overlay.classList.remove('ativo');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    sidebar.classList.remove('aberta');
+                    overlay.classList.remove('ativo');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
     </script>
 </body>
 </html>

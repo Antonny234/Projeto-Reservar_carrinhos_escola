@@ -1,0 +1,136 @@
+/* ============================================================
+   VERIFICAR CARRINHO — Estilo Padrão Mural (PROATI)
+   Complementar ao estiloMural.css
+   ============================================================ */
+
+body {
+    overflow-x: hidden;
+    width: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+}
+
+.container {
+    width: 98%;
+    max-width: 1400px;
+    margin: 20px auto;
+}
+
+.painel-admin {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.tabela-admin {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.tabela-admin th, .tabela-admin td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+}
+
+.tabela-admin th {
+    background-color: #1e3a5f;
+    color: #f8f9fa;
+    font-weight: bold;
+}
+
+.form-faixa-modal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eee;
+}
+.form-faixa-modal label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #444;
+}
+.form-faixa-modal input[type="number"] {
+    width: 80px;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+.badge-ok {
+    background: #e6f4ea;
+    color: #1e7e34;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-block;
+}
+.badge-quebrado {
+    background: #fdecea;
+    color: #b3261e;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-block;
+}
+.btn-toggle-status {
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: white;
+}
+.btn-toggle-status.marcar-quebrado { background: #dc3545; }
+.btn-toggle-status.marcar-quebrado:hover { background: #c82333; }
+.btn-toggle-status.reativar { background: #28a745; }
+.btn-toggle-status.reativar:hover { background: #218838; }
+.faixa-vazia {
+    color: #999;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 14px 16px;
+        gap: 8px;
+    }
+    .header-right {
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tabela-admin {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .painel-admin {
+        padding: 12px;
+    }
+    .ficha-tabela th, .ficha-tabela td {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+    .modal-box {
+        width: 95%;
+        max-height: 92vh;
+    }
+}
+

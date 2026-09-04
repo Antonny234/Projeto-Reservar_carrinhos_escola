@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fichas dos Carrinhos - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <style>
+        .container-carrinhos {
+            display: flex;
+            justify-content: center;
+            padding: 24px;
+        }
+        .grid-carrinhos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
+            width: 100%;
+            max-width: 900px;
+        }
+        .card-carrinho {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+            text-decoration: none;
+            color: #1e3a5f;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border-top: 4px solid #1f7299;
+        }
+        .card-carrinho:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+        }
+        .card-carrinho .icone {
+            font-size: 34px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .card-carrinho h3 {
+            margin: 0 0 6px;
+            font-size: 17px;
+        }
+        .card-carrinho .tipo {
+            font-size: 12px;
+            color: #888;
+        }
+        .btn-voltar-verde {
+            display: inline-block;
+            background-color: #28a745;
+            color: #ffffff;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 20px 24px 0;
+        }
+
+        /* ---- Modal de login ---- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .modal-overlay.ativo { display: flex; }
+        .modal-box {
+            background: #fff;
+            padding: 28px;
+            border-radius: 12px;
+            width: 300px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+        }
+        .modal-box h3 {
+            margin-top: 0;
+            color: #1e3a5f;
+        }
+        .modal-box input {
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        .modal-box button[type="submit"] {
+            width: 100%;
+            background-color: #1f7299;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-box button[type="submit"]:hover {
+            background-color: #17597a;
+        }
+        #mensagem-erro {
+            color: #d9534f;
+            font-size: 13px;
+            margin-top: 8px;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📋 Fichas dos Carrinhos</h1>
+    <div class="header-right">
+        {% if autenticado %}
+            <span>Olá, <strong>{{ user.username }}</strong></span>
+            {% if user.is_staff %}<span class="badge-admin">ADM</span>{% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<a href="{% url 'longa' %}" class="btn-voltar-verde">← Voltar ao inicio</a>
+
+<div class="container-carrinhos">
+    <div class="grid-carrinhos">
+        {% if autenticado %}
+            {% for equip in equipamentos %}
+            <a href="{% url 'tablet_checkin' equip.id %}" class="card-carrinho">
+                <span class="icone">{% if equip.tipo == 'notebook' %}💻{% else %}📱{% endif %}</span>
+                <h3>{{ equip.nome }}</h3>
+                <span class="tipo">{{ equip.get_tipo_display }}</span>
+            </a>
+            {% empty %}
+            <p style="color:#888;">Nenhum carrinho cadastrado ainda.</p>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de login: aparece automaticamente se não estiver autenticado -->
+<div class="modal-overlay {% if not autenticado %}ativo{% endif %}" id="modal-login">
+    <div class="modal-box">
+        <h3>Faça login para continuar</h3>
+        <form id="login-form">
+            {% csrf_token %}
+            <input type="text" id="username" name="username" placeholder="Usuário" required>
+            <input type="password" id="password" name="password" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+            <p id="mensagem-erro"></p>
+        </form>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('login-form');
+    const mensagemErro = document.getElementById('mensagem-erro');
+
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            mensagemErro.innerText = '';
+
+            const formData = new FormData(form);
+            const csrftoken = formData.get('csrfmiddlewaretoken');
+
+            fetch("{% url 'login_ajax' %}", {
+                method: "POST",
+                body: formData,
+                headers: { "X-CSRFToken": csrftoken }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Login OK -> recarrega para exibir os carrinhos (autenticado=True)
+                    window.location.reload();
+                } else {
+                    mensagemErro.innerText = data.error;
+                }
+            })
+            .catch(() => {
+                mensagemErro.innerText = "Erro ao conectar. Tente novamente.";
+            });
+        });
+    }
+
+    // ---- Derruba a sessão quando o usuário sai da página ----
+    window.addEventListener('pagehide', function () {
+        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!tokenInput) return;
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', tokenInput.value);
+        navigator.sendBeacon("{% url 'logout_ajax' %}", formData);
+    });
+</script>
+
+</body>
+</html>

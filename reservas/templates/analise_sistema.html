@@ -1,0 +1,370 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise do Sistema - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/painelestudante.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .analise-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+            width: 100%;
+        }
+        .texto-vermelho { color: #dc3545; font-weight: bold; }
+        .texto-verde { color: #28a745; font-weight: bold; }
+        .texto-vermelho { color: #dc3545; }
+        .texto-cinza { color: #666; }
+        .texto-bold { font-weight: bold; }
+        .card-stat {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-left: 5px solid #1e3a5f;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card-stat h4 {
+            color: #718096;
+            font-size: 13px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .card-stat .valor {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e3a5f;
+        }
+        .secao-analise {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            margin-bottom: 25px;
+            width: 100%;
+        }
+        .secao-analise h3 {
+            color: #1e3a5f;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eef0f2;
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+        .duas-colunas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 900px) {
+            .duas-colunas {
+                grid-template-columns: 1fr;
+            }
+        }
+        .tres-colunas {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 1100px) {
+            .tres-colunas {
+                grid-template-columns: 1fr;
+            }
+        }
+        .tabela-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .tabela-scroll table {
+            width: 100%;
+        }
+        .tabela-scroll thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body data-pagina="analise-sistema">
+
+{% if user.is_staff %}
+<body class="tem-sidebar" data-pagina="professor">
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        {% include 'partials/menu.html' %}
+    </aside>
+{% endif %}
+
+
+    <div class="header">
+        <h1>📊 Análise de Desempenho e Fichas - PROATI</h1>
+        <div class="header-right">
+            <span>Olá, <strong>{{ user.username }}</strong></span>
+            {% if user.is_staff %}
+                <span class="badge-admin">ADM</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container" style="flex-direction: column;">
+
+        <!-- Resumo / KPIs -->
+        <div class="analise-grid">
+            <div class="card-stat">
+                <h4>Total de Reservas</h4>
+                <div class="valor">{{ total_reservas }}</div>
+            </div>
+            <div class="card-stat" style="border-left-color: #28a745;">
+                <h4>Reservas Confirmadas</h4>
+                <div class="valor">{{ reservas_confirmadas }}</div>
+            </div>
+            <div class="card-stat" style="border-left-color: #ffc107;">
+                <h4>Fichas Preenchidas</h4>
+                <div class="valor">{{ total_fichas_entregues }}</div>
+            </div>
+            <div class="card-stat" style="border-left-color: #17a2b8;">
+                <h4>Dia com Mais Reservas</h4>
+                <div class="valor" style="font-size: 20px;">{{ dia_semana_mais.dia|default:"—" }}</div>
+                <div class="texto-cinza" style="font-size: 13px; margin-top: 4px;">{{ dia_semana_mais.total|default:0 }} reservas</div>
+            </div>
+            <div class="card-stat" style="border-left-color: #dc3545;">
+                <h4>Dia com Menos Reservas</h4>
+                <div class="valor" style="font-size: 20px;">{{ dia_semana_menos.dia|default:"—" }}</div>
+                <div class="texto-cinza" style="font-size: 13px; margin-top: 4px;">{{ dia_semana_menos.total|default:0 }} reservas</div>
+            </div>
+        </div>
+
+        <div class="tres-colunas">
+            <!-- Professores que mais entregaram -->
+            <div class="secao-analise">
+                <h3>🏆 Professores que Mais Entregaram Fichas</h3>
+                <table class="tabela-admin">
+                    <thead>
+                        <tr>
+                            <th>Professor</th>
+                            <th>Fichas Entregues</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in professores_mais_entregues %}
+                        <tr>
+                            <td data-label="Professor:">{{ p.nome }}</td>
+                            <td data-label="Fichas:"><strong>{{ p.fichas_entregues }}</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="2">Nenhum dado encontrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Professores que menos entregaram / pendentes -->
+            <div class="secao-analise">
+                <h3>⚠️ Professores com Menos Fichas / Pendentes</h3>
+                <table class="tabela-admin">
+                    <thead>
+                        <tr>
+                            <th>Professor</th>
+                            <th>Reservas</th>
+                            <th>Entregues</th>
+                            <th>Taxa %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in professores_menos_entregues %}
+                        <tr>
+                            <td data-label="Professor:">{{ p.nome }}</td>
+                            <td data-label="Reservas:">{{ p.reservas_confirmadas }}</td>
+                            <td data-label="Entregues:">{{ p.fichas_entregues }}</td>
+                            <td data-label="Taxa:">
+                                <span class="{% if p.taxa_entrega < 50 %}texto-vermelho{% else %}texto-verde{% endif %}">
+                                    {{ p.taxa_entrega|default:0 }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4">Nenhum dado encontrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Reservas por Dia + Horário (Segunda a Sexta) -->
+            <div class="secao-analise">
+                <h3>📆 Reservas por Dia e Horário (Seg a Sex)</h3>
+                <div class="tabela-scroll">
+                    <table class="tabela-admin">
+                        <thead>
+                            <tr>
+                                <th>Dia</th>
+                                <th>Horário</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in detalhe_dia_horario_semana %}
+                            <tr>
+                                <td data-label="Dia:">{{ d.dia }}</td>
+                                <td data-label="Horário:">{{ d.horario|time:"H:i" }}</td>
+                                <td data-label="Total:"><strong>{{ d.total }}</strong></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3">Nenhum dado encontrado.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservas por dia da semana (visão geral) -->
+        <div class="secao-analise">
+            <h3>📅 Reservas por Dia da Semana</h3>
+            <div class="duas-colunas">
+                <div>
+                    <canvas id="graficoDiaSemana" height="220"></canvas>
+                </div>
+                <table class="tabela-admin">
+                    <thead>
+                        <tr>
+                            <th>Dia</th>
+                            <th>Total de Reservas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in reservas_por_dia_semana %}
+                        <tr>
+                            <td data-label="Dia:">{{ d.dia }}</td>
+                            <td data-label="Total:"><strong>{{ d.total }}</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="2">Nenhum dado encontrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Ranking geral: melhores combinações para agendar -->
+        <div class="secao-analise">
+            <h3>🎯 Top 10 Melhores Combinações (Dia + Horário) para Agendar Provas</h3>
+            <p class="texto-cinza" style="margin-bottom: 20px;">
+                Combinações de dia da semana e horário com o menor número de reservas registradas — indicadas para agendar avaliações com menor conflito no uso de equipamentos.
+            </p>
+            <table class="tabela-admin">
+                <thead>
+                    <tr>
+                        <th>Dia</th>
+                        <th>Horário</th>
+                        <th>Total de Reservas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in ranking_menos_movimentado %}
+                    <tr>
+                        <td data-label="Dia:">{{ r.dia }}</td>
+                        <td data-label="Horário:">{{ r.horario|time:"H:i" }}</td>
+                        <td data-label="Total:">
+                            <span class="texto-verde">{{ r.total }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">Nenhum dado encontrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Status dos Carrinhos e Notebooks -->
+        <div class="secao-analise">
+            <h3>💻 Status dos Carrinhos e Notebooks (Ativos vs Quebrados)</h3>
+            <table class="tabela-admin">
+                <thead>
+                    <tr>
+                        <th>Carrinho</th>
+                        <th>Tipo</th>
+                        <th>Total na Faixa</th>
+                        <th>Ativos (Funcionando)</th>
+                        <th>Quebrados (Inativos)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eq in equipamentos_data %}
+                    <tr>
+                        <td data-label="Carrinho:"><strong>{{ eq.nome }}</strong></td>
+                        <td data-label="Tipo:">{{ eq.tipo }}</td>
+                        <td data-label="Total:">{{ eq.total }}</td>
+                        <td data-label="Ativos:" style="color: #28a745; font-weight: bold;">{{ eq.ativos }}</td>
+                        <td data-label="Quebrados:" class="{% if eq.quebrados|default:0 > 0 %}texto-vermelho{% else %}texto-cinza{% endif %} texto-bold">{{ eq.quebrados|default:0 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5">Nenhum equipamento cadastrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    {{ reservas_por_dia_semana|json_script:"dados-dia-semana" }}
+
+    <script>
+        // Menu lateral (mesmo comportamento das outras páginas do painel)
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar && toggleBtn && overlay) {
+            toggleBtn.addEventListener('click', function () {
+                const aberta = sidebar.classList.toggle('aberta');
+                overlay.classList.toggle('ativo');
+                toggleBtn.setAttribute('aria-expanded', aberta);
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('aberta');
+                overlay.classList.remove('ativo');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    sidebar.classList.remove('aberta');
+                    overlay.classList.remove('ativo');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
+        // Gráfico de reservas por dia da semana
+        const ctxDiaSemana = document.getElementById('graficoDiaSemana');
+        if (ctxDiaSemana) {
+            const dadosDiaSemana = JSON.parse(document.getElementById('dados-dia-semana').textContent);
+
+            new Chart(ctxDiaSemana, {
+                type: 'bar',
+                data: {
+                    labels: dadosDiaSemana.map(d => d.dia),
+                    datasets: [{
+                        label: 'Reservas',
+                        data: dadosDiaSemana.map(d => d.total),
+                        backgroundColor: '#1e3a5f'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

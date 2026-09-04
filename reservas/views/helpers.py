@@ -1,6 +1,6 @@
 from django.conf import settings
 from ultralytics import YOLO
-from ..models import PerfilAdm
+from ..models import PerfilAdm,BloqueioEquipamento
 import requests
 
 MODEL_PATH = settings.BASE_DIR / "modelos" / "best.pt"
@@ -36,3 +36,25 @@ def enviar_telegram(mensagem):
         }, timeout=5)
     except requests.RequestException as e:
         print(f"Erro ao enviar Telegram: {e}")
+
+def _requer_aprovacao_para_reserva(professor, equipamento):
+    """Combina a regra global (PerfilAdm) com a lista de liberados do próprio equipamento."""
+    if _professor_requer_aprovacao(professor):
+        return True
+
+    liberados_ids = set(equipamento.professores_liberados.values_list('professor_id', flat=True))
+    if liberados_ids and professor.id not in liberados_ids:
+        return True
+
+    return False
+
+
+def _equipamentos_bloqueados(data, horario_inicio, horario_fim):
+    """IDs de equipamentos com bloqueio ativo que colide com o horário informado."""
+    return set(
+        BloqueioEquipamento.objects.filter(
+            data=data,
+            horario_inicio__lt=horario_fim,
+            horario_fim__gt=horario_inicio,
+        ).values_list('equipamento_id', flat=True)
+    )

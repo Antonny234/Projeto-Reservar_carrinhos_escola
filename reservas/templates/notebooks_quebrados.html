@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebooks Quebrados - PROATI</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/painel.css' %}">
+    <link rel="stylesheet" href="{% static 'css/notebooks_quebrados.css' %}">
+</head>
+<body class="tem-sidebar">
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        {% include 'partials/menu.html' %}
+    </aside>
+
+    <div class="header">
+        <h1>🔧 Notebooks Denunciados como Quebrados</h1>
+        <div class="header-right">
+            <span>Olá, <strong>{{ user.username }}</strong></span>
+            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
+            {% if user.is_staff %}
+                <span class="badge-admin">ADM</span>
+            {% endif %}
+        </div>
+</div>
+
+            <div class="header-pagina">
+                <div>
+                    <p class="subtitulo">Notebooks marcados como inativos pelos professores nas fichas de uso.</p>
+                </div>
+                <span class="badge-total">{{ total_quebrados }} quebrado{{ total_quebrados|pluralize }}</span>
+            </div>
+
+            {% if messages %}
+            <div class="mensagens-fixas" role="status" aria-live="polite">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <span>{{ message }}</span>
+                    <button class="fechar-alert" onclick="this.parentElement.remove()" aria-label="Fechar mensagem">✕</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if grupos %}
+            <div class="lista-carrinhos">
+                {% for equipamento, notebooks in grupos.items %}
+                <section class="card-carrinho" aria-labelledby="carrinho-{{ equipamento.id }}">
+                    <div class="card-carrinho-header">
+                        <h2 id="carrinho-{{ equipamento.id }}">{{ equipamento.nome }}</h2>
+                        <span class="badge-count">{{ notebooks|length }}</span>
+                    </div>
+                    <p class="card-carrinho-info">
+                        Faixa esperada:
+                        {% if equipamento.numero_inicial and equipamento.numero_final %}
+                            {{ equipamento.numero_inicial }} a {{ equipamento.numero_final }}
+                        {% else %}
+                            não configurada
+                        {% endif %}
+                    </p>
+                    <div class="chips-notebooks">
+                        {% for nb in notebooks %}
+                        <form method="POST" action="{% url 'reativar_notebook' %}" class="chip-form"
+                              onsubmit="return confirm('Marcar notebook {{ nb.numero }} como consertado?')">
+                            {% csrf_token %}
+                            <input type="hidden" name="notebook_id" value="{{ nb.id }}">
+                            <button type="submit" class="chip-quebrado" title="Clique para marcar como consertado">
+                                Nº {{ nb.numero }}
+                                <span class="chip-check">✔ consertar</span>
+                            </button>
+                        </form>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="vazio">
+                <p class="vazio-icone">✅</p>
+                <p><strong>Nenhum notebook quebrado no momento.</strong></p>
+                <p>Todos os carrinhos estão com os notebooks ativos.</p>
+            </div>
+            {% endif %}
+
+        </main>
+    </div>
+
+    <script>
+        // Menu lateral (mesmo comportamento das outras páginas do painel)
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar && toggleBtn && overlay) {
+            toggleBtn.addEventListener('click', function () {
+                const aberta = sidebar.classList.toggle('aberta');
+                overlay.classList.toggle('ativo');
+                toggleBtn.setAttribute('aria-expanded', aberta);
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('aberta');
+                overlay.classList.remove('ativo');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    sidebar.classList.remove('aberta');
+                    overlay.classList.remove('ativo');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

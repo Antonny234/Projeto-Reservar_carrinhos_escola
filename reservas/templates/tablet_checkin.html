@@ -25,7 +25,15 @@
     <!-- CRÍTICO: sem isso o backend nunca sabe qual reserva foi enviada -->
     <input type="hidden" name="reserva_id" value="{{ reserva.id }}">
 
-    <h1>Carrinho: {{ reserva.equipamento.nome }} | Sala: {{ reserva.sala }} | Professor: {{ reserva.professor.username }}</h1>
+    
+
+    <div class="cabecalho-ficha">
+      <h1>Carrinho: {{ reserva.equipamento.nome }} | Sala: {{ reserva.sala }} | Professor: {{ reserva.professor.username }}</h1>
+
+      <button type="button" id="btn-reportar-quebrado" class="btn-reportar">
+           Notebook Quebrado ⚠️
+      </button>
+    </div>
 
     <p id="erro-minimo" style="color:red; display:none; font-weight:bold;"></p>
 
@@ -48,6 +56,38 @@
 
     <button type="submit" data-minimo="{{ minimo_alunos|default:5 }}">ENVIAR FICHA</button>
 </form>
+
+<!-- Modal para Reportar Notebook Quebrado e Pedir Avulso -->
+<div class="modal-confirmacao-overlay" id="modal-quebrado" style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000;">
+    <div class="modal-confirmacao-box" style="background: white; padding: 20px; border-radius: 8px; max-width: 480px; width: 90%;">
+        <div class="modal-confirmacao-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin:0; font-size: 18px;">⚠️ Reportar Notebook Quebrado</h2>
+            <button type="button" onclick="fecharModalQuebrado()" style="border:none; background:none; font-size: 20px; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-confirmacao-body" style="text-align: left; display: flex; flex-direction: column; gap: 12px;">
+            <p style="margin:0; font-size: 14px; color: #555;">Informe o(s) número(s) do notebook que quebrou(ram) durante a aula. Você pode informar vários de uma vez, separados por vírgula ou espaço:</p>
+            <input type="text" id="input-notebook-quebrado" placeholder="Ex: 12, 15, 23" inputmode="numeric" autocomplete="off" style="padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px;">
+            <p id="erro-quebrado" style="color:red; font-size: 13px; display:none; margin:0;"></p>
+            <p id="sucesso-quebrado" style="color:green; font-size: 13px; display:none; margin:0;"></p>
+            <div id="container-pedido-avulso" style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 12px;">
+                <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e3a5f;">📦 Deseja pedir notebook único/avulso de algum carrinho?</p>
+                <label style="font-size: 13px; font-weight: 500;">Selecione o Carrinho:</label>
+                <select id="select-carrinho-avulso" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 8px;">
+                    <option value="">Nenhum</option>
+                    {% for eq in equipamentos_geral %}
+                    <option value="{{ eq.id }}">{{ eq.nome }}</option>
+                    {% endfor %}
+                </select>
+                <label style="font-size: 13px; font-weight: 500;">Quantidade:</label>
+                <input type="number" id="input-qtd-avulso" value="1" min="1" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+            </div>
+        </div>
+        <div class="modal-confirmacao-footer" style="margin-top: 20px; text-align: right;">
+            <button type="button" onclick="fecharModalQuebrado()" style="padding: 10px 16px; border:none; border-radius: 4px; cursor:pointer;">Cancelar</button>
+            <button type="button" id="btn-salvar-reporte" onclick="enviarReporteQuebrado()" style="padding: 10px 16px; border:none; border-radius: 4px; cursor:pointer; background: #d9534f; color: white;">Salvar e Pedir</button>
+        </div>
+    </div>
+</div>
 
 <!-- Modal de Confirmação PIN -->
 <div class="modal-confirmacao-overlay" id="modal-confirmacao" style="display:none;">
@@ -141,7 +181,10 @@
   }
 
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') fecharModalConfirmacao();
+    if (e.key === 'Escape') {
+        fecharModalConfirmacao();
+        fecharModalQuebrado();
+    }
   });
 
   document.getElementById('pin-confirmacao').addEventListener('keydown', function(e) {
@@ -150,6 +193,97 @@
       confirmarEnvio();
     }
   });
+
+  // ── Modal Reportar Quebrado ──
+  // Dados da reserva atual necessários para marcar o(s) notebook(s) quebrado(s)
+  // no carrinho da ficha e criar o pedido avulso no mesmo horário.
+  const RESERVA_DADOS = {
+    equipamentoId: "{{ reserva.equipamento_id }}",
+    salaId: "{{ reserva.sala_id }}",
+    dataUso: "{{ reserva.data_uso|date:'Y-m-d' }}",
+    horarioInicio: "{{ reserva.horario_inicio|time:'H:i' }}",
+    horarioFim: "{{ reserva.horario_fim|time:'H:i' }}",
+  };
+
+  const btnReportar = document.getElementById('btn-reportar-quebrado');
+  if (btnReportar) {
+    btnReportar.addEventListener('click', () => {
+      document.getElementById('input-notebook-quebrado').value = '';
+      document.getElementById('erro-quebrado').style.display = 'none';
+      document.getElementById('sucesso-quebrado').style.display = 'none';
+      document.getElementById('modal-quebrado').style.display = 'flex';
+      setTimeout(() => document.getElementById('input-notebook-quebrado').focus(), 200);
+    });
+  }
+
+  function fecharModalQuebrado() {
+    document.getElementById('modal-quebrado').style.display = 'none';
+  }
+
+  function csrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+  }
+
+  async function enviarReporteQuebrado() {
+    const numerosTexto = document.getElementById('input-notebook-quebrado').value.trim();
+    const erroQ = document.getElementById('erro-quebrado');
+    const sucessoQ = document.getElementById('sucesso-quebrado');
+    const carrinhoId = document.getElementById('select-carrinho-avulso').value;
+    const qtdAvulso = document.getElementById('input-qtd-avulso').value;
+    const btnSalvar = document.getElementById('btn-salvar-reporte');
+
+    erroQ.style.display = 'none';
+    sucessoQ.style.display = 'none';
+
+    if (!numerosTexto) {
+      erroQ.textContent = 'Digite pelo menos um número de notebook.';
+      erroQ.style.display = 'block';
+      return;
+    }
+
+    btnSalvar.disabled = true;
+    btnSalvar.textContent = 'Enviando...';
+
+    try {
+      const dados = new FormData();
+      dados.append('csrfmiddlewaretoken', csrfToken());
+      dados.append('numeros_notebook', numerosTexto);
+      dados.append('equipamento_id', RESERVA_DADOS.equipamentoId);
+
+      // Pedido avulso (opcional) — cria uma reserva por quantidade no mesmo horário da ficha
+      if (carrinhoId) {
+        dados.append('carrinho_avulso_id', carrinhoId);
+        dados.append('quantidade_avulso', qtdAvulso || '1');
+        dados.append('sala_id', RESERVA_DADOS.salaId);
+        dados.append('data_uso', RESERVA_DADOS.dataUso);
+        dados.append('horario_inicio', RESERVA_DADOS.horarioInicio);
+        dados.append('horario_fim', RESERVA_DADOS.horarioFim);
+      }
+
+      const resposta = await fetch('/ajax/reportar-notebook/', { method: 'POST', body: dados });
+
+      let json;
+      try { json = await resposta.json(); }
+      catch (_) { throw new Error('Resposta inválida do servidor.'); }
+
+      if (!resposta.ok || !json.sucesso) {
+        erroQ.textContent = json.erro || 'Não foi possível salvar o reporte. Tente novamente.';
+        erroQ.style.display = 'block';
+        return;
+      }
+
+      sucessoQ.textContent = '✔ ' + json.mensagem;
+      sucessoQ.style.display = 'block';
+      setTimeout(fecharModalQuebrado, 1800);
+    } catch (err) {
+      erroQ.textContent = 'Erro de conexão. Verifique a internet e tente novamente.';
+      erroQ.style.display = 'block';
+    } finally {
+      btnSalvar.disabled = false;
+      btnSalvar.textContent = 'Salvar e Pedir';
+    }
+  }
 
   // ── Troca dinâmica de turma quando o horário virar ──
 

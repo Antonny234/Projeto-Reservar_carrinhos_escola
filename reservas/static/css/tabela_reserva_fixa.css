@@ -1,0 +1,79 @@
+/* ════════════════════════════════════════
+   PÁGINA: RESERVAS FIXAS (reservas_fixas.html)
+════════════════════════════════════════ */
+
+/* ── Lista de Reservas Fixas ── */
+.lista-fixas-wrapper {
+    width: 96%;
+    max-width: 1600px;
+    margin: 30px auto;
+}
+
+.lista-fixas-wrapper h2 {
+    margin: 0 0 14px;
+    color: #1e3a5f;
+    font-size: 20px;
+}
+
+.tabela-fixas-box {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.tabela-fixas-box table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.tabela-fixas-box th {
+    background-color: #1e3a5f;
+    color: #ffffff;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: .04em;
+    padding: 14px 16px;
+    text-align: left;
+    border: none;
+}
+
+.tabela-fixas-box th:first-child { border-top-left-radius: 10px; }
+.tabela-fixas-box th:last-child  { border-top-right-radius: 10px; }
+
+.tabela-fixas-box td {
+    padding: 12px 16px;
+    border: none;
+    border-bottom: 1px solid #eef0f3;
+    color: #2c3e50;
+}
+
+.tabela-fixas-box tr:last-child td { border-bottom: none; }
+
+.tabela-fixas-box tbody tr:nth-child(even) {
+    background-color: #f7f9fb;
+}
+
+.tabela-fixas-box tbody tr:hover {
+    background-color: #eef4f8;
+}
+
+.btn-excluir-fixa {
+    background-color: #fdecea;
+    color: #dc3545;
+    border: 1.5px solid #f5c2c7;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-excluir-fixa:hover {
+    background-color: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}

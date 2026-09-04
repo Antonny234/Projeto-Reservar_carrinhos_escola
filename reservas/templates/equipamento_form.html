@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if editando %}Editar Equipamento{% else %}Novo Equipamento{% endif %}</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #f4f6f8; 
+            margin: 0; 
+        }
+        .header { 
+            background: #1e3a5f; 
+            color: #fff; 
+            padding: 16px 24px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-voltar-verde {
+            display: inline-block;
+            background-color: #28a745;
+            color: #ffffff;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background-color 0.2s ease, transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 2px solid #1e7e34;
+        }
+        .btn-voltar-verde:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .btn-voltar-verde:active {
+            transform: translateY(0);
+        }
+        .container { max-width: 500px; 
+            margin: 24px auto; 
+            padding: 0 16px; 
+        }
+        .card { 
+            background: #fff; 
+            border-radius: 10px; 
+            padding: 24px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+        }
+        label { 
+            display: block; 
+            margin-top: 12px; 
+            font-weight: bold; 
+            color: #1e3a5f; 
+        }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { margin-top: 18px; background: #28a745; color: #fff; padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>📦 {% if editando %}Editar Equipamento{% else %}Novo Equipamento{% endif %}</h2>
+    <a href="{% url 'inventario_lista' %}" class="btn-voltar-verde">Voltar para Inventário</a>
+</div>
+
+<div class="container">
+    <div class="card">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">{% if editando %}Salvar Alterações{% else %}Cadastrar{% endif %}</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

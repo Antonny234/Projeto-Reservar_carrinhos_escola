@@ -8,7 +8,7 @@ load_dotenv(override=False)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
@@ -17,7 +17,7 @@ dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*','.railway.app','observing-underwent-rehydrate.ngrok-free.dev', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['http://lvh.me:8000','lvh.me','www.gtrep.com.br','gtrep.com.br','gtrep.up.railway.app','.railway.app','observing-underwent-rehydrate.ngrok-free.dev', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',

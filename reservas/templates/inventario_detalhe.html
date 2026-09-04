@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ equipamento.tipo }} - Inventário</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; }
+        .header { background: #1e3a5f; color: #fff; padding: 16px 24px; }
+        .container { max-width: 700px; margin: 24px auto; padding: 0 16px; }
+        .card { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .info-row span:first-child { color: #666; }
+        .btn { display: inline-block; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; }
+        .btn-transferir { background: #1f7299; color: #fff; }
+        .btn-voltar { background: #6c757d; color: #fff; margin-left: 8px; }
+        .historico-item { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+        .historico-item:last-child { border-bottom: none; }
+        .msg-sucesso { background: #d4edda; color: #155724; padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>📦 Detalhe do Equipamento</h2>
+</div>
+
+<div class="container">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="msg-sucesso">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card">
+        <h3>{{ equipamento.tipo }}</h3>
+        <div class="info-row"><span>Grupo</span><span>{{ equipamento.grupo.nome }}</span></div>
+        {% if equipamento.identificador %}
+        <div class="info-row"><span>ID</span><span>{{ equipamento.identificador }}</span></div>
+        {% endif %}
+        <div class="info-row"><span>Número de patrimônio</span><span>{{ equipamento.numero_patrimonio }}</span></div>
+        <div class="info-row"><span>N/S</span><span>{{ equipamento.numero_serie }}</span></div>
+        <div class="info-row"><span>Localização atual</span><span><strong>{{ equipamento.localizacao_atual }}</strong></span></div>
+        {% if equipamento.comentario %}
+        <div class="info-row"><span>Comentário</span><span>{{ equipamento.comentario }}</span></div>
+        {% endif %}
+
+        {% if user.is_staff %}
+            <div style="margin-top: 16px;">
+                <a href="{% url 'transferir_equipamento' equipamento.pk %}" class="btn btn-transferir">🔄 Transferir</a>
+                <a href="{% url 'equipamento_editar' equipamento.pk %}" class="btn" style="background:#ffc107; color:#1e3a5f;">✏️ Editar</a>
+                <a href="{% url 'equipamento_excluir' equipamento.pk %}" class="btn" style="background:#dc3545; color:#fff;">🗑️ Excluir</a>
+                <a href="{% url 'inventario_lista' %}" class="btn btn-voltar">← Voltar</a>
+            </div>
+        {% else %}
+            <div style="margin-top: 16px;">
+                <a href="{% url 'inventario_lista' %}" class="btn btn-voltar">← Voltar</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h4>Histórico de Transferências</h4>
+        {% for t in historico %}
+            <div class="historico-item">
+                <strong>{{ t.local_origem }} → {{ t.local_destino }}</strong><br>
+                <small>{{ t.data|date:"d/m/Y H:i" }} por {{ t.usuario.username|default:"—" }}</small>
+                {% if t.observacao %}<br><em>{{ t.observacao }}</em>{% endif %}
+            </div>
+        {% empty %}
+            <p style="color:#888;">Nenhuma transferência registrada ainda.</p>
+        {% endfor %}
+    </div>
+
+</div>
+
+</body>
+</html>

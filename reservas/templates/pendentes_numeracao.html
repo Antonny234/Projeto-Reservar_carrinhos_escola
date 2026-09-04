@@ -10,11 +10,17 @@
 </head>
 <body data-pagina="pendentes-numeracao">
 
+    {% if user.is_staff %}
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <aside class="sidebar" id="sidebar">
+            {% include 'partials/menu.html' %}
+        </aside>
+    {% endif %}
+
     <div class="header">
         <h1>GTREP - Manoel Martins</h1>
-        <div class="header-right">
-            <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
-        </div>
     </div>
 
     {% if messages %}
@@ -58,5 +64,31 @@
         </div>
     </div>
 
+    <script>
+        // Menu lateral (mesmo comportamento das outras páginas do painel)
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar && toggleBtn && overlay) {
+            toggleBtn.addEventListener('click', function () {
+                const aberta = sidebar.classList.toggle('aberta');
+                overlay.classList.toggle('ativo');
+                toggleBtn.setAttribute('aria-expanded', aberta);
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('aberta');
+                overlay.classList.remove('ativo');
+                toggleBtn.setAttribute('aria-expanded', 'false');
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    sidebar.classList.remove('aberta');
+                    overlay.classList.remove('ativo');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+    </script>
 </body>
 </html>

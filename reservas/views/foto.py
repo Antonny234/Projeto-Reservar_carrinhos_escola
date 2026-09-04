@@ -11,6 +11,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from .helpers import IMGSZ, IOU_THRESHOLD, modelo_yolo, CONFIANCA_MINIMA
 
 
+
+
 CORES_CLASSES = {}
 PALETA = [
     (255, 0, 0),

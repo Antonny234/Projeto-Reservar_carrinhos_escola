@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Equipamento, Reserva, Aluno, RegistroUso, PerfilAdm, NotificacaoFichaAusente, Sala,PerfilProfessor, CodigoVerificacao
+from .models import Equipamento, Reserva, Aluno, RegistroUso, PerfilAdm, NotificacaoFichaAusente
+from .models import GrupoEquipamento, EquipamentoInventario, Transferencia,Sala,PerfilProfessor, CodigoVerificacao
 from django.utils.safestring import mark_safe
 
 
@@ -106,3 +107,18 @@ class CodigoVerificacaoAdmin(admin.ModelAdmin):
     list_display = ('usuario', 'tipo', 'codigo', 'criado_em', 'expira_em', 'usado')
     list_filter = ('tipo', 'usado')
     search_fields = ('usuario__username',)
+
+@admin.register(GrupoEquipamento)
+class GrupoEquipamentoAdmin(admin.ModelAdmin):
+    list_display = ['nome']
+
+@admin.register(EquipamentoInventario)
+class EquipamentoInventarioAdmin(admin.ModelAdmin):
+    list_display = ['tipo', 'grupo', 'numero_patrimonio', 'numero_serie', 'localizacao_atual']
+    list_filter = ['grupo']
+    search_fields = ['numero_patrimonio', 'numero_serie', 'tipo']
+
+@admin.register(Transferencia)
+class TransferenciaAdmin(admin.ModelAdmin):
+    list_display = ['equipamento', 'local_origem', 'local_destino', 'usuario', 'data']
+    list_filter = ['data']

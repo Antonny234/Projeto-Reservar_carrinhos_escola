@@ -10,16 +10,32 @@
         <a href="{% url 'painel_fichas' %}" class="sidebar-link {% if request.resolver_match.url_name == 'painel_fichas' %}ativo{% endif %}">
             <span class="icone"></span> Estudantes
         </a>
-
-        <div class="sidebar-section">Ferramentas</div>
+        <a href="{% url 'analise_sistema' %}" class="sidebar-link {% if request.resolver_match.url_name == 'analise_sistema' %}ativo{% endif %}">
+            <span class="icone"></span> Análise do Sistema
+        </a>
+        <a href="{% url 'inventario_lista' %}" class="sidebar-link {% if request.resolver_match.url_name == 'inventario_lista' %}ativo{% endif %}">
+            <span class="icone"></span> Inventário
+        </a>    
+        <a href="{% url 'notebooks_quebrados' %}" class="sidebar-link {% if request.resolver_match.url_name == 'notebooks_quebrados' %}ativo{% endif %}">
+            <span class="icone"></span> Notebooks Quebrados
+        </a>
+                <div class="sidebar-section">Ferramentas</div>
         <a href="{% url 'verificar_carrinho' %}" class="sidebar-link {% if request.resolver_match.url_name == 'verificar_carrinho' %}ativo{% endif %}">
             <span class="icone"></span> Verificar Carrinhos
+        </a>
         </a>
         <a href="{% url 'camera_contagem' %}" class="sidebar-link {% if request.resolver_match.url_name == 'camera_contagem' %}ativo{% endif %}">
             <span class="icone"></span> Câmera
         </a>
         <a href="{% url 'pendentes_numeracao' %}" class="sidebar-link {% if request.resolver_match.url_name == 'pendentes_numeracao' %}ativo{% endif %}">
             <span class="icone"></span> Numerações Pendentes
+        </a>
+        <a href="{% url 'reservas_fixas_web' %}" class="sidebar-link {% if request.resolver_match.url_name == 'Reserva_fixas' %}ativo{% endif %}">
+            <span class="icone"></span> Reserva Fixas
+        </a>
+
+        <a href="{% url 'cadastros' %}" class="sidebar-link {% if request.resolver_match.url_name == 'cadastros_de_equipamentos_horarios' %}ativo{% endif %}">
+            <span class="icone"></span> Cadastro
         </a>
 
         <a href="https://www.educacao.sp.gov.br/uresaojoaquimdabarra" class="sidebar-link {% if request.resolver_match.url_name == 'exportar_todas_excel' %}ativo{% endif %}">
