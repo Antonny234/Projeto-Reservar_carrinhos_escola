@@ -22,7 +22,7 @@ from .area_usuario import (
     importar_de_excel,confirmar_cadastro, reenviar_codigo_cadastro, view_tablet, status_tablet, camera_contagem,
     pagina_unico, reserva_quantidade, preencher_numeracao_quantidade, criar_pin,buscar_reserva_ativa,
     notificar_erro_telegram, reportar_notebook_quebrado,todos_horarios,_proximo_horario,
-    _horario_existe,escolher_carrinho,login_ajax,logout_ajax,
+    _horario_existe,escolher_carrinho,login_ajax,
 )
 
 from .are_admin import (
@@ -68,6 +68,6 @@ __all__ = [
     'notebooks_quebrados','reativar_notebook','cadastros,adicionar_equipamento',
     'editar_equipamento','excluir_equipamento','adicionar_horario,editar_horario','excluir_horario','todos_horarios',
     '_proximo_horario','_horario_existe','remover_liberacao','remover_bloqueio','escolher_carrinho','login_ajax',
-    'logout_ajax','is_staff','inventario_lista','inventario_detalhe','equipamento_novo','grupo_novo','transferir_equipamento',
+    'is_staff','inventario_lista','inventario_detalhe','equipamento_novo','grupo_novo','transferir_equipamento',
     'cadastros','adicionar_equipamento','equipamento_excluir','equipamento_editar','grupo_equipamentos','grupo_excluir'
 ]
