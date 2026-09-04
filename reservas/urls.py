@@ -84,7 +84,6 @@ urlpatterns = [
     #escolher carrinho
     path('escolher-carrinho/', views.escolher_carrinho, name='escolher_carrinho'),
     path('login/ajax/', views.login_ajax, name='login_ajax'),
-    path('logout/ajax/', views.logout_ajax, name='logout_ajax'),
     #inventario
     path('inventario/', views.inventario_lista, name='inventario_lista'),
     path('inventario/grupo/<int:grupo_id>/', views.grupo_equipamentos, name='grupo_equipamentos'),

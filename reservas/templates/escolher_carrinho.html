@@ -154,47 +154,5 @@
     </div>
 </div>
 
-<script>
-    const form = document.getElementById('login-form');
-    const mensagemErro = document.getElementById('mensagem-erro');
-
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            mensagemErro.innerText = '';
-
-            const formData = new FormData(form);
-            const csrftoken = formData.get('csrfmiddlewaretoken');
-
-            fetch("{% url 'login_ajax' %}", {
-                method: "POST",
-                body: formData,
-                headers: { "X-CSRFToken": csrftoken }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Login OK -> recarrega para exibir os carrinhos (autenticado=True)
-                    window.location.reload();
-                } else {
-                    mensagemErro.innerText = data.error;
-                }
-            })
-            .catch(() => {
-                mensagemErro.innerText = "Erro ao conectar. Tente novamente.";
-            });
-        });
-    }
-
-    // ---- Derruba a sessão quando o usuário sai da página ----
-    window.addEventListener('pagehide', function () {
-        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (!tokenInput) return;
-        const formData = new FormData();
-        formData.append('csrfmiddlewaretoken', tokenInput.value);
-        navigator.sendBeacon("{% url 'logout_ajax' %}", formData);
-    });
-</script>
-
 </body>
 </html>

@@ -191,3 +191,10 @@ LOGGING = {
 
 # ─── E-MAIL ─────────────────────────────────────────────
 DEFAULT_FROM_EMAIL = 'verificacao@gtrep.com.br'
+
+LOGIN_URL = '/entrar/'
+
+# Mantém o usuário logado por mais tempo, sem precisar refazer login toda hora
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7       
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False       # não desloga quando o navegador fecha
+SESSION_SAVE_EVERY_REQUEST = True             # renova o prazo a cada acesso

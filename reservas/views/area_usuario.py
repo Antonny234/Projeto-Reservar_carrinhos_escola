@@ -880,15 +880,6 @@ def login_ajax(request):
         )
 
 
-@require_POST
-def logout_ajax(request):
-    """
-    Chamada quando o usuário sai/fecha a página (beforeunload/pagehide),
-    derrubando a sessão (o cookie de sessão é invalidado no servidor).
-    """
-    logout(request)
-    return JsonResponse({'success': True})
-
 @login_required
 def view_tablet(request, equipamento_id):
     # Tela do tablet: no GET busca a reserva ativa, no POST valida e salva a ficha de uso dos alunos

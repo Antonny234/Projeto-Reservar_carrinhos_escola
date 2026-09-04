@@ -10,7 +10,28 @@ body {
     color: #333;
     min-height: 100vh;
 }
-
+/* Botão Voltar Padrão (Verde) — usado em todas as páginas */
+.btn-voltar-verde {
+    display: inline-block;
+    background-color: #28a745;
+    color: #ffffff;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.2s ease, transform 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 2px solid #1e7e34;
+}
+.btn-voltar-verde:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+.btn-voltar-verde:active {
+    transform: translateY(0);
+}
 /* Cabeçalho */
 .header {
     background-color: #1e3a5f;
