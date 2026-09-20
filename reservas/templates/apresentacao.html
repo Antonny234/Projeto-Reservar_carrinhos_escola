@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GTREP — Sistema de Reserva de Carrinhos</title>
+  <meta name="description" content="Apresentação do sistema de reservas de carrinhos e notebooks escolares. Mural em tempo real, gestão completa e verificação segura." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #1e3a5f;
+      --navy-dark: #162c48;
+      --blue: #1f7299;
+      --blue-hover: #17597a;
+      --green: #28a745;
+      --green-hover: #218838;
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 4px 20px rgba(30, 58, 95, 0.08);
+      --shadow-lg: 0 12px 40px rgba(30, 58, 95, 0.12);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container {
+      width: min(1100px, 92%);
+      margin: 0 auto;
+    }
+
+    /* Navbar */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: var(--navy);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      color: white;
+      font-weight: 700;
+      font-size: 1.2rem;
+      text-decoration: none;
+    }
+
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: white;
+      color: var(--navy);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.75rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: white;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.65rem 1.35rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-hover);
+    }
+
+    .btn-green {
+      background: var(--green);
+      color: white;
+    }
+
+    .btn-green:hover {
+      background: var(--green-hover);
+    }
+
+    .btn-white {
+      background: white;
+      color: var(--navy);
+    }
+
+    .btn-white:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--navy);
+      border: 2px solid var(--navy);
+    }
+
+    .btn-outline:hover {
+      background: var(--navy);
+      color: white;
+    }
+
+    /* Hero */
+    .hero {
+      padding: 8.5rem 0 5rem;
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 55%, #1a3354 100%);
+      color: white;
+      text-align: center;
+    }
+
+    .hero .badge {
+      display: inline-block;
+      padding: 0.35rem 0.95rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.02em;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.1rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1.15rem;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 580px;
+      margin: 0 auto 2.25rem;
+      font-weight: 400;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 0.9rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Stats */
+    .stats-bar {
+      background: white;
+      margin-top: -2.5rem;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      overflow: hidden;
+    }
+
+    .stat-item {
+      padding: 1.6rem 1rem;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+
+    .stat-item:last-child {
+      border-right: none;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    @media (max-width: 700px) {
+      .stats-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+      .stat-item:nth-child(2) {
+        border-right: none;
+      }
+      .stat-item:nth-child(1),
+      .stat-item:nth-child(2) {
+        border-bottom: 1px solid var(--border);
+      }
+    }
+
+    /* Sections */
+    section {
+      padding: 5rem 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .section-header h2 {
+      font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+      margin-bottom: 0.6rem;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto;
+      font-size: 1.05rem;
+    }
+
+    /* Features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 1.4rem;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.7rem;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .feature-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: rgba(31, 114, 153, 0.1);
+      color: var(--blue);
+      display: grid;
+      place-items: center;
+      font-size: 1.35rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.93rem;
+    }
+
+    /* How it works */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.4rem;
+      counter-reset: step;
+    }
+
+    .step {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.7rem 1.5rem 1.5rem;
+      position: relative;
+      box-shadow: var(--shadow);
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      top: -14px;
+      left: 1.4rem;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--navy);
+      color: white;
+      font-weight: 800;
+      font-size: 0.85rem;
+      display: grid;
+      place-items: center;
+    }
+
+    .step h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin: 0.6rem 0 0.45rem;
+    }
+
+    .step p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Benefits */
+    .benefits {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .benefit {
+      display: flex;
+      gap: 1rem;
+      padding: 1.3rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .benefit-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(40, 167, 69, 0.12);
+      color: var(--green);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 1.15rem;
+    }
+
+    .benefit h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 0.2rem;
+    }
+
+    .benefit p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* CTA */
+    .cta {
+      padding: 4.5rem 0 5.5rem;
+    }
+
+    .cta-box {
+      background: var(--navy);
+      border-radius: 20px;
+      padding: 3.2rem 2rem;
+      text-align: center;
+      color: white;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .cta-box h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 800;
+      margin-bottom: 0.7rem;
+    }
+
+    .cta-box p {
+      opacity: 0.9;
+      margin-bottom: 1.8rem;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--navy-dark);
+      color: rgba(255,255,255,0.7);
+      padding: 1.75rem 0;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 720px) {
+      .nav-links {
+        display: none;
+      }
+      .hero {
+        padding: 7rem 0 4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <div class="logo-mark">G</div>
+        <span>GTREP</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#recursos">Recursos</a></li>
+        <li><a href="#como-funciona">Como funciona</a></li>
+        <li><a href="#vantagens">Vantagens</a></li>
+      </ul>
+      <a href="/entrar/" class="btn btn-green">Entrar</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="container">
+      <div class="badge">Sistema de Reserva de Carrinhos</div>
+      <h1>Reserva de carrinhos<br />simples e organizada</h1>
+      <p>
+        Plataforma completa para escolas gerenciarem o empréstimo de carrinhos de notebooks e equipamentos.
+        Mural em tempo real e controle total do inventário.
+      </p>
+      <div class="hero-actions">
+        <a href="/painel/" class="btn btn-green">Ver Mural de Reservas</a>
+        <a href="/entrar/" class="btn btn-white">Entrar no sistema</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- STATS -->
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-value">Mural</div>
+        <div class="stat-label">Consultas públicas</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">Aprovações</div>
+        <div class="stat-label">Controle de acesso</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">Inventário</div>
+        <div class="stat-label">Controle completo</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">Fichas</div>
+        <div class="stat-label">Registro de uso</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section id="recursos">
+    <div class="container">
+      <div class="section-header">
+        <h2>Tudo que a escola precisa</h2>
+        <p>Do cadastro do professor até a devolução do carrinho — tudo em um só lugar, com transparência e controle.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📅</div>
+          <h3>Reservas por horário e sala</h3>
+          <p>Professores escolhem o carrinho, a data, o horário de aula e a sala. O sistema evita conflitos automaticamente.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <h3>Mural público de reservas</h3>
+          <p>Qualquer pessoa pode consultar o mural e ver quem reservou o quê, sem precisar fazer login. Transparência total.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <h3>Inventário e grupos</h3>
+          <p>Organize equipamentos em grupos, cadastre notebooks individualmente, controle transferências e status de cada item.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔧</div>
+          <h3>Notebooks quebrados</h3>
+          <p>Registro rápido de equipamentos com defeito direto do tablet ou painel. O admin acompanha tudo em tempo real.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">✅</div>
+          <h3>Fluxo de aprovação</h3>
+          <p>Reservas podem exigir aprovação de administrador. Professores liberados têm acesso direto a equipamentos específicos.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Painéis e relatórios</h3>
+          <p>Exportação em Excel, painel de análise, fichas de uso e numeração de notebooks por reserva.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🖥️</div>
+          <h3>Modo tablet / check-in</h3>
+          <p>Interface otimizada para tablet na sala de informática ou no próprio carrinho, para confirmação de uso.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Controle de acesso</h3>
+          <p>Perfis de professor e administrador, bloqueios temporários de equipamentos e PINs de segurança para ações críticas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="como-funciona" style="background: white;">
+    <div class="container">
+      <div class="section-header">
+        <h2>Como funciona na prática</h2>
+        <p>Fluxo simples e rápido para professores e equipe técnica.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <h3>Cadastro</h3>
+          <p>O professor cria a conta e acessa o sistema com seu usuário e senha.</p>
+        </div>
+        <div class="step">
+          <h3>Escolhe o carrinho</h3>
+          <p>Seleciona data, horário de aula, sala e o equipamento desejado. O sistema mostra a disponibilidade.</p>
+        </div>
+        <div class="step">
+          <h3>Confirmação</h3>
+          <p>A reserva aparece no mural público. Se necessário, aguarda aprovação do administrador.</p>
+        </div>
+        <div class="step">
+          <h3>Uso e devolução</h3>
+          <p>No tablet ou celular, registra a numeração dos notebooks e acompanha o status de cada equipamento.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BENEFITS -->
+  <section id="vantagens">
+    <div class="container">
+      <div class="section-header">
+        <h2>Por que as escolas gostam</h2>
+        <p>Menos planilha, menos confusão e mais controle sobre o patrimônio tecnológico.</p>
+      </div>
+      <div class="benefits">
+        <div class="benefit">
+          <div class="benefit-icon">⚡</div>
+          <div>
+            <h4>Menos tempo perdido</h4>
+            <p>Reservas e conferências que antes levavam minutos agora são feitas em segundos.</p>
+          </div>
+        </div>
+        <div class="benefit">
+          <div class="benefit-icon">👁️</div>
+          <div>
+            <h4>Transparência total</h4>
+            <p>O mural público elimina dúvidas sobre quem reservou e quando.</p>
+          </div>
+        </div>
+        <div class="benefit">
+          <div class="benefit-icon">🛡️</div>
+          <div>
+            <h4>Menos extravio</h4>
+            <p>Controle de numeração e fichas ajudam a identificar faltas rapidamente.</p>
+          </div>
+        </div>
+        <div class="benefit">
+          <div class="benefit-icon">📈</div>
+          <div>
+            <h4>Dados para decisão</h4>
+            <p>Relatórios e painéis mostram uso, equipamentos quebrados e demanda real.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Pronto para ver o sistema em ação?</h2>
+        <p>Acesse o mural de reservas ou faça login com sua conta de professor ou administrador.</p>
+        <a href="/entrar/" class="btn btn-green">Entrar no sistema →</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>
+        Página de apresentação do sistema <strong>GTREP</strong> —
+        Reserva de carrinhos e notebooks escolares.
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
