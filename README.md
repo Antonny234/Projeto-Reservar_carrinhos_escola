@@ -1,96 +1,86 @@
-# Reserva de Carrinhos Escolares
+<div align="center">
 
-Sistema web desenvolvido para ajudar professores e responsáveis a consultar a disponibilidade e reservar carrinhos de notebooks para uso em aulas.
+# 🚀 Reserva de Carrinhos Escolares
 
-> **Status:** projeto acadêmico/prático em evolução.
+Sistema web para consultar a disponibilidade e organizar reservas de carrinhos de notebooks para uso em aulas.
+
+[![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/Django-5.x-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)](#)
+
+</div>
 
 ## Sobre o projeto
 
-Em uma escola, pode ser difícil saber quais carrinhos estão em uso, disponíveis ou reservados. Este projeto organiza essas informações em um único sistema, facilitando o controle das reservas e a visualização da disponibilidade dos equipamentos.
+Em ambientes escolares, pode ser difícil identificar rapidamente quais carrinhos estão disponíveis, em uso ou reservados. Este projeto centraliza essas informações em uma aplicação web, tornando o controle mais organizado e prático para professores e responsáveis.
 
 ## Funcionalidades
 
-- Consulta de carrinhos disponíveis;
-- Controle de reservas para aulas;
-- Identificação de carrinhos em uso ou reservados;
-- Organização das informações dos equipamentos;
-- Interface web para facilitar o uso por professores e responsáveis.
+- Consulta da disponibilidade dos carrinhos;
+- Registro e controle de reservas;
+- Identificação de carrinhos disponíveis, em uso ou reservados;
+- Organização dos equipamentos em um sistema único;
+- Interface web para facilitar a consulta e o gerenciamento.
 
 ## Tecnologias
 
-- Python
-- Django
-- HTML
-- CSS
-- JavaScript
-- Banco de dados integrado ao Django
+- **Backend:** Python e Django
+- **Frontend:** HTML, CSS e JavaScript
+- **Banco de dados:** integração via Django ORM
+- **Versionamento:** Git e GitHub
+- **Deploy:** configuração preparada para ambiente de hospedagem
 
-## Como executar localmente
+## Executando localmente
 
-### 1. Clone o repositório
+### Pré-requisitos
+
+- Python 3.10 ou superior;
+- Git;
+- Pip.
+
+### Instalação
 
 ```bash
 git clone https://github.com/Antonny234/Projeto-Reservar_carrinhos_escola.git
 cd Projeto-Reservar_carrinhos_escola
-```
-
-### 2. Crie e ative um ambiente virtual
-
-```bash
 python -m venv venv
 ```
 
-No Windows:
+Ative o ambiente virtual:
 
 ```bash
+# Windows
 venv\Scripts\activate
-```
 
-No Linux/macOS:
-
-```bash
+# Linux/macOS
 source venv/bin/activate
 ```
 
-### 3. Instale as dependências
+Instale as dependências e execute as migrações:
 
 ```bash
 pip install -r requirements.txt
-```
-
-### 4. Execute as migrações
-
-```bash
 python manage.py migrate
-```
-
-### 5. Inicie o servidor
-
-```bash
 python manage.py runserver
 ```
 
-Acesse `http://127.0.0.1:8000/` no navegador.
+Abra no navegador: `http://127.0.0.1:8000/`
 
-## O que aprendi
+## Aprendizados
 
-- Estruturação de um projeto Django;
-- Organização de aplicações e modelos;
-- Criação de uma solução para um problema real;
-- Versionamento do código com Git e GitHub;
-- Preparação de uma aplicação para execução e deploy.
+Este projeto foi desenvolvido para praticar a criação de uma aplicação Django completa, organização de aplicações e modelos, desenvolvimento de uma solução para um problema real, versionamento com Git e preparação para deploy.
 
-## Próximas melhorias
+## Próximos passos
 
-- Adicionar autenticação de usuários;
-- Criar diferentes níveis de acesso;
-- Implementar calendário de reservas;
-- Adicionar testes automatizados;
-- Melhorar a documentação e a experiência visual.
+- [ ] Implementar autenticação de usuários;
+- [ ] Criar níveis de acesso para diferentes perfis;
+- [ ] Adicionar calendário de reservas;
+- [ ] Criar testes automatizados;
+- [ ] Melhorar a interface e a experiência do usuário;
+- [ ] Adicionar documentação visual com capturas de tela.
 
 ## Autor
 
-**Antonny Gabriel**
+**Antonny Gabriel** — [@Antonny234](https://github.com/Antonny234)
 
-- GitHub: [@Antonny234](https://github.com/Antonny234)
-- Projeto: [Projeto-Reservar_carrinhos_escola](https://github.com/Antonny234/Projeto-Reservar_carrinhos_escola)
+Este projeto faz parte do meu portfólio de estudos em Python e Django.
