@@ -10,9 +10,4 @@ class Migration(migrations.Migration):
             name='cargo',
             field=models.CharField(default='Professor', max_length=100, verbose_name='Função'),
         ),
-        migrations.AlterField(
-            model_name='perfilprofessorescola',
-            name='cargo',
-            field=models.CharField(default='Professor', max_length=100, verbose_name='Função'),
-        ),
     ]

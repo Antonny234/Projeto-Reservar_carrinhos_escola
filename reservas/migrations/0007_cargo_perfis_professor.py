@@ -6,5 +6,4 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(model_name='perfilprofessor', name='cargo', field=models.CharField(choices=[('professor', 'Professor'), ('coordenador', 'Coordenador(a)'), ('diretor', 'Diretor(a)'), ('vice_diretor', 'Vice-diretor(a)'), ('proat', 'PROAT'), ('outro', 'Outro')], default='professor', max_length=20, verbose_name='Função')),
-        migrations.AddField(model_name='perfilprofessorescola', name='cargo', field=models.CharField(choices=[('professor', 'Professor'), ('coordenador', 'Coordenador(a)'), ('diretor', 'Diretor(a)'), ('vice_diretor', 'Vice-diretor(a)'), ('proat', 'PROAT'), ('outro', 'Outro')], default='professor', max_length=20, verbose_name='Função')),
-    ]
+  ]
