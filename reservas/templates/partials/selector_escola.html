@@ -1,0 +1,14 @@
+{% if mostra_seletor_escola %}
+<details class="seletor-escola">
+    <summary>🏫 {{ escola_ativa.nome }} <span aria-hidden="true">▾</span></summary>
+    <div class="opcoes-escola">
+        {% for escola in escolas_usuario %}
+            <a class="{% if escola.id == escola_ativa.id %}ativa{% endif %}" href="{% url 'trocar_escola' escola.id %}?next={{ request.path }}">
+                {% if escola.id == escola_ativa.id %}✓ {% endif %}{{ escola.nome }}
+            </a>
+        {% endfor %}
+    </div>
+</details>
+{% elif escola_ativa %}
+<span class="nome-escola">🏫 {{ escola_ativa.nome }}</span>
+{% endif %}

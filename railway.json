@@ -5,7 +5,7 @@
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "python manage.py migrate && gunicorn configuracao.wsgi --log-file - --bind 0.0.0.0:$PORT",
+    "startCommand": "python manage.py migrate && gunicorn configuracao.wsgi:application --log-file - --bind 0.0.0.0:$PORT",
     "restartPolicyType": "on_failure",
     "restartPolicyMaxRetries": 5
   }

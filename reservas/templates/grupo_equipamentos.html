@@ -1,4 +1,4 @@
-{% load static %}
+{% load meus_filtros %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -77,7 +77,8 @@
         table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #eef2f5; }
-        .link-ver { color: #1f7299; font-weight: bold; text-decoration: none; float: right; }
+        .link-ver { color: #1f7299; font-weight: bold; text-decoration: none; }
+        .tabela-wrapper { overflow-x: auto; }
     </style>
 </head>
 <body>
@@ -94,31 +95,26 @@
         <button type="submit">Buscar</button>
     </form>
 
-    <table>
+    <div class="tabela-wrapper"><table>
         <thead>
             <tr>
-                <th>Tipo</th>
-                <th>Patrimônio</th>
-                <th>N/S</th>
-                <th>Localização atual</th>
+                {% for campo in campos %}<th>{{ campo.nome }}</th>{% endfor %}
+                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
             {% for equip in equipamentos %}
             <tr>
-                <td>{{ equip.tipo }}</td>
-                <td>{{ equip.numero_patrimonio }}</td>
-                <td>{{ equip.numero_serie }}</td>
-                <td>
-                    {{ equip.localizacao_atual }}
-                    <a href="{% url 'inventario_detalhe' equip.pk %}" class="link-ver">Ver →</a>
-                </td>
+                {% for campo in campos %}
+                    <td>{{ equip.dados_personalizados|get_value:campo.nome|default:'—' }}</td>
+                {% endfor %}
+                <td><a href="{% url 'inventario_detalhe' equip.pk %}" class="link-ver">Ver</a></td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" style="color:#888;">Nenhum equipamento neste grupo ainda.</td></tr>
+            <tr><td colspan="{{ campos|length|add:1 }}" style="color:#888;">Nenhum equipamento neste grupo ainda.</td></tr>
             {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 
 </div>
 

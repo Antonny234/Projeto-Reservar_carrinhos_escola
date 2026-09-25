@@ -18,17 +18,21 @@
     </aside>
 
     <div class="header">
-        <h1>GTREP Manoel Martins - Reservas do Dia</h1>
+        <h1>{{ escola_ativa.nome|default:"Escola" }} - Reservas do Dia</h1>
     </div>
 
     <div class="painel-reservas">
         <div class="painel-topo">
             <h2>📅 Reservas — {{ data_exibicao }}</h2>
-            <div class="filtro-data">
-                <label for="filtro-data">Ver outra data:</label>
-                <input type="date" id="filtro-data" value="{{ data_atual }}"
-                    onchange="window.location.href='?data=' + this.value">
-            </div>
+            <form method="get" class="filtro-reservas">
+                <div class="filtro-data">
+                    <label for="filtro-data">Data:</label>
+                    <input type="date" id="filtro-data" name="data" value="{{ data_atual }}">
+                </div>
+                <label class="sr-only" for="busca-reserva">Buscar por carrinho ou professor</label>
+                <input type="search" id="busca-reserva" name="q" value="{{ termo }}" placeholder="Carrinho ou professor">
+                <button type="submit" class="btn-filtrar">Pesquisar</button>
+            </form>
         <a href="{% url 'painel_reservas_quantidade' %}" class="admin">
             🔢 Notebooks Avulsos
         </a>
@@ -39,7 +43,7 @@
                 {% with prof_nome=reserva.professor.get_full_name|default:reserva.professor.username %}
                 {% with inicial=prof_nome|slice:":1" %}
                 <div class="card-reserva {{ reserva.status }} {% if reserva.quantidade %}card-quantidade-vermelha{% endif %}"
-                        onclick="abrirModal"("
+                        onclick="abrirModal(
                         '{{ reserva.equipamento.nome }}',
                         '{{ prof_nome }}',
                         '{{ reserva.sala.nome }}',
@@ -47,12 +51,13 @@
                         '{{ reserva.horario_fim|time:"H:i" }}',
                         '{{ reserva.status }}',
                         '{{ reserva.data_uso|date:"d/m/Y" }}'
-                        ")">
+                        )">
                     <div class="reserva-avatar {{ reserva.status }}">{{ inicial }}</div>
                     <div class="reserva-info">
                         <span class="reserva-equipamento">{{ reserva.equipamento.nome }}</span>
                         <span class="reserva-professor">👤 {{ prof_nome }}</span>
                         <span class="reserva-detalhe">🏫 Sala {{ reserva.sala.nome }}</span>
+                        <span class="reserva-detalhe">📚 {% if reserva.numero_horario %}{{ reserva.numero_horario }}º horário{% else %}Horário não configurado{% endif %}</span>
                         <span class="reserva-detalhe">🕐 {{ reserva.horario_inicio|time:"H:i" }} - {{ reserva.horario_fim|time:"H:i" }}</span>
                         {% if reserva.quantidade %}
                             <span class="reserva-detalhe">🔢 {{ reserva.quantidade }} unidade{{ reserva.quantidade|pluralize }} reservada{{ reserva.quantidade|pluralize }}</span>

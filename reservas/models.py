@@ -3,28 +3,70 @@ from django.contrib.auth.models import User
 import random
 from django.utils import timezone
 
+class Escola(models.Model):
+    nome = models.CharField("Nome da Escola", max_length=150, unique=True)
+    cidade = models.CharField("Cidade", max_length=100, blank=True)
+    campos_inventario = models.JSONField(default=list, blank=True)
+
+    def __str__(self):
+        return self.nome
+
+    class Meta:
+        verbose_name = "Escola"
+        verbose_name_plural = "Escolas"
+        ordering = ['nome']
+
 
 class PerfilProfessor(models.Model):
     """Dados extras do professor usados na verificação por WhatsApp
     (cadastro e redefinição de senha)."""
+    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='professores')
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_professor')
     whatsapp = models.CharField(
-        "Número de WhatsApp", max_length=20, unique=True,
+        "Número de WhatsApp", max_length=20,
         null=True, blank=True,
         help_text="Formato: DDD + número, ex: 11999998888"
     )
+    cargo = models.CharField('Função', max_length=100, default='Professor')
 
     def __str__(self):
-        return f"{self.usuario.username} - {self.whatsapp}"
+        return f"{self.usuario.username} - {self.whatsapp} ({self.escola.nome})"
 
     class Meta:
         verbose_name = "Perfil do Professor"
         verbose_name_plural = "Perfis dos Professores"
+        # whatsapp único apenas dentro da mesma escola
+        unique_together = ('escola', 'whatsapp')
+
+class PerfilProfessorEscola(models.Model):
+    """Extensão do perfil que permite professor trabalhar em múltiplas escolas.
+    Usado quando o professor seleciona 2+ escolas no cadastro."""
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_escola')
+    escolas = models.ManyToManyField(Escola, related_name='professores_multiplos', verbose_name='Escolas onde trabalha')
+    escola_ativa = models.ForeignKey(
+        Escola, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='professores_ativos_multiplos',
+        verbose_name='Escola atualmente selecionada'
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    cargo = models.CharField('Função', max_length=100, default='Professor')
+
+    class Meta:
+        verbose_name = 'Perfil Escola do Professor'
+        verbose_name_plural = 'Perfis Escola dos Professores'
+
+    def __str__(self):
+        escolas_txt = ', '.join([e.nome for e in self.escolas.all()])
+        return f"{self.usuario.username} - {escolas_txt}"
 
 
 class CodigoVerificacao(models.Model):
     """Código de 4 dígitos enviado por WhatsApp — usado no cadastro
-    e na redefinição de senha."""
+    e na redefinição de senha. Escopo de escola vem do próprio usuário."""
     TIPO_CHOICES = [
         ('cadastro', 'Confirmação de Cadastro'),
         ('redefinicao', 'Redefinição de Senha'),
@@ -61,6 +103,7 @@ class CodigoVerificacao(models.Model):
 
 
 class PerfilAdm(models.Model):
+    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='administradores')
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_adm')
     requer_aprovacao = models.BooleanField(
         default=False,
@@ -72,15 +115,37 @@ class PerfilAdm(models.Model):
     )
 
     def __str__(self):
-        return f"{self.usuario.username} - {'requer aprovação' if self.requer_aprovacao else 'automático'}"
+        return f"{self.usuario.username} - {'requer aprovação' if self.requer_aprovacao else 'automático'} ({self.escola.nome})"
 
     class Meta:
         verbose_name = "Perfil ADM"
         verbose_name_plural = "Perfis ADM"
 
+class PerfilAdmEscola(models.Model):
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_adm_escola')
+    escolas = models.ManyToManyField(Escola, related_name='administradores_multiplos', verbose_name='Escolas onde é admin')
+    escola_ativa = models.ForeignKey(
+        Escola, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='administradores_ativos_multiplos',
+        verbose_name='Escola atualmente selecionada'
+    )
+    requer_aprovacao = models.BooleanField(default=False, verbose_name="Reservas requerem aprovação de ADM")
+    pin_envio = models.CharField("PIN de envio (4 dígitos)", max_length=4, blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        escolas_txt = ', '.join(e.nome for e in self.escolas.all())
+        return f"{self.usuario.username} (Admin) - {escolas_txt}"
+
+    class Meta:
+        verbose_name = 'Perfil Admin (múltiplas escolas)'
+        verbose_name_plural = 'Perfis Admin (múltiplas escolas)'
+
 
 class Equipamento(models.Model):
     TIPO_CHOICES = [('tablet', 'Carrinho de Tablets'), ('notebook', 'Carrinho de Notebooks')]
+    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='equipamentos')
     nome = models.CharField("Nome do Carrinho", max_length=100)
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
     disponivel = models.BooleanField(default=True)
@@ -123,10 +188,16 @@ class Equipamento(models.Model):
         return [{'numero': n, 'ativo': n not in inativos} for n in self.lista_numeros()]
 
     def __str__(self):
-        return f"{self.nome} ({self.get_tipo_display()})"
+        return f"{self.nome} ({self.get_tipo_display()}) - {self.escola.nome}"
+
+    class Meta:
+        # nome do carrinho único dentro da mesma escola (duas escolas podem
+        # ter, cada uma, um carrinho chamado "Carrinho 1")
+        unique_together = ('escola', 'nome')
 
 
 class Notebook(models.Model):
+    # Escola herdada via equipamento.escola — não duplicamos o campo aqui.
     equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name='notebooks')
     numero = models.PositiveIntegerField()
     ativo = models.BooleanField(default=True, verbose_name="Está funcionando")
@@ -140,10 +211,15 @@ class Notebook(models.Model):
 
 
 class Sala(models.Model):
+    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='salas')
     nome = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.nome
+        return f"{self.nome} - {self.escola.nome}"
+
+    class Meta:
+        unique_together = ('escola', 'nome')
+
 
 class Reserva(models.Model):
     STATUS_CHOICES = [
@@ -151,6 +227,10 @@ class Reserva(models.Model):
         ('pendente', 'Pendente de Aprovação'),
         ('recusada', 'Recusada'),
     ]
+    # Denormalizado de propósito (mesmo já vindo de equipamento/professor)
+    # para permitir filtrar reservas por escola com uma única query rápida
+    # e para servir de trava extra contra misturar dados entre escolas.
+    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='reservas')
     professor = models.ForeignKey(User, on_delete=models.CASCADE)
     equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE)
     data_uso = models.DateField("Data da Reserva")
@@ -175,13 +255,21 @@ class Reserva(models.Model):
     )
 
     grupo_fixo = models.UUIDField(null=True, blank=True, db_index=True)
-    
+
+    def clean(self):
+        """Garante que equipamento e sala pertencem à mesma escola da reserva."""
+        from django.core.exceptions import ValidationError
+        erros = {}
+        if self.equipamento_id and self.equipamento.escola_id != self.escola_id:
+            erros['equipamento'] = "Este equipamento pertence a outra escola."
+        if self.sala_id and self.sala.escola_id != self.escola_id:
+            erros['sala'] = "Esta sala pertence a outra escola."
+        if erros:
+            raise ValidationError(erros)
+
     def __str__(self):
-        return f"{self.professor.username} - {self.equipamento.nome} [{self.status}]"
-    
+        return f"{self.professor.username} - {self.equipamento.nome} [{self.status}] ({self.escola.nome})"
 
-
-# Adicionar esta classe no final do seu models.py existente
 
 class HorarioAula(models.Model):
     PERIODO_CHOICES = [
@@ -189,6 +277,7 @@ class HorarioAula(models.Model):
         ('tarde_noite', '2º Período Tarde/Noite'),
     ]
 
+    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='horarios_aula')
     numero = models.PositiveIntegerField(
         "Número do horário",
         help_text="Ordem de exibição dentro do período, ex: 1 para o 1º horário, 2 para o 2º horário..."
@@ -211,11 +300,14 @@ class HorarioAula(models.Model):
         ordering = ['periodo', 'numero']
         verbose_name = "Horário de Aula"
         verbose_name_plural = "Horários de Aula"
+        unique_together = ('escola', 'periodo', 'numero')
 
     def __str__(self):
-        return f"{self.get_periodo_display()} - {self.numero}º horário ({self.horario_inicio.strftime('%H:%M')} - {self.horario_fim.strftime('%H:%M')})"
+        return f"{self.get_periodo_display()} - {self.numero}º horário ({self.horario_inicio.strftime('%H:%M')} - {self.horario_fim.strftime('%H:%M')}) - {self.escola.nome}"
+
 
 class NumeroReservaQuantidade(models.Model):
+    # Escola herdada via reserva.escola
     reserva = models.ForeignKey(
         Reserva, on_delete=models.CASCADE, related_name='numeros_quantidade'
     )
@@ -227,15 +319,18 @@ class NumeroReservaQuantidade(models.Model):
     def __str__(self):
         return f"Reserva #{self.reserva_id} - Notebook {self.numero}"
 
+
 class Aluno(models.Model):
+    # Escola herdada via sala.escola
     nome = models.CharField(max_length=100)
     sala = models.ForeignKey(Sala, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.nome} ({self.sala.nome})"
+        return f"{self.nome} ({self.sala.nome} - {self.sala.escola.nome})"
 
 
 class RegistroUso(models.Model):
+    # Escola herdada via reserva.escola
     reserva = models.ForeignKey(Reserva, on_delete=models.CASCADE)
     aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE)
     numero_notebook = models.IntegerField(null=True, blank=True)
@@ -245,15 +340,19 @@ class RegistroUso(models.Model):
 
 
 class NotificacaoFichaAusente(models.Model):
+    # Escola herdada via reserva.escola
     reserva = models.ForeignKey(Reserva, on_delete=models.CASCADE)
     enviada_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('reserva',)
+
+
 class EquipamentoLiberado(models.Model):
     """Professor com passe livre para reservar este equipamento sem aprovação.
     Se o equipamento não tiver nenhum registro aqui, qualquer professor reserva
-    normalmente (só entra a regra global de PerfilAdm.requer_aprovacao)."""
+    normalmente (só entra a regra global de PerfilAdm.requer_aprovacao).
+    Escola herdada via equipamento.escola."""
     equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name='professores_liberados')
     professor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='equipamentos_liberados')
 
@@ -265,7 +364,8 @@ class EquipamentoLiberado(models.Model):
 
 
 class BloqueioEquipamento(models.Model):
-    """Período em que um equipamento fica indisponível pra reserva (quebrado, manutenção, emprestado etc.)."""
+    """Período em que um equipamento fica indisponível pra reserva (quebrado,
+    manutenção, emprestado etc.). Escola herdada via equipamento.escola."""
     equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name='bloqueios')
     data = models.DateField("Data do bloqueio")
     horario_inicio = models.TimeField("Bloqueado a partir de")
@@ -279,21 +379,26 @@ class BloqueioEquipamento(models.Model):
 
     def __str__(self):
         return f"{self.equipamento.nome} — {self.data.strftime('%d/%m/%Y')} {self.horario_inicio.strftime('%H:%M')}-{self.horario_fim.strftime('%H:%M')}"
-    
+
+
 class GrupoEquipamento(models.Model):
-    nome = models.CharField(max_length=100, unique=True)
+    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='grupos_equipamento')
+    nome = models.CharField(max_length=100)
     descricao = models.TextField(blank=True)
 
     class Meta:
         ordering = ['nome']
         verbose_name = 'Grupo de Equipamento'
         verbose_name_plural = 'Grupos de Equipamento'
+        unique_together = ('escola', 'nome')
 
     def __str__(self):
         return self.nome
 
 
 class EquipamentoInventario(models.Model):
+    dados_personalizados = models.JSONField(default=dict, blank=True)
+    # Escola herdada via grupo.escola
     grupo = models.ForeignKey(
         GrupoEquipamento,
         on_delete=models.PROTECT,
@@ -306,11 +411,11 @@ class EquipamentoInventario(models.Model):
     )
     tipo = models.CharField(max_length=100, help_text="Ex: Notebook Dell, Tablet Samsung, Projetor Epson")
     numero_patrimonio = models.CharField(
-        max_length=50, unique=True,
+        max_length=50,
         verbose_name='Número de patrimônio',
         help_text="Número de identificação/patrimônio do equipamento"
     )
-    numero_serie = models.CharField(max_length=100, unique=True, verbose_name='N/S')
+    numero_serie = models.CharField(max_length=100, verbose_name='N/S')
     localizacao_atual = models.CharField(max_length=150, verbose_name='Localização atual')
     comentario = models.TextField(blank=True, null=True, help_text="Observações opcionais")
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -320,12 +425,20 @@ class EquipamentoInventario(models.Model):
         ordering = ['grupo__nome', 'tipo']
         verbose_name = 'Equipamento'
         verbose_name_plural = 'Equipamentos'
+        # patrimônio e número de série únicos dentro do grupo (que já
+        # pertence a uma única escola) — duas escolas podem ter, cada
+        # uma, um equipamento com o mesmo número de patrimônio.
+        unique_together = (
+            ('grupo', 'numero_patrimonio'),
+            ('grupo', 'numero_serie'),
+        )
 
     def __str__(self):
-        return f"{self.tipo} - Patrimônio {self.numero_patrimonio}"
+        return f"{self.tipo} - Patrimônio {self.numero_patrimonio} ({self.grupo.escola.nome})"
 
 
 class Transferencia(models.Model):
+    # Escola herdada via equipamento.grupo.escola
     equipamento = models.ForeignKey(
         EquipamentoInventario,
         on_delete=models.CASCADE,

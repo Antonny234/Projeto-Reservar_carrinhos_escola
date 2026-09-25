@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>GTREP Manoel Martins - Notebooks Avulsos</h1>
+        <h1>{{ escola_ativa.nome|default:"Escola" }} - Notebooks Avulsos</h1>
         <div class="header-right">
             <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
         </div>

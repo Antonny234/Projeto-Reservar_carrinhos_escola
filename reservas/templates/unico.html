@@ -16,7 +16,7 @@
     <h1>GTREP Reservas</h1>
     <div class="header-right">
         <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
-        {% if user.is_staff %}
+        {% if usuario_eh_admin %}
             <span class="badge-admin">ADM</span>
         {% endif %}
         <span>{{ user.username }}</span>
@@ -77,7 +77,7 @@
                     {% endfor %}
                 </select>
 
-                {% if user.is_staff %}
+                {% if usuario_eh_admin %}
                 <label for="id_professor">Nome do Profº (Username):</label>
                 {{ form.professor }}
                 {% endif %}

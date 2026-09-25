@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tela de Login</title>
-  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+  <link rel="stylesheet" href="{% static 'css/login.css' %}?v=3">
   
 
 </head>
@@ -34,8 +34,22 @@
     </form>
     
     <div class="divisor"><span>ou</span></div>
-
-    <a href="{% url 'mural_consulta' %}" class="btn-mural">Ver Mural de Reservas</a>
+    <section class="acesso-publico" aria-labelledby="titulo-mural-publico">
+        <div class="titulo-publico">
+            <span aria-hidden="true">🏫</span>
+            <div><h3 id="titulo-mural-publico">Consultar mural público</h3><p>Pesquise e selecione uma escola para ver as reservas.</p></div>
+        </div>
+        <label class="sr-only" for="busca-escola">Buscar escola</label>
+        <input id="busca-escola" class="busca-escola" type="search" placeholder="Digite o nome da escola" autocomplete="off">
+        <div id="lista-escolas" class="lista-escolas" hidden>
+            {% for escola in escolas %}
+                <a class="escola-publica" href="{% url 'mural_consulta' escola.id %}"><span>{{ escola.nome }}</span><span aria-hidden="true">→</span></a>
+            {% empty %}
+                <p class="sem-escolas">Nenhuma escola disponível no momento.</p>
+            {% endfor %}
+        </div>
+        <p id="nenhuma-escola" class="sem-escolas" hidden>Nenhuma escola encontrada.</p>
+    </section>
 
     {% if messages %}
         <div style="color: red; text-align: center; margin-top: 15px; font-size: 14px;">
@@ -45,6 +59,38 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+    const buscaEscola = document.getElementById('busca-escola');
+    const listaEscolas = document.getElementById('lista-escolas');
+    const opcoesEscola = document.querySelectorAll('.escola-publica');
+    const nenhumaEscola = document.getElementById('nenhuma-escola');
+
+    const normalizarTexto = (texto) => texto
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR');
+
+    buscaEscola?.addEventListener('input', () => {
+        const termo = normalizarTexto(buscaEscola.value.trim());
+
+        if (!termo) {
+            listaEscolas.hidden = true;
+            opcoesEscola.forEach((escola) => { escola.hidden = true; });
+            nenhumaEscola.hidden = true;
+            return;
+        }
+
+        let encontradas = 0;
+        opcoesEscola.forEach((escola) => {
+            const visivel = normalizarTexto(escola.textContent).includes(termo);
+            escola.hidden = !visivel;
+            if (visivel) encontradas += 1;
+        });
+        listaEscolas.hidden = encontradas === 0;
+        nenhumaEscola.hidden = encontradas !== 0;
+    });
+</script>
 
 </body>
 </html>

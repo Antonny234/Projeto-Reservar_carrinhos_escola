@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Equipamento, Reserva, Aluno, RegistroUso, PerfilAdm, NotificacaoFichaAusente
-from .models import GrupoEquipamento, EquipamentoInventario, Transferencia,Sala,PerfilProfessor, CodigoVerificacao
+from .models import Equipamento, Reserva, Aluno, RegistroUso, PerfilAdm, NotificacaoFichaAusente,Escola
+from .models import GrupoEquipamento, EquipamentoInventario, Transferencia,Sala,PerfilProfessor, CodigoVerificacao, PerfilProfessorEscola
 from django.utils.safestring import mark_safe
 
 
@@ -17,7 +17,23 @@ class PerfilAdmAdmin(admin.ModelAdmin):
         return obj.usuario.email
     email_usuario.short_description = 'E-mail'
 
+@admin.register(PerfilProfessorEscola)
+class PerfilProfessorEscolaAdmin(admin.ModelAdmin):
+    list_display = ('usuario', 'escola_ativa', 'total_escolas', 'criado_em')
+    list_filter = ('escolas', 'criado_em')
+    search_fields = ('usuario__username', 'escolas__nome')
+    filter_horizontal = ('escolas',)
+    readonly_fields = ('criado_em', 'atualizado_em')
+    fieldsets = (
+        ('Usuário', {'fields': ('usuario',)}),
+        ('Escolas', {'fields': ('escolas', 'escola_ativa')}),
+        ('Datas', {'fields': ('criado_em', 'atualizado_em'), 'classes': ('collapse',)}),
+    )
 
+    def total_escolas(self, obj):
+        return obj.escolas.count()
+    total_escolas.short_description = 'Total de Escolas'
+    
 @admin.register(Equipamento)
 class EquipamentoAdmin(admin.ModelAdmin):
     list_display = ('nome', 'tipo', 'quantidade', 'disponivel', 'status_badge')
@@ -122,3 +138,9 @@ class EquipamentoInventarioAdmin(admin.ModelAdmin):
 class TransferenciaAdmin(admin.ModelAdmin):
     list_display = ['equipamento', 'local_origem', 'local_destino', 'usuario', 'data']
     list_filter = ['data']
+
+@admin.register(Escola)
+class EscolaAdmin(admin.ModelAdmin):
+    list_display = ('nome',)
+    search_fields = ('nome',)
+    ordering = ('nome',)

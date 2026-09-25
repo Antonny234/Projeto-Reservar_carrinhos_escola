@@ -36,25 +36,31 @@
     <div class="card">
         <h3>{{ equipamento.tipo }}</h3>
         <div class="info-row"><span>Grupo</span><span>{{ equipamento.grupo.nome }}</span></div>
-        {% if equipamento.identificador %}
-        <div class="info-row"><span>ID</span><span>{{ equipamento.identificador }}</span></div>
+        {% if valores_principais.identificador %}
+        <div class="info-row"><span>ID</span><span>{{ valores_principais.identificador }}</span></div>
         {% endif %}
-        <div class="info-row"><span>Número de patrimônio</span><span>{{ equipamento.numero_patrimonio }}</span></div>
-        <div class="info-row"><span>N/S</span><span>{{ equipamento.numero_serie }}</span></div>
-        <div class="info-row"><span>Localização atual</span><span><strong>{{ equipamento.localizacao_atual }}</strong></span></div>
+        <div class="info-row"><span>Número de patrimônio</span><span>{{ valores_principais.numero_patrimonio }}</span></div>
+        <div class="info-row"><span>N/S</span><span>{{ valores_principais.numero_serie }}</span></div>
+        <div class="info-row"><span>Localização atual</span><span><strong>{{ valores_principais.localizacao_atual }}</strong></span></div>
         {% if equipamento.comentario %}
         <div class="info-row"><span>Comentário</span><span>{{ equipamento.comentario }}</span></div>
         {% endif %}
 
-        {% if user.is_staff %}
+        {% for nome, valor in dados_extras %}
+        <div class="info-row"><span>{{ nome }}</span><span>{{ valor }}</span></div>
+        {% endfor %}
+
+        {% if usuario_eh_admin %}
             <div style="margin-top: 16px;">
                 <a href="{% url 'transferir_equipamento' equipamento.pk %}" class="btn btn-transferir">🔄 Transferir</a>
                 <a href="{% url 'equipamento_editar' equipamento.pk %}" class="btn" style="background:#ffc107; color:#1e3a5f;">✏️ Editar</a>
                 <a href="{% url 'equipamento_excluir' equipamento.pk %}" class="btn" style="background:#dc3545; color:#fff;">🗑️ Excluir</a>
+                <a href="{% url 'equipamento_novo' %}?grupo={{ equipamento.grupo_id }}" class="btn" style="background:#28a745; color:#fff;">+ Cadastrar outro</a>
                 <a href="{% url 'inventario_lista' %}" class="btn btn-voltar">← Voltar</a>
             </div>
         {% else %}
             <div style="margin-top: 16px;">
+                <a href="{% url 'equipamento_novo' %}?grupo={{ equipamento.grupo_id }}" class="btn" style="background:#28a745; color:#fff;">+ Cadastrar outro</a>
                 <a href="{% url 'inventario_lista' %}" class="btn btn-voltar">← Voltar</a>
             </div>
         {% endif %}

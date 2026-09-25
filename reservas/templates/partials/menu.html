@@ -1,4 +1,7 @@
 
+<div class="sidebar-escola">
+    {% include 'partials/selector_escola.html' %}
+</div>
 <nav class="sidebar-nav">
         <div class="sidebar-section">Visualização</div>
         <a href="{% url 'mural' %}" class="sidebar-link {% if request.resolver_match.url_name == 'mural' %}ativo{% endif %}">
@@ -19,13 +22,10 @@
         <a href="{% url 'notebooks_quebrados' %}" class="sidebar-link {% if request.resolver_match.url_name == 'notebooks_quebrados' %}ativo{% endif %}">
             <span class="icone"></span> Notebooks Quebrados
         </a>
-                <div class="sidebar-section">Ferramentas</div>
+        <div class="sidebar-section">Ferramentas</div>
         <a href="{% url 'verificar_carrinho' %}" class="sidebar-link {% if request.resolver_match.url_name == 'verificar_carrinho' %}ativo{% endif %}">
             <span class="icone"></span> Verificar Carrinhos
         </a>
-        </a>
-        <a href="{% url 'camera_contagem' %}" class="sidebar-link {% if request.resolver_match.url_name == 'camera_contagem' %}ativo{% endif %}">
-            <span class="icone"></span> Câmera
         </a>
         <a href="{% url 'pendentes_numeracao' %}" class="sidebar-link {% if request.resolver_match.url_name == 'pendentes_numeracao' %}ativo{% endif %}">
             <span class="icone"></span> Numerações Pendentes

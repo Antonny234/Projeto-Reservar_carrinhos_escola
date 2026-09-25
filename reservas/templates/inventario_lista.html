@@ -170,7 +170,7 @@
 
 <div class="header">
     <div class="tem-sidebar" data-pagina="professor">
-            {% if user.is_staff %}
+            {% if usuario_eh_admin %}
             <button class="sidebar-toggle" id="sidebarToggle">☰</button>
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
@@ -180,10 +180,11 @@
         {% endif %}
     </div>
     <h2 class="nome"> Inventário de Equipamentos</h2>
-    {% if user.is_staff %}
+    {% if usuario_eh_admin %}
         <div>
             <a href="{% url 'equipamento_novo' %}" class="btn-novo">+ Novo Equipamento</a>
             <a href="{% url 'grupo_novo' %}" class="btn-novo">+ Novo Grupo</a>
+            <a href="{% url 'configurar_campos_inventario' %}" class="btn-novo">Configurar campos</a>
         </div>
     {% endif %}
 </div>
@@ -205,7 +206,7 @@
                 <h3>{{ grupo.nome }}</h3>
                 <span class="qtd">{{ grupo.total }} equipamento{{ grupo.total|pluralize }}</span>
 
-                {% if user.is_staff %}
+                {% if usuario_eh_admin %}
                 <form method="POST" action="{% url 'grupo_excluir' grupo.id %}"
                     onsubmit="return confirm('Excluir o grupo &quot;{{ grupo.nome }}&quot;? Essa ação não pode ser desfeita.')"
                     style="margin:0;">

@@ -117,7 +117,7 @@
     <div class="header-right">
         {% if autenticado %}
             <span>Olá, <strong>{{ user.username }}</strong></span>
-            {% if user.is_staff %}<span class="badge-admin">ADM</span>{% endif %}
+            {% if usuario_eh_admin %}<span class="badge-admin">ADM</span>{% endif %}
         {% endif %}
     </div>
 </div>

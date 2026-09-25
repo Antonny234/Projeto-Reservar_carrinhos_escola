@@ -11,7 +11,7 @@
 
 </head>
 
-{% if user.is_staff %}
+{% if usuario_eh_admin %}
 <body class="tem-sidebar" data-pagina="professor">
     <button class="sidebar-toggle" id="sidebarToggle">☰</button>
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -26,10 +26,11 @@
         <div class="conteudo-principal">
 
             <div class="header">
-                <h1>GTREP - Manoel Martins</h1>
+                <h1>GTREP - {{ escola_ativa.nome|default:"Escola" }}</h1>
             <div class="header-right">
                     <span>Olá, <strong id="nome-professor">{{ user.username }}</strong></span>
-                    {% if user.is_staff %}
+                    {% include 'partials/selector_escola.html' %}
+                    {% if usuario_eh_admin %}
                         <span class="badge-admin">ADM</span>
                     {% endif %}
                     {% if not tem_pin %}
@@ -53,7 +54,7 @@
             </div>
             {% endif %}
 
-            {% if user.is_staff %}
+            {% if usuario_eh_admin %}
             <div id="notif-fichas-ausentes" class="notif-fichas" style="display:none">
                 <div class="notif-header">
                     <span><strong>Fichas não enviadas após encerramento do horário:</strong></span>
@@ -65,7 +66,7 @@
 
 
             <div class="container">
-                {% if user.is_staff %}
+                {% if usuario_eh_admin %}
                 <div class="container-export">
                     {% if reservas_pendentes %}
                     <div class="painel-pendentes">
@@ -160,7 +161,7 @@
                         <label for="sala">Sala:</label>
                         {{ form.sala }}
 
-    {% if user.is_staff %}
+    {% if usuario_eh_admin %}
                         <label for="id_professor">Nome do Profº (Username):</label>
                         {{ form.professor }}
                         {% endif %}
@@ -229,7 +230,7 @@
     }
     </script>
 
-    {% if user.is_staff %}
+    {% if usuario_eh_admin %}
     <script>
     function verificarFichasAusentes() {
         fetch('/ajax/fichas-ausentes/')

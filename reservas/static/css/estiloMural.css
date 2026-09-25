@@ -875,3 +875,13 @@ body.menu-aberto { overflow: hidden; }
         min-width: unset;
     }
 }
+/* Identidade e seletor da escola ativa */
+.nome-escola, .seletor-escola { margin-left: 12px; font-weight: 600; color: inherit; }
+.seletor-escola { display: inline-block; position: relative; }
+.seletor-escola summary { cursor: pointer; list-style: none; }
+.seletor-escola summary::-webkit-details-marker { display: none; }
+.opcoes-escola { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; min-width: 220px; background: #fff; border: 1px solid #dce1e7; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,.15); overflow: hidden; }
+.opcoes-escola a { display: block; padding: 10px 12px; color: #1e3a5f; text-decoration: none; }
+.opcoes-escola a:hover, .opcoes-escola a.ativa { background: #eef4fa; }
+.sidebar-escola { padding: 16px 12px 4px; color: #fff; }
+.sidebar-escola .nome-escola, .sidebar-escola .seletor-escola { margin-left: 0; }

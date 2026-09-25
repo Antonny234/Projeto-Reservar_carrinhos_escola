@@ -14,13 +14,13 @@
     {% endif %}
 
     {% if reserva.mostrar_botao_numeracao %}
-        {% if user == reserva.professor or user.is_staff %}
+        {% if user == reserva.professor or usuario_eh_admin %}
             <a href="{% url 'preencher_numeracao_quantidade' reserva.id %}" class="btn-numeracao">Preencher numeração</a>
         {% endif %}
     {% endif %}
 
     {% if user.is_authenticated %}
-        {% if user == reserva.professor or user.is_staff %}
+        {% if user == reserva.professor or usuario_eh_admin %}
         <form method="POST" action="{% url 'excluir_reserva' reserva.id %}" class="form-excluir" style="display:inline">
             {% csrf_token %}
             <button type="submit" class="btn-excluir" onclick="return confirm('Excluir esta reserva?')">Excluir</button>

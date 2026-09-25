@@ -10,7 +10,7 @@
 </head>
 <body data-pagina="pendentes-numeracao">
 
-    {% if user.is_staff %}
+    {% if usuario_eh_admin %}
         <button class="sidebar-toggle" id="sidebarToggle">☰</button>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
@@ -20,7 +20,7 @@
     {% endif %}
 
     <div class="header">
-        <h1>GTREP - Manoel Martins</h1>
+        <h1>GTREP - {{ escola_ativa.nome|default:"Escola" }}</h1>
     </div>
 
     {% if messages %}

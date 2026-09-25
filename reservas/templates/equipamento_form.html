@@ -1,80 +1,37 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>{% if editando %}Editar Equipamento{% else %}Novo Equipamento{% endif %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if editando %}Editar equipamento{% else %}Cadastrar equipamentos{% endif %}</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background: #f4f6f8; 
-            margin: 0; 
-        }
-        .header { 
-            background: #1e3a5f; 
-            color: #fff; 
-            padding: 16px 24px; 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .btn-voltar-verde {
-            display: inline-block;
-            background-color: #28a745;
-            color: #ffffff;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14px;
-            transition: background-color 0.2s ease, transform 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 2px solid #1e7e34;
-        }
-        .btn-voltar-verde:hover {
-            background-color: #218838;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .btn-voltar-verde:active {
-            transform: translateY(0);
-        }
-        .container { max-width: 500px; 
-            margin: 24px auto; 
-            padding: 0 16px; 
-        }
-        .card { 
-            background: #fff; 
-            border-radius: 10px; 
-            padding: 24px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
-        }
-        label { 
-            display: block; 
-            margin-top: 12px; 
-            font-weight: bold; 
-            color: #1e3a5f; 
-        }
-        input, select, textarea { width: 100%; padding: 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { margin-top: 18px; background: #28a745; color: #fff; padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        :root { --azul:#1e3a5f; --verde:#218c4a; --fundo:#f4f6f8; }
+        * { box-sizing:border-box; } body { font-family:Arial,sans-serif; background:var(--fundo); margin:0; color:#1f2937; }
+        .header { background:var(--azul); color:#fff; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .header h1 { margin:0; font-size:22px; } .voltar { color:#fff; text-decoration:none; border:1px solid #fff; border-radius:6px; padding:9px 13px; font-weight:bold; }
+        main { max-width:920px; margin:28px auto; padding:0 16px 32px; } .intro h2 { color:var(--azul); margin:0 0 6px; } .intro p { margin:0 0 18px; color:#52606d; }
+        .abas { display:flex; gap:8px; margin-bottom:14px; } .aba { border:1px solid #cbd5e1; background:#fff; color:var(--azul); border-radius:7px; padding:10px 14px; font-weight:bold; cursor:pointer; }
+        .aba.ativa { background:var(--azul); color:#fff; } .card { background:#fff; border-radius:10px; padding:24px; box-shadow:0 2px 12px rgba(20,40,70,.08); }
+        .painel[hidden] { display:none; } .grade { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 18px; } .grade p { margin:0 0 15px; } .grade p:first-child { grid-column:1 / -1; }
+        label { display:block; margin-bottom:6px; color:var(--azul); font-weight:bold; } input,select,textarea { width:100%; padding:10px; border:1px solid #bfc8d4; border-radius:6px; font:inherit; } textarea { resize:vertical; }
+        .errorlist { color:#b42318; padding-left:18px; } .acao { margin-top:12px; background:var(--verde); color:#fff; border:0; border-radius:6px; padding:11px 18px; font-weight:bold; cursor:pointer; }
+        .dica,.cabecalho-campos { padding:12px; border-radius:5px; } .dica { background:#edf5ff; border-left:4px solid #2a78bd; margin:0 0 18px; } .cabecalho-campos { background:#f7f9fc; border:1px solid #d8dee7; }
+        @media (max-width:620px) { .header { flex-direction:column; align-items:flex-start; } .grade { grid-template-columns:1fr; } }
     </style>
 </head>
 <body>
-
-<div class="header">
-    <h2>📦 {% if editando %}Editar Equipamento{% else %}Novo Equipamento{% endif %}</h2>
-    <a href="{% url 'inventario_lista' %}" class="btn-voltar-verde">Voltar para Inventário</a>
-</div>
-
-<div class="container">
-    <div class="card">
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">{% if editando %}Salvar Alterações{% else %}Cadastrar{% endif %}</button>
-        </form>
-    </div>
-</div>
-
+<header class="header"><h1>{% if editando %}Editar equipamento{% else %}Cadastrar equipamentos{% endif %}</h1><a href="{% url 'inventario_lista' %}" class="voltar">Voltar ao inventário</a></header>
+<main>
+{% if editando %}
+    <div class="intro"><h2>Atualize as informações</h2></div>
+    <section class="card"><form method="post">{% csrf_token %}<div class="grade">{{ form.as_p }}</div><button class="acao" type="submit">Salvar alterações</button></form></section>
+{% else %}
+    <div class="intro"><h2>Novo equipamento</h2><p>Cadastre uma unidade ou vários equipamentos de uma vez.</p></div>
+    <div class="abas"><button class="aba {% if not modo_lote %}ativa{% endif %}" type="button" data-painel="unitario">Uma unidade</button><button class="aba {% if modo_lote %}ativa{% endif %}" type="button" data-painel="lote">Cadastro rápido em lote</button></div>
+    <section id="unitario" class="card painel" {% if modo_lote %}hidden{% endif %}><form method="post">{% csrf_token %}<div class="grade">{{ form.as_p }}</div><button class="acao" type="submit">Cadastrar equipamento</button></form></section>
+    <section id="lote" class="card painel" {% if not modo_lote %}hidden{% endif %}><form method="post">{% csrf_token %}<input type="hidden" name="cadastro_lote" value="1"><p class="dica"><strong>Mais rápido:</strong> cole uma linha por equipamento. Use ponto e vírgula (<code>;</code>) ou Tab para separar as colunas.</p>{{ lote_form.grupo.label_tag }}{{ lote_form.grupo }}{{ lote_form.grupo.errors }}<p class="cabecalho-campos"><strong>Ordem das colunas:</strong> {% for campo in campos %}{{ campo.nome }}{% if not forloop.last %} ; {% endif %}{% endfor %}</p>{{ lote_form.dados_lote.label_tag }}{{ lote_form.dados_lote }}{{ lote_form.dados_lote.errors }}<button class="acao" type="submit">Cadastrar todos</button></form></section>
+    <script>document.querySelectorAll('.aba').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.aba').forEach(function(a){a.classList.remove('ativa')});document.querySelectorAll('.painel').forEach(function(p){p.hidden=true});b.classList.add('ativa');document.getElementById(b.dataset.painel).hidden=false})})</script>
+{% endif %}
+</main>
 </body>
 </html>

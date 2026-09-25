@@ -1,0 +1,591 @@
+{
+    "auth_user": [
+        {
+            "id": "37",
+            "password": "pbkdf2_sha256$870000$XIWRH5dYuALh8tVITESvVx$C9cmiwYRnRAEza8wLIMFK1Yd5CttITtYMeTB3UDIhy8=",
+            "last_login": "2026-09-15 02:01:23.199142+00:00",
+            "is_superuser": "False",
+            "username": "Luís Henrique",
+            "first_name": "",
+            "last_name": "",
+            "email": "luislima02@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 19:45:38.965668+00:00"
+        },
+        {
+            "id": "40",
+            "password": "pbkdf2_sha256$870000$jG8QOC9GUCq9yuVrmy172F$OPVOn52jUnO3OjeSY8jAkHVixhvEPDcyqT1YwGEQdKo=",
+            "last_login": "2026-09-18 15:31:52.858032+00:00",
+            "is_superuser": "False",
+            "username": "Rodolfo",
+            "first_name": "",
+            "last_name": "",
+            "email": "rodolfooliveira@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-16 15:52:15.903386+00:00"
+        },
+        {
+            "id": "54",
+            "password": "pbkdf2_sha256$870000$g8IW7JQ3xWQ99OA09Sl9Yt$kNq0Pmi9xkAyDTMd1wAfNtFMpA8kWvkKWz8nPlDMI6M=",
+            "last_login": null,
+            "is_superuser": "False",
+            "username": "maritca",
+            "first_name": "",
+            "last_name": "",
+            "email": "maritca@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "False",
+            "date_joined": "2026-08-14 18:55:12.918050+00:00"
+        },
+        {
+            "id": "43",
+            "password": "pbkdf2_sha256$870000$ikyW4CGroMQHycmWbw1F7X$YYynnnDDxjXGuZbHejEJT6wPSv9hgBKqSQAhvpWdU/g=",
+            "last_login": "2026-08-26 10:42:01.205452+00:00",
+            "is_superuser": "False",
+            "username": "carlos",
+            "first_name": "",
+            "last_name": "",
+            "email": "carlosmoreira01@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-07-29 14:28:19.482086+00:00"
+        },
+        {
+            "id": "48",
+            "password": "pbkdf2_sha256$870000$fBJXcX4pm3UOJ4y9oZok00$OLvEiacjxqsBz5U/yvZ35slnhWZ6pKj/PlIvYdZrLMg=",
+            "last_login": "2026-08-10 22:26:33.280103+00:00",
+            "is_superuser": "False",
+            "username": "ana",
+            "first_name": "",
+            "last_name": "",
+            "email": "antonnygabrieldacostasilva6@gmail.com",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-08-05 20:12:53.056317+00:00"
+        },
+        {
+            "id": "25",
+            "password": "pbkdf2_sha256$1200000$oJSo0RSDlXcdFtpXlAXK2r$vzJ5+nkWGuNs39ZTMZq2qN5KyD7G3x1TQbh6+U2KYp0=",
+            "last_login": "2026-06-10 18:37:21.427021+00:00",
+            "is_superuser": "True",
+            "username": "Rodrigo",
+            "first_name": "",
+            "last_name": "",
+            "email": "tavarayama@professor.educacao.sp.gov.br",
+            "is_staff": "True",
+            "is_active": "True",
+            "date_joined": "2026-06-10 18:37:10.141494+00:00"
+        },
+        {
+            "id": "27",
+            "password": "pbkdf2_sha256$1200000$iTFHe6r939QGezbPCVBQQR$unzTDOy/OHXRvxULJJInHBqKnotq+bZdo/rQ7VxSYM8=",
+            "last_login": "2026-06-22 15:40:32.113697+00:00",
+            "is_superuser": "True",
+            "username": "Lorrayna",
+            "first_name": "",
+            "last_name": "",
+            "email": "lorrayna@professor.educacao.sp.gov.br",
+            "is_staff": "True",
+            "is_active": "True",
+            "date_joined": "2026-06-11 15:55:52.985444+00:00"
+        },
+        {
+            "id": "58",
+            "password": "pbkdf2_sha256$870000$k7Cz9BHEbcnlJUPft2cU5Z$lLA9bu+8N0GDNsbSUO8h83+vn9JIIx0ogarGIfwSnJo=",
+            "last_login": "2026-09-23 23:16:28.867828+00:00",
+            "is_superuser": "True",
+            "username": "sistema_usuarios",
+            "first_name": "carlos",
+            "last_name": "",
+            "email": "antonnygabrieldacostasilva34@gmail.com",
+            "is_staff": "True",
+            "is_active": "True",
+            "date_joined": "2026-09-15 17:09:45+00:00"
+        },
+        {
+            "id": "24",
+            "password": "pbkdf2_sha256$870000$eLRc6D4AFU5jse4jB5s0MF$MH4BkkHebfLphNuwieHmvMvOBYR/3DDd4ttsV9nSlBw=",
+            "last_login": "2026-09-13 17:02:46.070966+00:00",
+            "is_superuser": "False",
+            "username": "Jose Bonomi",
+            "first_name": "",
+            "last_name": "",
+            "email": "josebonomi@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-10 15:12:07.528478+00:00"
+        },
+        {
+            "id": "19",
+            "password": "pbkdf2_sha256$870000$TZadgwK441SJkUAPyyjuAm$Nj+k7jB5idxQE3h9qQY+CDfkPxXp/yauHP5hwuDadP0=",
+            "last_login": "2026-09-25 17:23:05.806020+00:00",
+            "is_superuser": "False",
+            "username": "Josy Nunes",
+            "first_name": "",
+            "last_name": "",
+            "email": "josimarnunes@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-04 11:22:16.296783+00:00"
+        },
+        {
+            "id": "14",
+            "password": "pbkdf2_sha256$870000$2MPF3NKWBw7mk0NGxQT5Al$g0Qwj7jHjyOk1NSCMas41x2sb/ZnSdQTo5Bj3LiRCUw=",
+            "last_login": "2026-08-31 13:00:28.549245+00:00",
+            "is_superuser": "False",
+            "username": "Flávio",
+            "first_name": "",
+            "last_name": "Flavio",
+            "email": "flavioleite@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-02 14:37:29.985832+00:00"
+        },
+        {
+            "id": "26",
+            "password": "pbkdf2_sha256$1200000$b49nQCQzSgNeAzNQrUzNTW$wk8VlbQYidcFVpviRxdCsXdlxf6yQVX+HUpIgzKH1Bs=",
+            "last_login": "2026-06-22 23:32:43.014017+00:00",
+            "is_superuser": "False",
+            "username": "Daiane Lopes",
+            "first_name": "",
+            "last_name": "",
+            "email": "daianesousa04@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-10 19:52:14.506096+00:00"
+        },
+        {
+            "id": "23",
+            "password": "pbkdf2_sha256$870000$66gBCHkujmB9i2F4BTlkPS$9k64XR6p5qPDc55tNkZI6kBAf3MojmLw6Jh5UBmghO4=",
+            "last_login": "2026-08-26 12:33:00.258564+00:00",
+            "is_superuser": "False",
+            "username": "Bruna Nascimento",
+            "first_name": "",
+            "last_name": "",
+            "email": "brunadomingos@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-10 10:01:14.157550+00:00"
+        },
+        {
+            "id": "34",
+            "password": "pbkdf2_sha256$1200000$1MwHPeQyHvpgjLyuua0VNl$uGZJoUEDqKSJQXemh35ehQzmp77UxEQUlAmn9kTTgUU=",
+            "last_login": "2026-06-11 18:48:35.253480+00:00",
+            "is_superuser": "False",
+            "username": "Paula Mambrini",
+            "first_name": "",
+            "last_name": "",
+            "email": "paulamambrini@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 18:47:42.005213+00:00"
+        },
+        {
+            "id": "36",
+            "password": "pbkdf2_sha256$870000$SKNEKVNSVI24H4T3jS3Jgu$S2IW+jBMmiEY+uZLNBhxzzLZhRkVf/bo3XwIl2fVpJg=",
+            "last_login": "2026-09-23 16:50:16.923363+00:00",
+            "is_superuser": "False",
+            "username": "Ana Maria",
+            "first_name": "",
+            "last_name": "",
+            "email": "anamariaraimunda@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 18:55:24.106126+00:00"
+        },
+        {
+            "id": "56",
+            "password": "pbkdf2_sha256$870000$YLPPPR3ahBZCUcUeGgCQl4$zHNPvvlOrMX9QqoeKcWORS1DrO24eAJLhe6URvSk3zE=",
+            "last_login": "2026-09-10 14:52:34.213379+00:00",
+            "is_superuser": "False",
+            "username": "Camila",
+            "first_name": "",
+            "last_name": "",
+            "email": "",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-09-09 15:36:12.942411+00:00"
+        },
+        {
+            "id": "21",
+            "password": "pbkdf2_sha256$870000$h6hTWokBW8jmWquqQZgQ4A$rPaKWH5cpi3VaPxbiafdnsZtA/E0eDUazq1S8Lq4PlU=",
+            "last_login": "2026-09-24 17:17:19.994534+00:00",
+            "is_superuser": "False",
+            "username": "João",
+            "first_name": "",
+            "last_name": "",
+            "email": "cardosojorge@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-08 17:09:11.650377+00:00"
+        },
+        {
+            "id": "41",
+            "password": "pbkdf2_sha256$870000$Gwy3BLml64SjyQcCzHGwX1$PBefA2we70zSHB4YoCtl9mFsyhVq/C9ofGYeF5K7wKU=",
+            "last_login": "2026-09-24 10:59:16.993181+00:00",
+            "is_superuser": "True",
+            "username": "Antonny",
+            "first_name": "",
+            "last_name": "",
+            "email": "antonnygabrieldacostasilva34@gmail.com",
+            "is_staff": "True",
+            "is_active": "True",
+            "date_joined": "2026-07-14 22:38:19+00:00"
+        },
+        {
+            "id": "60",
+            "password": "pbkdf2_sha256$870000$DcD2mrEdcDkempsoJIHhZT$PcU0kPCYQsKMFKWQp6npZmNGLSSkA2maaRyNriZ0VCs=",
+            "last_login": "2026-09-15 17:31:25.583566+00:00",
+            "is_superuser": "False",
+            "username": "angela",
+            "first_name": "",
+            "last_name": "",
+            "email": "",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-09-15 17:30:45.417481+00:00"
+        },
+        {
+            "id": "15",
+            "password": "pbkdf2_sha256$870000$o26ZJfIQK8BhYyJv4Ea85n$UAkIWMaZQ4nQw6HAvfhBkzoqGRLYzfHXeNul2wTqlUE=",
+            "last_login": "2026-08-27 17:11:23.021758+00:00",
+            "is_superuser": "False",
+            "username": "Julia Bernardo",
+            "first_name": "",
+            "last_name": "",
+            "email": "juliasantos06@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-03 18:10:19.817857+00:00"
+        },
+        {
+            "id": "59",
+            "password": "pbkdf2_sha256$870000$kJxPA9aigYL72aKcan3quQ$6vK2rDbFoqiL2V+v6fM37zrUbmRDZp9WLrDXYg9yHFY=",
+            "last_login": "2026-09-15 17:20:22.463457+00:00",
+            "is_superuser": "True",
+            "username": "joao",
+            "first_name": "",
+            "last_name": "",
+            "email": "joaoandrade01@professor.educacao.sp.gov.br",
+            "is_staff": "True",
+            "is_active": "True",
+            "date_joined": "2026-09-15 17:15:55+00:00"
+        },
+        {
+            "id": "20",
+            "password": "pbkdf2_sha256$870000$8zw7ZuPY2fvvhfQUNjbVAv$9yRBIz7EdbFzISkyxqygeTdxsiNA4iVd7Lrc0QRsmmc=",
+            "last_login": "2026-09-04 15:41:10.686710+00:00",
+            "is_superuser": "False",
+            "username": "Priscila Matos",
+            "first_name": "",
+            "last_name": "",
+            "email": "priscilamatos@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-08 12:01:08.807622+00:00"
+        },
+        {
+            "id": "22",
+            "password": "pbkdf2_sha256$870000$MQ96yptOiF7rQYlrxgG6Ya$ZgGd+ZQEHYIQo6QVanU7tlWCgzO39MdjxrIEPReyG5A=",
+            "last_login": "2026-09-21 17:43:13.833236+00:00",
+            "is_superuser": "False",
+            "username": "Roberto",
+            "first_name": "",
+            "last_name": "",
+            "email": "robertorivelino@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-09 17:38:57.222210+00:00"
+        },
+        {
+            "id": "30",
+            "password": "pbkdf2_sha256$870000$BmSjQt7QRDvPH7CKOXyIAx$w6BLFaFLcguN+pyLSP+rPkf+sg67cPpWxBfgFSimr8k=",
+            "last_login": "2026-08-26 13:48:56.588182+00:00",
+            "is_superuser": "False",
+            "username": "Tahynara Prata",
+            "first_name": "",
+            "last_name": "",
+            "email": "tahynara@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 16:40:14.166073+00:00"
+        },
+        {
+            "id": "57",
+            "password": "pbkdf2_sha256$870000$8CRymaz1TvRaqXNZtwtaPA$zLiOMQb3omEXNI1lcxqDSuqe+LhcxhJn8Zaw8hoCTRw=",
+            "last_login": "2026-09-10 17:24:50.627264+00:00",
+            "is_superuser": "False",
+            "username": "cobaia",
+            "first_name": "",
+            "last_name": "",
+            "email": "",
+            "is_staff": "True",
+            "is_active": "True",
+            "date_joined": "2026-09-10 17:21:00+00:00"
+        },
+        {
+            "id": "38",
+            "password": "pbkdf2_sha256$870000$a8aUThRNcG2FuJgowYbDqc$8xf6vkdFOGyILobcAlntrUe4o++ivM8Oarv4xI9kgD0=",
+            "last_login": "2026-08-14 11:21:29.836706+00:00",
+            "is_superuser": "False",
+            "username": "Danielguarnieri",
+            "first_name": "",
+            "last_name": "",
+            "email": "danielguarnieri@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-15 16:12:13.305419+00:00"
+        },
+        {
+            "id": "18",
+            "password": "pbkdf2_sha256$870000$9wizWuBb4a4qSnj0JVEJbY$msuJd9RrChY2ok3kEJ5BynUOD/sbw9LXsQK+GazSV1w=",
+            "last_login": "2026-09-25 10:06:33.707084+00:00",
+            "is_superuser": "True",
+            "username": "Lauana",
+            "first_name": "",
+            "last_name": "",
+            "email": "lauanasantos696@professor.educacao.sp.gov.br",
+            "is_staff": "True",
+            "is_active": "True",
+            "date_joined": "2026-06-03 19:35:57.721957+00:00"
+        },
+        {
+            "id": "39",
+            "password": "pbkdf2_sha256$870000$zqnJcZLbWt7Q2veKmYd18N$cbw1dw4rsDMAmu3Iv++m24oP1t7wpz3sBs1dHFSf878=",
+            "last_login": "2026-08-13 13:59:00.968593+00:00",
+            "is_superuser": "False",
+            "username": "MARLI",
+            "first_name": "",
+            "last_name": "",
+            "email": "mbrumatti@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-15 16:14:03.173980+00:00"
+        },
+        {
+            "id": "29",
+            "password": "pbkdf2_sha256$870000$4L9qnLGWHuWqbMtk4z81ny$tWyDB47id4ENzeM+hLFoiD6SLJyNiEcjeTU1CNLAzWA=",
+            "last_login": "2026-09-24 20:24:37.360842+00:00",
+            "is_superuser": "False",
+            "username": "MarcusKiyota",
+            "first_name": "",
+            "last_name": "",
+            "email": "marcusmoutinho@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 16:31:15.154533+00:00"
+        },
+        {
+            "id": "50",
+            "password": "pbkdf2_sha256$870000$54zMpdqA5wRljKLoxtDi69$DYQ79F3+meCt9H67ff39KSWFpUptDSUKTscsFaOYViE=",
+            "last_login": "2026-08-12 23:16:42.570267+00:00",
+            "is_superuser": "False",
+            "username": "cauam",
+            "first_name": "",
+            "last_name": "",
+            "email": "antonnygabrieldacostasilva34@gmail.com",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-08-06 15:55:24.325448+00:00"
+        },
+        {
+            "id": "28",
+            "password": "pbkdf2_sha256$870000$rac722MPd7cqTynwafyRoy$MD0G5ks1YrxlJumj/Se/RQ25P9y2rDNOpz/koOfFWXI=",
+            "last_login": "2026-09-15 18:18:11.823065+00:00",
+            "is_superuser": "False",
+            "username": "Fernando",
+            "first_name": "",
+            "last_name": "",
+            "email": "fdavid@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 16:00:19.532150+00:00"
+        },
+        {
+            "id": "32",
+            "password": "pbkdf2_sha256$870000$f2Nua7KxbwWHIbc8ApYv65$uzmIOLLkHMwfjV+9vdvuumHnGm/1442BWM28MmjfZ7U=",
+            "last_login": "2026-09-02 12:57:49.878179+00:00",
+            "is_superuser": "False",
+            "username": "Cristiana",
+            "first_name": "",
+            "last_name": "",
+            "email": "forgoni@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 18:44:03.878024+00:00"
+        },
+        {
+            "id": "35",
+            "password": "pbkdf2_sha256$870000$cuWgvoGrwPeH12RRyPDC2O$s/5r9Y5jb9TW747/W0aODZ7UtSDoml2y1v3ZjiHSpts=",
+            "last_login": "2026-09-25 11:47:08.998274+00:00",
+            "is_superuser": "False",
+            "username": "Paula Bento",
+            "first_name": "",
+            "last_name": "",
+            "email": "anapaulabento@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 18:52:45.738314+00:00"
+        },
+        {
+            "id": "31",
+            "password": "pbkdf2_sha256$870000$JZi165AnqgiVhPFFpYenjJ$Z+EwhfGVxLPw677BSxlboZ6vPTFDSMvkHFa4Tock0+U=",
+            "last_login": "2026-09-16 11:31:55.686661+00:00",
+            "is_superuser": "False",
+            "username": "Beatriz",
+            "first_name": "",
+            "last_name": "",
+            "email": "beatrizgranado@professor.educacao.sp.gov.br",
+            "is_staff": "False",
+            "is_active": "True",
+            "date_joined": "2026-06-11 18:37:56.496958+00:00"
+        }
+    ],
+    "perfil_professor": [
+        {
+            "id": "5",
+            "whatsapp": null,
+            "usuario_id": "48"
+        },
+        {
+            "id": "7",
+            "whatsapp": null,
+            "usuario_id": "50"
+        },
+        {
+            "id": "9",
+            "whatsapp": null,
+            "usuario_id": "54"
+        }
+    ],
+    "perfil_adm": [
+        {
+            "id": "3",
+            "requer_aprovacao": "False",
+            "usuario_id": "19",
+            "pin_envio": "2405"
+        },
+        {
+            "id": "4",
+            "requer_aprovacao": "False",
+            "usuario_id": "21",
+            "pin_envio": "1937"
+        },
+        {
+            "id": "6",
+            "requer_aprovacao": "False",
+            "usuario_id": "20",
+            "pin_envio": "1234"
+        },
+        {
+            "id": "7",
+            "requer_aprovacao": "False",
+            "usuario_id": "15",
+            "pin_envio": "1306"
+        },
+        {
+            "id": "5",
+            "requer_aprovacao": "True",
+            "usuario_id": "41",
+            "pin_envio": "1245"
+        },
+        {
+            "id": "8",
+            "requer_aprovacao": "False",
+            "usuario_id": "48",
+            "pin_envio": "1234"
+        },
+        {
+            "id": "11",
+            "requer_aprovacao": "False",
+            "usuario_id": "32",
+            "pin_envio": "1234"
+        },
+        {
+            "id": "1",
+            "requer_aprovacao": "False",
+            "usuario_id": "23",
+            "pin_envio": "3728"
+        },
+        {
+            "id": "13",
+            "requer_aprovacao": "False",
+            "usuario_id": "37",
+            "pin_envio": "1205"
+        },
+        {
+            "id": "15",
+            "requer_aprovacao": "False",
+            "usuario_id": "39",
+            "pin_envio": "1234"
+        },
+        {
+            "id": "18",
+            "requer_aprovacao": "False",
+            "usuario_id": "38",
+            "pin_envio": "9207"
+        },
+        {
+            "id": "2",
+            "requer_aprovacao": "False",
+            "usuario_id": "18",
+            "pin_envio": "1245"
+        },
+        {
+            "id": "12",
+            "requer_aprovacao": "False",
+            "usuario_id": "14",
+            "pin_envio": "1234"
+        },
+        {
+            "id": "19",
+            "requer_aprovacao": "False",
+            "usuario_id": "31",
+            "pin_envio": "2012"
+        },
+        {
+            "id": "20",
+            "requer_aprovacao": "False",
+            "usuario_id": "24",
+            "pin_envio": "1238"
+        },
+        {
+            "id": "14",
+            "requer_aprovacao": "False",
+            "usuario_id": "40",
+            "pin_envio": "1987"
+        },
+        {
+            "id": "21",
+            "requer_aprovacao": "False",
+            "usuario_id": "43",
+            "pin_envio": "1997"
+        },
+        {
+            "id": "22",
+            "requer_aprovacao": "False",
+            "usuario_id": "22",
+            "pin_envio": "1005"
+        },
+        {
+            "id": "17",
+            "requer_aprovacao": "False",
+            "usuario_id": "30",
+            "pin_envio": "2652"
+        },
+        {
+            "id": "16",
+            "requer_aprovacao": "False",
+            "usuario_id": "36",
+            "pin_envio": "1234"
+        },
+        {
+            "id": "23",
+            "requer_aprovacao": "False",
+            "usuario_id": "35",
+            "pin_envio": "1234"
+        }
+    ]
+}

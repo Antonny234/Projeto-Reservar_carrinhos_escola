@@ -1,0 +1,552 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/superadmin.css' %}"
+    >
+
+    <title>PROATI 2026 - Cadastrar Escola</title>
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================================
+         CABEÇALHO
+    ====================================================== -->
+
+    <header class="topo-superadmin">
+
+        <div>
+
+            <h1>PROATI 2026</h1>
+
+        </div>
+
+
+        <div class="usuario-superadmin">
+
+            <span>
+                {{ request.user.username }}
+            </span>
+
+
+            <a href="{% url 'superadmin' %}">
+                Voltar ao painel
+            </a>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =====================================================
+         CONTEÚDO
+    ====================================================== -->
+
+    <main class="superadmin-container">
+
+
+        <!-- =================================================
+             MENSAGENS DO SISTEMA
+        ================================================== -->
+
+        {% if messages %}
+
+            <div class="mensagens-sistema">
+
+                {% for message in messages %}
+
+                    <div
+                        class="mensagem mensagem-{{ message.tags }}"
+                        role="alert"
+                    >
+
+                        <div class="mensagem-icone">
+
+                            {% if message.tags == 'success' %}
+                                ✓
+                            {% elif message.tags == 'error' %}
+                                !
+                            {% elif message.tags == 'warning' %}
+                                !
+                            {% else %}
+                                i
+                            {% endif %}
+
+                        </div>
+
+
+                        <div class="mensagem-texto">
+
+                            {{ message }}
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            class="mensagem-fechar"
+                            aria-label="Fechar mensagem"
+                            onclick="this.parentElement.remove()"
+                        >
+                            ×
+                        </button>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+
+
+        <!-- =================================================
+             ERROS GERAIS DO FORMULÁRIO DA ESCOLA
+        ================================================== -->
+
+        {% if escola_form.non_field_errors %}
+
+            <div class="mensagens-sistema">
+
+                {% for error in escola_form.non_field_errors %}
+
+                    <div
+                        class="mensagem mensagem-error"
+                        role="alert"
+                    >
+
+                        <div class="mensagem-icone">
+                            !
+                        </div>
+
+                        <div class="mensagem-texto">
+                            {{ error }}
+                        </div>
+
+                        <button
+                            type="button"
+                            class="mensagem-fechar"
+                            aria-label="Fechar mensagem"
+                            onclick="this.parentElement.remove()"
+                        >
+                            ×
+                        </button>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+
+
+        <!-- =================================================
+             CABEÇALHO DA PÁGINA
+        ================================================== -->
+
+        <section class="cabecalho-pagina">
+
+            <div>
+
+                <h2>
+                    Cadastrar nova escola
+                </h2>
+
+                <p>
+                    Cadastre a escola e crie o administrador
+                    responsável pelas configurações iniciais.
+                </p>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             FORMULÁRIO
+        ================================================== -->
+
+        <form method="post" novalidate>
+
+            {% csrf_token %}
+
+
+
+            <!-- =================================================
+                 DADOS DA ESCOLA
+            ================================================== -->
+
+            <section class="painel">
+
+                <div class="painel-cabecalho">
+
+                    <div>
+
+                        <h2>
+                            Dados da escola
+                        </h2>
+
+                        <p>
+                            Informe os dados básicos da escola.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="formulario-grade">
+
+
+                    <!-- NOME DA ESCOLA -->
+
+                    <div class="campo-grupo">
+
+                        {{ escola_form.nome.label_tag }}
+
+                        {{ escola_form.nome }}
+
+                        {% for error in escola_form.nome.errors %}
+
+                            <div class="erro-formulario">
+                                ❌ {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+
+                    <!-- CIDADE -->
+
+                    <div class="campo-grupo">
+
+                        {{ escola_form.cidade.label_tag }}
+
+                        {{ escola_form.cidade }}
+
+                        {% for error in escola_form.cidade.errors %}
+
+                            <div class="erro-formulario">
+                                ❌ {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 ADMINISTRADOR DA ESCOLA
+            ================================================== -->
+
+            <section class="painel">
+
+                <div class="painel-cabecalho">
+
+                    <div>
+
+                        <h2>
+                            Administrador da escola
+                        </h2>
+
+                        <p>
+                            Crie o usuário que será responsável
+                            pelas configurações e administração
+                            desta escola.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-grid">
+
+
+                    <!-- USUÁRIO -->
+
+                    <div class="campo-grupo">
+
+                        {{ admin_form.username.label_tag }}
+
+                        {{ admin_form.username }}
+
+                        {% for error in admin_form.username.errors %}
+
+                            <div class="erro-formulario">
+                                ❌ {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+
+                    <!-- E-MAIL -->
+
+                    <div class="campo-grupo">
+
+                        {{ admin_form.email.label_tag }}
+
+                        {{ admin_form.email }}
+
+                        {% for error in admin_form.email.errors %}
+
+                            <div class="erro-formulario">
+                                ❌ {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+
+                    <!-- SENHA -->
+
+                    <div class="campo-grupo">
+
+                        {{ admin_form.password.label_tag }}
+
+                        {{ admin_form.password }}
+
+                        {% for error in admin_form.password.errors %}
+
+                            <div class="erro-formulario">
+                                ❌ {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+
+                    <!-- CONFIRMAR SENHA -->
+
+                    <div class="campo-grupo">
+
+                        {{ admin_form.password_confirm.label_tag }}
+
+                        {{ admin_form.password_confirm }}
+
+                        {% for error in admin_form.password_confirm.errors %}
+
+                            <div class="erro-formulario">
+                                ❌ {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =================================================
+                     ERROS GERAIS DO ADMINISTRADOR
+                ================================================== -->
+
+                {% if admin_form.non_field_errors %}
+
+                    <div class="erros-gerais-formulario">
+
+                        {% for error in admin_form.non_field_errors %}
+
+                            <div class="erro-formulario">
+
+                                ❌ {{ error }}
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+
+            </section>
+
+
+
+            <!-- =================================================
+                 INFORMAÇÃO
+            ================================================== -->
+
+            <section class="painel">
+
+                <div class="painel-cabecalho">
+
+                    <div>
+
+                        <h2>
+                            Próximos passos
+                        </h2>
+
+                        <p>
+                            Depois de salvar a escola, o administrador
+                            poderá entrar no sistema e realizar as
+                            configurações necessárias para essa unidade.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 BOTÕES
+            ================================================== -->
+
+            <section class="acoes-formulario">
+
+
+                <button
+                    type="submit"
+                    class="btn btn-principal"
+                >
+                    ✓ Cadastrar Escola
+                </button>
+
+
+                <a
+                    href="{% url 'superadmin' %}"
+                    class="btn btn-secundario"
+                >
+                    Cancelar
+                </a>
+
+
+            </section>
+
+
+        </form>
+
+
+    </main>
+
+
+
+    <!-- =====================================================
+         JAVASCRIPT DAS MENSAGENS
+    ====================================================== -->
+
+    <script>
+
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const mensagens = document.querySelectorAll(
+                ".mensagem"
+            );
+
+
+            mensagens.forEach(function (mensagem) {
+
+                /*
+                 * Permite fechar a mensagem
+                 * manualmente pelo botão X.
+                 */
+
+
+                const botaoFechar =
+                    mensagem.querySelector(
+                        ".mensagem-fechar"
+                    );
+
+
+                if (botaoFechar) {
+
+                    botaoFechar.addEventListener(
+                        "click",
+                        function () {
+
+                            mensagem.remove();
+
+                        }
+                    );
+
+                }
+
+
+                /*
+                 * Mensagens de sucesso desaparecem
+                 * automaticamente depois de 5 segundos.
+                 */
+
+                if (
+                    mensagem.classList.contains(
+                        "mensagem-success"
+                    )
+                ) {
+
+                    setTimeout(function () {
+
+                        if (mensagem) {
+
+                            mensagem.style.opacity = "0";
+
+                            mensagem.style.transform =
+                                "translateY(-8px)";
+
+                            mensagem.style.transition =
+                                "opacity 0.3s ease, transform 0.3s ease";
+
+
+                            setTimeout(function () {
+
+                                mensagem.remove();
+
+                            }, 300);
+
+                        }
+
+                    }, 5000);
+
+                }
+
+            });
+
+        });
+
+    </script>
+
+
+</body>
+
+</html>

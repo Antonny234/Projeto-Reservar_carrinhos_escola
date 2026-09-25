@@ -28,16 +28,18 @@ body {
     align-items: center;
     background-size: cover;
     overflow-x: hidden;
-
+    padding: 24px 16px;
 }
 
 .login-box {
-    background: white;
-    padding: 40px;
-    border-radius: 12px;
-    width: 360px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    border: 1px solid #e0e0e0;
+    background: rgba(255, 255, 255, .97);
+    padding: 36px;
+    border-radius: 20px;
+    width: min(100%, 430px);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    box-shadow: 0 18px 45px rgba(15, 39, 68, .22);
+    border: 1px solid rgba(255, 255, 255, .8);
     position: relative;
     z-index: 1;
 }
@@ -46,8 +48,9 @@ body {
     text-align: center;
     margin-bottom: 25px;
     color: #1e3a5f;
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 29px;
+    font-weight: 700;
+    letter-spacing: -.4px;
 }
 
 .input-box {
@@ -144,4 +147,25 @@ body {
 .footer a:hover {
     color: #16304f;
     text-decoration: underline;
+}
+
+.acesso-publico { margin-top: 24px; padding-top: 2px; }
+.titulo-publico { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.titulo-publico > span { background: #e9f0f8; border-radius: 10px; font-size: 19px; line-height: 1; padding: 10px; }
+.acesso-publico h3 { color: #1e3a5f; font-size: 17px; line-height: 1.2; margin: 1px 0 4px; }
+.acesso-publico p { color: #667085; font-size: 13px; line-height: 1.4; margin: 0; }
+.busca-escola { width: 100%; padding: 12px 14px; border: 1.5px solid #cdd8e5; border-radius: 10px; color: #1e3a5f; font: inherit; background: #fbfcfe; }
+.busca-escola:focus { background: #fff; border-color: #1e3a5f; box-shadow: 0 0 0 4px rgba(30, 58, 95, .12); outline: 0; }
+.lista-escolas { display: grid; gap: 8px; margin-top: 12px; max-height: 170px; overflow-y: auto; padding-right: 4px; }
+.lista-escolas[hidden], .escola-publica[hidden] { display: none; }
+.escola-publica { align-items: center; background: #f7f9fc; border: 1px solid #dce4ed; border-radius: 10px; color: #1e3a5f; display: flex; font-size: 14px; font-weight: 600; justify-content: space-between; padding: 11px 13px; text-decoration: none; transition: background .18s, border-color .18s, transform .18s; }
+.escola-publica:hover { background: #e9f0f8; border-color: #7190b2; transform: translateX(2px); }
+.escola-publica span:last-child { color: #426a95; font-size: 18px; }
+.sem-escolas { margin: 12px 0 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (max-width: 480px) {
+    body { align-items: flex-start; padding: 14px; }
+    .login-box { border-radius: 16px; max-height: none; padding: 28px 22px; }
+    .login-box h2 { font-size: 26px; }
 }

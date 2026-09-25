@@ -139,7 +139,7 @@
 
 <body data-pagina="cadastros">
 
-{% if user.is_staff %}
+{% if usuario_eh_admin %}
 <body class="tem-sidebar" data-pagina="professor">
     <button class="sidebar-toggle" id="sidebarToggle">☰</button>
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -150,10 +150,10 @@
 {% endif %}
 
     <div class="header">
-        <h1>🗂️ Cadastros - Equipamentos e Horários</h1>
+        <h1>🗂️ Cadastros - {{ escola_ativa.nome|default:"Escola" }}</h1>
         <div class="header-right">
             <span>Olá, <strong>{{ user.username }}</strong></span>
-            {% if user.is_staff %}
+            {% if usuario_eh_admin %}
                 <span class="badge-admin">ADM</span>
             {% endif %}
         </div>
@@ -341,6 +341,81 @@
                 </table>
             </div>
 
+        </div>
+
+        <div class="duas-colunas-cadastro">
+            <div class="secao-cadastro">
+                <h3>🏫 Salas</h3>
+                <div class="form-cadastro">
+                    <h4>Cadastrar sala</h4>
+                    <form method="post" action="{% url 'adicionar_sala' %}">
+                        {% csrf_token %}
+                        <div class="form-row">
+                            <label for="nome_sala">Nome da sala</label>
+                            <input class="form-control" id="nome_sala" name="nome_sala" maxlength="50" placeholder="Ex.: 7º A" required>
+                        </div>
+                        <button type="submit" class="btn-salvar">Salvar sala</button>
+                    </form>
+                </div>
+                <table class="tabela-admin">
+                    <thead><tr><th>Sala</th><th>Alunos</th></tr></thead>
+                    <tbody>
+                    {% for sala in salas %}
+                        <tr><td>{{ sala.nome }}</td><td>{{ sala.aluno_set.count }}</td></tr>
+                    {% empty %}
+                        <tr><td colspan="2">Nenhuma sala cadastrada.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="secao-cadastro">
+                <h3>👩‍🎓 Alunos</h3>
+                <p>{{ total_alunos }} aluno(s) cadastrado(s) nesta escola.</p>
+                <div class="form-cadastro">
+                    <h4>Cadastrar aluno manualmente</h4>
+                    <p class="help-text">Informe o nome e selecione a sala. Cadastre a sala antes de adicionar o aluno.</p>
+                    <form method="post" action="{% url 'adicionar_aluno' %}">
+                        {% csrf_token %}
+                        <div class="form-row">
+                            <label for="nome_aluno">Nome do aluno</label>
+                            <input class="form-control" id="nome_aluno" name="nome_aluno" maxlength="100" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="sala_aluno">Sala</label>
+                            <select class="form-control" id="sala_aluno" name="sala_aluno" required>
+                                <option value="">Selecione uma sala</option>
+                                {% for sala in salas %}
+                                    <option value="{{ sala.id }}">{{ sala.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-salvar">Cadastrar aluno</button>
+                    </form>
+                </div>
+                <div class="form-cadastro">
+                    <h4>Importar alunos por Excel ou PDF</h4>
+                    <p class="help-text">O arquivo deve ter as colunas <strong>Aluno</strong> (ou Nome) e <strong>Sala</strong> (ou Turma). Cadastre as salas antes de importar.</p>
+                    <form method="post" action="{% url 'importar_alunos' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="form-row">
+                            <label for="arquivo_alunos">Documento</label>
+                            <input class="form-control" id="arquivo_alunos" name="arquivo_alunos" type="file" accept=".xlsx,.xls,.csv,.pdf" required>
+                        </div>
+                        <button type="submit" class="btn-salvar">Validar documento</button>
+                    </form>
+                </div>
+
+                {% if erros_importacao %}
+                    <div class="mensagem error"><strong>Erros encontrados: nenhuma linha com erro será importada.</strong><ul>{% for erro in erros_importacao %}<li>{{ erro }}</li>{% endfor %}</ul></div>
+                {% endif %}
+                {% if alunos_importacao %}
+                    <div class="mensagem success">{{ alunos_importacao|length }} aluno(s) válido(s), prontos para cadastrar.</div>
+                    <form method="post" action="{% url 'confirmar_importacao_alunos' %}">
+                        {% csrf_token %}<button type="submit" class="btn-salvar">Confirmar importação</button>
+                    </form>
+                {% endif %}
+            </div>
         </div>
     </div>
 

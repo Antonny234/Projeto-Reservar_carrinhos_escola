@@ -13,12 +13,139 @@
       <h1>Cadastro</h1>
       <form method="POST" action="{% url 'index' %}">
         {% csrf_token %}
-          
+
         <label>Usuário</label>
         <input type="text" name="usuario" placeholder="Digite como você quer ser chamado" required>
 
         <label>Email</label>
         <input type="email" name="email" placeholder="Digite seu email escolar" required>
+<!-- 🔑 Múltiplas escolas com pesquisa e seleção -->
+
+        <label>
+            Escola(s) <span style="color: red;">*</span>
+        </label>
+
+
+        <!-- =====================================================
+            CAMPO DE PESQUISA
+        ====================================================== -->
+
+        <div class="pesquisa-escolas">
+
+            <span class="icone-pesquisa">🔍</span>
+
+            <input
+                type="text"
+                id="pesquisa-escola"
+                class="input-pesquisa-escola"
+                placeholder="Digite o nome da escola..."
+                autocomplete="off"
+            >
+
+        </div>
+
+
+
+        <!-- =====================================================
+            RESULTADOS DA PESQUISA
+        ====================================================== -->
+
+        <div
+            class="lista-escolas"
+            id="lista-escolas"
+            style="display: none;"
+        >
+
+            {% if escolas %}
+
+                {% for escola in escolas %}
+
+                    <label
+                        class="item-escola"
+                        data-nome="{{ escola.nome|lower }}{% if escola.cidade %} {{ escola.cidade|lower }}{% endif %}"
+                        style="display: none;"
+                    >
+
+                        <input
+                            type="checkbox"
+                            name="escolas"
+                            value="{{ escola.id }}"
+                            class="checkbox-escola"
+                        >
+
+                        <span>
+                            {{ escola.nome }}
+
+                            {% if escola.cidade %}
+                                - {{ escola.cidade }}
+                            {% endif %}
+                        </span>
+
+                    </label>
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="nenhuma-escola">
+                    Nenhuma escola disponível.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+
+        <!-- =====================================================
+            NENHUM RESULTADO
+        ====================================================== -->
+
+        <div
+            id="nenhuma-escola-encontrada"
+            class="nenhuma-escola"
+            style="display: none;"
+        >
+            Nenhuma escola encontrada.
+        </div>
+
+
+
+        <!-- =====================================================
+            ESCOLAS SELECIONADAS
+        ====================================================== -->
+
+        <div
+            id="escolas-selecionadas"
+            class="escolas-selecionadas"
+            style="display: none;"
+        >
+
+            <div class="titulo-escolas-selecionadas">
+                ✓ Escolas selecionadas
+            </div>
+
+
+            <div
+                id="lista-escolas-selecionadas"
+                class="lista-escolas-selecionadas"
+            >
+            </div>
+
+        </div>
+
+
+
+        <!-- =====================================================
+            MENSAGEM DE AJUDA
+        ====================================================== -->
+
+        <small class="ajuda-escolas">
+
+            📌 Digite o nome de uma escola para pesquisar.
+            Selecione uma ou mais escolas onde você trabalha.
+
+        </small>
 
         <label>Senha</label>
         <input type="password" name="senha" placeholder="Digite sua senha" required>
@@ -44,6 +171,295 @@
             {% endif %}
           {% endfor %}
       {% endif %}
-    </div> <!-- Fechamento correto da container -->
+    </div>
+
+<!-- =====================================================
+     JAVASCRIPT
+====================================================== -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const pesquisa =
+        document.getElementById("pesquisa-escola");
+
+    const lista =
+        document.getElementById("lista-escolas");
+
+    const mensagemNenhuma =
+        document.getElementById(
+            "nenhuma-escola-encontrada"
+        );
+
+    const areaSelecionadas =
+        document.getElementById(
+            "escolas-selecionadas"
+        );
+
+    const listaSelecionadas =
+        document.getElementById(
+            "lista-escolas-selecionadas"
+        );
+
+    const escolas =
+        document.querySelectorAll(
+            ".item-escola"
+        );
+
+    if (!pesquisa || !lista) {
+        return;
+    }
+
+    const formulario = pesquisa.closest("form");
+
+
+
+    /* =====================================================
+       ATUALIZA ESCOLAS SELECIONADAS
+    ====================================================== */
+
+    function atualizarSelecionadas() {
+
+        listaSelecionadas.innerHTML = "";
+
+        let quantidade = 0;
+
+
+        escolas.forEach(function (escola) {
+
+            const checkbox =
+                escola.querySelector(
+                    ".checkbox-escola"
+                );
+
+
+            if (
+                checkbox &&
+                checkbox.checked
+            ) {
+
+                quantidade++;
+
+
+                const nome =
+                    escola.querySelector(
+                        "span"
+                    ).textContent.trim();
+
+
+                const item =
+                    document.createElement("div");
+
+                item.className =
+                    "escola-selecionada";
+
+
+                item.innerHTML = `
+                    <span>
+                        ✓ ${nome}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="remover-escola"
+                        title="Remover escola"
+                    >
+                        ×
+                    </button>
+                `;
+
+
+                /*
+                 * Botão para remover a escola
+                 */
+
+                const botaoRemover =
+                    item.querySelector(
+                        ".remover-escola"
+                    );
+
+
+                botaoRemover.addEventListener(
+                    "click",
+                    function () {
+
+                        checkbox.checked = false;
+
+                        atualizarSelecionadas();
+
+                    }
+                );
+
+
+                listaSelecionadas.appendChild(item);
+
+            }
+
+        });
+
+
+        /*
+         * Mostra ou esconde a área
+         * de escolas selecionadas.
+         */
+
+        if (quantidade > 0) {
+
+            areaSelecionadas.style.display =
+                "block";
+
+        } else {
+
+            areaSelecionadas.style.display =
+                "none";
+
+        }
+
+    }
+
+
+
+    /* =====================================================
+       PESQUISA
+    ====================================================== */
+
+    pesquisa.addEventListener(
+        "input",
+        function () {
+
+            const termo =
+                pesquisa.value
+                    .toLowerCase()
+                    .trim();
+
+
+            /*
+             * Se não digitou nada,
+             * esconde os resultados.
+             */
+
+            if (termo === "") {
+
+                lista.style.display =
+                    "none";
+
+                mensagemNenhuma.style.display =
+                    "none";
+
+
+                escolas.forEach(
+                    function (escola) {
+
+                        escola.style.display =
+                            "none";
+
+                    }
+                );
+
+                return;
+            }
+
+
+            /*
+             * Mostra a área de resultados.
+             */
+
+            lista.style.display =
+                "block";
+
+
+            let encontrou = false;
+
+
+            escolas.forEach(
+                function (escola) {
+
+                    const nome =
+                        escola.dataset.nome || "";
+
+
+                    if (
+                        nome.includes(termo)
+                    ) {
+
+                        escola.style.display =
+                            "flex";
+
+                        encontrou = true;
+
+                    } else {
+
+                        escola.style.display =
+                            "none";
+
+                    }
+
+                }
+            );
+
+
+            /*
+             * Mostra mensagem caso
+             * nenhuma escola seja encontrada.
+             */
+
+            if (encontrou) {
+
+                mensagemNenhuma.style.display =
+                    "none";
+
+            } else {
+
+                mensagemNenhuma.style.display =
+                    "block";
+
+            }
+
+        }
+    );
+
+
+
+    /* =====================================================
+       QUANDO MARCAR UMA ESCOLA
+    ====================================================== */
+
+    escolas.forEach(
+        function (escola) {
+
+            const checkbox =
+                escola.querySelector(
+                    ".checkbox-escola"
+                );
+
+
+            checkbox.addEventListener(
+                "change",
+                function () {
+
+                    atualizarSelecionadas();
+
+                }
+            );
+
+        }
+    );
+
+    formulario.addEventListener("submit", function (evento) {
+        const possuiEscolaSelecionada = Array.from(escolas).some(function (escola) {
+            return escola.querySelector(".checkbox-escola").checked;
+        });
+
+        if (!possuiEscolaSelecionada) {
+            evento.preventDefault();
+            alert("Selecione ao menos uma escola onde você trabalha.");
+            pesquisa.focus();
+        }
+    });
+
+});
+
+</script>
 </body>
 </html>

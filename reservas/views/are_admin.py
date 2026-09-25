@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse,HttpResponseForbidden
 from datetime import datetime, date, timedelta
 from django.utils import timezone
 import openpyxl
@@ -10,8 +10,11 @@ import pandas as pd
 import re
 from collections import defaultdict
 from django.contrib.auth.models import User
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import ExtractWeekDay
+from ..decorators import admin_escola_required
+from ..utils import obter_escola_ativa
+
 
 
 #helpers
@@ -21,14 +24,29 @@ from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 from ..models import (
-    Reserva, RegistroUso, Equipamento, Sala, Notebook,NotificacaoFichaAusente
+    Reserva, RegistroUso, Equipamento, Sala, Notebook, NotificacaoFichaAusente, HorarioAula
 )
 from ..forms import ReservaFixaForm
 import uuid
 
-@staff_member_required
+
+def _adicionar_numero_horario(reservas, escola):
+    """Inclui em cada reserva o número correspondente na grade da escola."""
+    horarios = {
+        (horario.horario_inicio, horario.horario_fim): horario.numero
+        for horario in HorarioAula.objects.filter(escola=escola)
+    }
+    for reserva in reservas:
+        reserva.numero_horario = horarios.get(
+            (reserva.horario_inicio, reserva.horario_fim)
+        )
+    return reservas
+
+@login_required
+@admin_escola_required
 def exportar_todas_fichas(request):
     reservas = Reserva.objects.filter(
+        escola=obter_escola_ativa(request),
         registrouso__isnull=False
     ).distinct().order_by('data_uso')
 
@@ -68,9 +86,10 @@ def exportar_todas_fichas(request):
 
     return response
 
-@staff_member_required
+@login_required
+@admin_escola_required
 def exportar_ficha_excel(request, reserva_id):
-    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva = get_object_or_404(Reserva, id=reserva_id, escola=obter_escola_ativa(request))
     registros = RegistroUso.objects.filter(
         reserva=reserva
     ).select_related('aluno__sala', 'reserva__professor')
@@ -96,10 +115,10 @@ def exportar_ficha_excel(request, reserva_id):
     return response
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def exportar_reservas_excel(request):
  
-    reservas = Reserva.objects.all().select_related(
+    reservas = Reserva.objects.filter(escola=obter_escola_ativa(request)).select_related(
         'professor', 'equipamento', 'sala'
     ).order_by('data_uso', 'horario_inicio')
  
@@ -185,37 +204,38 @@ def exportar_reservas_excel(request):
     workbook.save(response)
     return response
 
-@staff_member_required
+@login_required
+@admin_escola_required
 def painel_fichas(request):
     data_param = request.GET.get('data')
-    data_sel = None
-    if data_param:
-        try:
-            data_sel = datetime.strptime(data_param, '%Y-%m-%d').date()
-        except ValueError:
-            data_sel = None
+    try:
+        data_sel = datetime.strptime(data_param, '%Y-%m-%d').date() if data_param else date.today()
+    except ValueError:
+        data_sel = date.today()
 
     reservas = Reserva.objects.filter(
+        escola=obter_escola_ativa(request),
         registrouso__isnull=False
     ).select_related(
         'professor', 'equipamento'
     ).prefetch_related(
         'registrouso_set__aluno__sala'
-    ).distinct().order_by('-data_uso')
-
-    if data_sel:
-        reservas = reservas.filter(data_uso=data_sel)
+    ).filter(data_uso=data_sel).distinct().order_by('horario_inicio')
+    reservas = _adicionar_numero_horario(list(reservas), obter_escola_ativa(request))
 
     return render(request, 'painelestudante.html', {
         'reservas': reservas,
-        'data_selecionada': data_param or '',
+        'data_selecionada': data_sel.strftime('%Y-%m-%d'),
+        'data_exibicao': data_sel,
     })
 
 
-@staff_member_required
+@login_required
+@admin_escola_required
 def ficha_detalhe_json(request, reserva_id):
     registros = RegistroUso.objects.filter(
-        reserva_id=reserva_id
+        reserva_id=reserva_id,
+        reserva__escola=obter_escola_ativa(request),
     ).select_related('aluno__sala', 'reserva__professor')
 
     reserva = registros.first().reserva if registros.exists() else None
@@ -227,6 +247,11 @@ def ficha_detalhe_json(request, reserva_id):
         'professor': reserva.professor.get_full_name() or reserva.professor.username,
         'data': reserva.data_uso.strftime('%d/%m/%Y'),
         'horario': f"{reserva.horario_inicio.strftime('%H:%M')} - {reserva.horario_fim.strftime('%H:%M')}",
+        'numero_horario': HorarioAula.objects.filter(
+            escola=obter_escola_ativa(request),
+            horario_inicio=reserva.horario_inicio,
+            horario_fim=reserva.horario_fim,
+        ).values_list('numero', flat=True).first(),
         'sala': reserva.sala.nome,
         'equipamento': reserva.equipamento.nome,
         'registros': [
@@ -244,13 +269,14 @@ def ficha_detalhe_json(request, reserva_id):
 # Notificações de fichas ausentes (chamada via AJAX do frontend admin)
 
 
-@staff_member_required
+@admin_escola_required
 def verificar_fichas_ausentes(request):
     agora = timezone.localtime(timezone.now())
     hoje = agora.date()
     hora_atual = agora.time()
 
     reservas_sem_ficha = Reserva.objects.filter(
+        escola=obter_escola_ativa(request),
         data_uso=hoje,
         horario_fim__lt=hora_atual,
         status='confirmada',
@@ -281,13 +307,14 @@ def verificar_fichas_ausentes(request):
     return JsonResponse({'pendencias': pendencias})
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def notebooks_quebrados(request):
     """Página admin que lista todos os notebooks denunciados como quebrados,
     agrupados por carrinho, com ação para marcá-los como consertados."""
     # Agrupa os notebooks inativos por carrinho
     grupos = defaultdict(list)
     quebrados = Notebook.objects.filter(
+        equipamento__escola=obter_escola_ativa(request),
         ativo=False
     ).select_related('equipamento').order_by('equipamento__nome', 'numero')
 
@@ -303,7 +330,7 @@ def notebooks_quebrados(request):
 
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def reativar_notebook(request):
     """Marca um notebook denunciado como quebrado de volta para 'ativo' (consertado)."""
     if request.method != "POST":
@@ -312,7 +339,7 @@ def reativar_notebook(request):
 
     notebook_id = request.POST.get('notebook_id')
     try:
-        notebook = get_object_or_404(Notebook, id=notebook_id)
+        notebook = get_object_or_404(Notebook, id=notebook_id, equipamento__escola=obter_escola_ativa(request))
         notebook.ativo = True
         notebook.save()
 
@@ -331,7 +358,7 @@ def reativar_notebook(request):
 
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def verificar_carrinho(request):
     """
     Permite que um admin escolha um carrinho e digite os números de notebook
@@ -343,14 +370,14 @@ def verificar_carrinho(request):
       - não reconhecidos (digitados, mas não pertencem a nenhuma faixa cadastrada)
       - duplicados (digitados mais de uma vez)
     """
-    equipamentos = Equipamento.objects.all().order_by('nome')
+    equipamentos = Equipamento.objects.filter(escola=obter_escola_ativa(request)).order_by('nome')
     resultado = None
     carrinho_selecionado = None
 
     if request.method == "POST":
         equipamento_id = request.POST.get('equipamento_id')
         numeros_texto = request.POST.get('numeros', '')
-        carrinho_selecionado = get_object_or_404(Equipamento, id=equipamento_id)
+        carrinho_selecionado = get_object_or_404(Equipamento, id=equipamento_id, escola=obter_escola_ativa(request))
 
         numeros_informados = [int(n) for n in re.findall(r'\d+', numeros_texto)]
 
@@ -407,7 +434,7 @@ def verificar_carrinho(request):
     })
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def atualizar_faixa_numeracao(request):
     """Atualiza numero_inicial/numero_final de um carrinho a partir da página
     de Verificar Carrinhos, e volta para ela (não para o mural)."""
@@ -416,7 +443,7 @@ def atualizar_faixa_numeracao(request):
         numero_inicial = request.POST.get('numero_inicial')
         numero_final = request.POST.get('numero_final')
         try:
-            equip = Equipamento.objects.get(id=equipamento_id)
+            equip = Equipamento.objects.get(id=equipamento_id, escola=obter_escola_ativa(request))
             equip.numero_inicial = int(numero_inicial) if numero_inicial else None
             equip.numero_final = int(numero_final) if numero_final else None
             equip.save()
@@ -428,13 +455,13 @@ def atualizar_faixa_numeracao(request):
 
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def alternar_status_notebook(request):
     if request.method == "POST":
         equipamento_id = request.POST.get('equipamento_id')
         numero = request.POST.get('numero')
         try:
-            equip = Equipamento.objects.get(id=equipamento_id)
+            equip = Equipamento.objects.get(id=equipamento_id, escola=obter_escola_ativa(request))
             numero_int = int(numero)
 
             notebook, created = Notebook.objects.get_or_create(
@@ -461,30 +488,43 @@ def alternar_status_notebook(request):
     return redirect('verificar_carrinho')
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def painel_reservas_dia(request):
-    """Painel de cards das reservas — filtrável por data."""
+    """Painel de reservas filtrável por data, carrinho ou professor."""
     data_param = request.GET.get('data')
+    termo = request.GET.get('q', '').strip()
     try:
         data_sel = datetime.strptime(data_param, '%Y-%m-%d').date() if data_param else date.today()
     except ValueError:
         data_sel = date.today()
 
     reservas = Reserva.objects.filter(
+        escola=obter_escola_ativa(request),
         data_uso=data_sel
     ).select_related('professor', 'equipamento', 'sala').order_by('horario_inicio')
+
+    if termo:
+        reservas = reservas.filter(
+            Q(equipamento__nome__icontains=termo) |
+            Q(professor__username__icontains=termo) |
+            Q(professor__first_name__icontains=termo) |
+            Q(professor__last_name__icontains=termo)
+        )
+    reservas = _adicionar_numero_horario(list(reservas), obter_escola_ativa(request))
 
     return render(request, 'painel_reservas.html', {
         'reservas': reservas,
         'data_atual': data_sel.strftime('%Y-%m-%d'),
         'data_exibicao': data_sel.strftime('%d/%m/%Y'),
+        'termo': termo,
     })
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def pendentes_numeracao(request):
     """Painel admin: reservas por quantidade que ainda não tiveram a numeração preenchida."""
     pendentes = Reserva.objects.filter(
+        escola=obter_escola_ativa(request),
         quantidade__isnull=False,
         status__in=['confirmada', 'pendente'],
         numeracao_preenchida=False,
@@ -495,7 +535,7 @@ def pendentes_numeracao(request):
     })
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def painel_reservas_quantidade(request):
     """Painel de cards com todas as reservas por quantidade (notebooks avulsos) — filtrável por data."""
     data_param = request.GET.get('data')
@@ -505,6 +545,7 @@ def painel_reservas_quantidade(request):
         data_sel = date.today()
 
     reservas = Reserva.objects.filter(
+        escola=obter_escola_ativa(request),
         data_uso=data_sel,
         quantidade__isnull=False,
     ).select_related(
@@ -520,14 +561,24 @@ def painel_reservas_quantidade(request):
     })
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def menu_ajax(request):
+
+    # Superusuário pode acessar o menu administrativo
+    if request.user.is_superuser:
         return render(request, "partials/menu.html")
 
+    # Administrador de uma escola pode acessar o menu
+    if hasattr(request.user, 'perfil_adm') or hasattr(request.user, 'perfil_adm_escola'):
+        return render(request, "partials/menu.html")
+
+    # Professor normal ou professor de múltiplas escolas não pode
+    return HttpResponseForbidden("Acesso não permitido.")
+
 @login_required
-@staff_member_required
+@admin_escola_required
 def aprovar_reserva(request, reserva_id):
-    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva = get_object_or_404(Reserva, id=reserva_id, escola=obter_escola_ativa(request))
     reserva.status = 'confirmada'
     reserva.save()
     messages.success(request, f"Reserva de {reserva.professor.username} aprovada!")
@@ -543,9 +594,9 @@ def aprovar_reserva(request, reserva_id):
     return redirect('mural')
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def recusar_reserva(request, reserva_id):
-    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva = get_object_or_404(Reserva, id=reserva_id, escola=obter_escola_ativa(request))
     reserva.status = 'recusada'
     reserva.save()
     messages.warning(request, f"Reserva de {reserva.professor.username} recusada.")
@@ -560,10 +611,13 @@ def recusar_reserva(request, reserva_id):
     )
     return redirect('mural')
 
-@staff_member_required
+@admin_escola_required
 def reserva_fixas_web(request):
+    escola = obter_escola_ativa(request)
     if request.method == 'POST':
-        form = ReservaFixaForm(request.POST)
+        form = ReservaFixaForm(request.POST, escola=escola)
+        form.fields['equipamento'].queryset = Equipamento.objects.filter(escola=escola)
+        form.fields['sala'].queryset = Sala.objects.filter(escola=escola)
         if form.is_valid():
             d = form.cleaned_data
             grupo = uuid.uuid4()
@@ -573,6 +627,7 @@ def reserva_fixas_web(request):
                 data_atual += timedelta(days=(dia_semana -data_atual.weekday()) % 7)
                 while data_atual <= d['data_fim']:
                     existe = Reserva.objects.filter(
+                        escola=escola,
                         equipamento =d ['equipamento'], data_uso = data_atual,
                         horario_inicio =d ['horario_inicio'] 
                     ).exists()
@@ -580,6 +635,7 @@ def reserva_fixas_web(request):
                         conflitos += 1
                     else:
                         Reserva.objects.create(
+                            escola=escola,
                             professor=d['professor'], equipamento=d['equipamento'],
                             sala= d['sala'], data_uso = data_atual,
                             horario_inicio=d['horario_inicio'], horario_fim=d['horario_fim'],
@@ -591,13 +647,15 @@ def reserva_fixas_web(request):
             messages.success(request, f"{criadas} reservas crisadas. {conflitos} conflitos ignorados (já existiam).")
             return redirect('reservas_fixas_web')
     else:
-        form = ReservaFixaForm()
+        form = ReservaFixaForm(escola=escola)
+        form.fields['equipamento'].queryset = Equipamento.objects.filter(escola=escola)
+        form.fields['sala'].queryset = Sala.objects.filter(escola=escola)
         
     # monta os grupos para exibir na tabela
-    ids = Reserva.objects.filter(grupo_fixo__isnull=False).values_list('grupo_fixo', flat=True).distinct()
+    ids = Reserva.objects.filter(escola=escola, grupo_fixo__isnull=False).values_list('grupo_fixo', flat=True).distinct()
     grupos = []
     for grupo_id in ids:
-        qs = Reserva.objects.filter(grupo_fixo=grupo_id).select_related('professor', 'sala', 'equipamento').order_by('data_uso')
+        qs = Reserva.objects.filter(escola=escola, grupo_fixo=grupo_id).select_related('professor', 'sala', 'equipamento').order_by('data_uso')
         if not qs.exists():
             continue
         primeira, ultima = qs.first(), qs.last()
@@ -613,7 +671,7 @@ def reserva_fixas_web(request):
 
     return render(request, 'reservas_fixas.html', {'form': form, 'grupos': grupos})
 @login_required
-@staff_member_required
+@admin_escola_required
 def lista_reservas_fixas(request):
     ids = Reserva.objects.filter(grupo_fixo__isnull=False).values_list('grupo_fixo', flat=True).distinct()
     grupos = []
@@ -634,16 +692,16 @@ def lista_reservas_fixas(request):
         })
     return render(request, 'reservas_fixas.html', {'grupos': grupos})
 
-@staff_member_required
+@admin_escola_required
 def excluir_reserva_fixa(request, grupo_id):
     if request.method == 'POST':
-        qtd, _ = Reserva.objects.filter(grupo_fixo = grupo_id).delete()
+        qtd, _ = Reserva.objects.filter(escola=obter_escola_ativa(request), grupo_fixo=grupo_id).delete()
         messages.success(request, f"{qtd} reservas excluidas de todos os dias. ")
     return redirect('reserva_fixas_web')
 
 
 @login_required
-@staff_member_required
+@admin_escola_required
 def analise_sistema(request):
     """Painel de análise estatística de fichas, professores e equipamentos."""
     from django.contrib.auth.models import User

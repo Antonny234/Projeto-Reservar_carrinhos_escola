@@ -22,7 +22,7 @@
         <div class="header-right">
             <span>Olá, <strong>{{ user.username }}</strong></span>
             <a href="{% url 'mural' %}" class="btn-voltar-verde">Voltar ao Mural</a>
-            {% if user.is_staff %}
+            {% if usuario_eh_admin %}
                 <span class="badge-admin">ADM</span>
             {% endif %}
         </div>

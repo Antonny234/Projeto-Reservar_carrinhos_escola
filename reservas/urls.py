@@ -4,14 +4,15 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('criar/', views.CriarConta, name='index'),
     path('entrar/', views.Entrar, name='longa'),
+    path('sair/', views.sair, name='sair'),
+    path('superadmin/',views.superadmin_painel,name='superadmin'),
     path('Logar/', views.mural, name='mural'),
     path('exportar-excel/', views.exportar_reservas_excel, name='exportar_excel'),
     path('ajax/mural-filtrado/', views.carregar_mural, name='ajax_mural'),
-    path('carregar-mural-publico/', views.carregar_mural_publico, name='carregar_mural_publico'),
+    # Mural público
+    path('painel/<int:escola_id>/',views.carrinho_principal,name='mural_consulta'),
+    path('carregar-mural-publico/<int:escola_id>/',views.carregar_mural_publico,name='carregar_mural_publico'),
     path('ajax/disponiveis/', views.listar_disponiveis, name='ajax_disponiveis'),
-    #mural publico
-    path('painel/', views.carrinho_principal, name='mural_consulta'),
-    path('carregar-mural/', views.carregar_mural, name='carregar_mural'),
     path('excluir-reserva/<int:reserva_id>/', views.excluir_reserva, name='excluir_reserva'),
     path('atualizar-quantidade/', views.atualizar_quantidade, name='atualizar_quantidade'),
     path('tablet/<int:equipamento_id>/', views.view_tablet, name='tablet_checkin'),
@@ -42,8 +43,6 @@ urlpatterns = [
     path('verificar-carrinho/atualizar-faixa/', views.atualizar_faixa_numeracao, name='atualizar_faixa_numeracao'),
     #painel de reservas
     path('painel-reservas/', views.painel_reservas_dia, name='painel_reservas_dia'),
-    path('fichas/analisar-foto/', views.analisar_foto, name='analisar_foto'),
-    path('camera/', views.camera_contagem, name='camera_contagem'),
     #numeração dos notebooks
     path('ajax/numeros-disponiveis/', views.numeros_disponiveis, name='numeros_disponiveis'),
     path('unico/', views.pagina_unico, name='unico'),
@@ -71,6 +70,10 @@ urlpatterns = [
     path('painel/analise/', views.analise_sistema, name='analise_sistema'),
     
     path('cadastros/', views.cadastros, name='cadastros'),
+    path('cadastros/salas/adicionar/', views.adicionar_sala, name='adicionar_sala'),
+    path('cadastros/alunos/adicionar/', views.adicionar_aluno, name='adicionar_aluno'),
+    path('cadastros/alunos/importar/', views.importar_alunos, name='importar_alunos'),
+    path('cadastros/alunos/importar/confirmar/', views.confirmar_importacao_alunos, name='confirmar_importacao_alunos'),
  
     path('cadastros/equipamento/adicionar/', views.adicionar_equipamento, name='adicionar_equipamento'),
     path('cadastros/equipamento/<int:equipamento_id>/liberacao/<int:liberacao_id>/remover/', views.remover_liberacao, name='remover_liberacao'),
@@ -86,6 +89,7 @@ urlpatterns = [
     path('login/ajax/', views.login_ajax, name='login_ajax'),
     #inventario
     path('inventario/', views.inventario_lista, name='inventario_lista'),
+    path('inventario/configurar-campos/', views.configurar_campos_inventario, name='configurar_campos_inventario'),
     path('inventario/grupo/<int:grupo_id>/', views.grupo_equipamentos, name='grupo_equipamentos'),
     path('inventario/novo/', views.equipamento_novo, name='equipamento_novo'),
     path('inventario/grupo/novo/', views.grupo_novo, name='grupo_novo'),
@@ -95,5 +99,13 @@ urlpatterns = [
     path('inventario/<int:pk>/editar/', views.equipamento_editar, name='equipamento_editar'),
     path('inventario/<int:pk>/excluir/', views.equipamento_excluir, name='equipamento_excluir'),
     path('inventario/<int:pk>/transferir/', views.transferir_equipamento, name='transferir_equipamento'),
+    #troca de escola
+    path('trocar-escola/<int:escola_id>/', views.trocar_escola_ativa, name='trocar_escola'),
+    path('superadmin/escolas/nova/', views.cadastrar_escola, name='cadastrar_escola'),
+    path('superadmin/escolas/<int:escola_id>/', views.gerenciar_escola, name='gerenciar_escola'),
+    path('escola/<int:escola_id>/administradores/novo/', views.adicionar_administrador, name='adicionar_administrador'),
+    path('superadmin/escolas/', views.listar_escolas, name='listar_escolas'),
+    path('superadmin/usuarios/', views.listar_usuarios, name='listar_usuarios'),
+    path('superadmin/administradores/', views.listar_administradores, name='listar_administradores'),
+    path('superadmin/professores/', views.listar_professores, name='listar_professores'),
 ]
-

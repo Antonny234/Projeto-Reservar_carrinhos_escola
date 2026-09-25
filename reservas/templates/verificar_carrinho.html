@@ -10,7 +10,7 @@
 </head>
 <body data-pagina="verificar-carrinho">
 
-{% if user.is_staff %}
+{% if usuario_eh_admin %}
 <body class="tem-sidebar" data-pagina="professor">
     <button class="sidebar-toggle" id="sidebarToggle">☰</button>
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -24,7 +24,7 @@
         <h1>📦 Verificação de Carrinhos</h1>
         <div class="header-right">
             <span>Olá, <strong>{{ user.username }}</strong></span>
-            {% if user.is_staff %}
+            {% if usuario_eh_admin %}
                 <span class="badge-admin">ADM</span>
             {% endif %}
         </div>

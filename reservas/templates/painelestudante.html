@@ -10,7 +10,7 @@
 </head>
 <body data-pagina="painel-fichas">
 
-    {% if user.is_staff %}
+    {% if usuario_eh_admin %}
     <body class="tem-sidebar" data-pagina="professor">
         <button class="sidebar-toggle" id="sidebarToggle">☰</button>
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -21,10 +21,10 @@
     {% endif %}
 
     <div class="header">
-        <h1>Fichas Preenchidas pelos Alunos - GTREP</h1>
+        <h1>Fichas dos Alunos - {{ escola_ativa.nome|default:"Escola" }}</h1>
         <div class="header-right">
             <span>Olá, <strong>{{ user.username }}</strong></span>
-            {% if user.is_staff %}
+            {% if usuario_eh_admin %}
                 <span class="badge-admin">ADM</span>
             {% endif %}
         </div>
@@ -51,7 +51,7 @@
             </div>
             
             <form method="GET" class="filtro-data" id="form-filtro-data">
-                <label for="filtro-data">📅 Filtrar por data:</label>
+                <label for="filtro-data">📅 Data das fichas:</label>
                 <input type="date" name="data" id="filtro-data" value="{{ data_selecionada }}"
                     onchange="document.getElementById('form-filtro-data').submit()">
                 {% if data_selecionada %}
@@ -61,12 +61,13 @@
 
 
                 <div class="painel-admin">
-                    <h3>🗂️ Reservas com Fichas Preenchidas</h3>
+                    <h3>🗂️ Fichas preenchidas — {{ data_exibicao|date:"d/m/Y" }}</h3>
                     {% if reservas %}
                 <table class="tabela-admin">
                     <thead>
                         <tr>
                             <th>Data</th>
+                            <th>Horário</th>
                             <th>Professor</th>
                             <th>Sala</th>
                             <th>Equipamento</th>
@@ -78,6 +79,7 @@
                         {% for r in reservas %}
                         <tr>
                             <td data-label="Data:">{{ r.data_uso|date:"d/m/Y" }}</td>
+                            <td data-label="Horário:">{% if r.numero_horario %}{{ r.numero_horario }}º horário{% else %}{{ r.horario_inicio|time:"H:i" }}{% endif %}</td>
                             <td data-label="Professor:">{{ r.professor.get_full_name|default:r.professor.username }}</td>
                             <td data-label="Sala:">{{ r.sala.nome }}</td>
                             <td data-label="Equipamento:">{{ r.equipamento.nome }}</td>
@@ -152,7 +154,8 @@
                 }
 
                 titulo.textContent = `Ficha - ${data.sala} (${data.equipamento})`;
-                info.textContent = `Professor: ${data.professor} | ${data.data} | ${data.horario}`;
+                const numeroHorario = data.numero_horario ? ` | ${data.numero_horario}º horário` : '';
+                info.textContent = `Professor: ${data.professor} | ${data.data}${numeroHorario} | ${data.horario}`;
 
                 data.registros.forEach((reg, i) => {
                     tbody.innerHTML += `

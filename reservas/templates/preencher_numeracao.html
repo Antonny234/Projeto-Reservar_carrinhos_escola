@@ -10,10 +10,10 @@
 <body data-pagina="numeracao">
 
     <div class="header">
-        <h1>GTREP - Manoel Martins</h1>
+        <h1>GTREP - {{ escola_ativa.nome|default:"Escola" }}</h1>
         <div class="header-right">
             <span>Olá, <strong>{{ user.username }}</strong></span>
-            {% if user.is_staff %}
+            {% if usuario_eh_admin %}
                 <span class="badge-admin">ADM</span>
             {% endif %}
         </div>
