@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -10,6 +11,7 @@ import pandas as pd
 import re
 from collections import defaultdict
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.db.models import Count, Q
 from django.db.models.functions import ExtractWeekDay
 from ..decorators import admin_escola_required
@@ -270,6 +272,7 @@ def ficha_detalhe_json(request, reserva_id):
 
 
 @admin_escola_required
+@require_POST
 def verificar_fichas_ausentes(request):
     agora = timezone.localtime(timezone.now())
     hoje = agora.date()
@@ -300,6 +303,7 @@ def verificar_fichas_ausentes(request):
             f"Sala: {r.sala.nome}\n"
             f"Carrinho: {r.equipamento.nome}\n"
             f"Encerrou às: {r.horario_fim.strftime('%H:%M')}"
+            , escola=r.escola
         )
 
         NotificacaoFichaAusente.objects.create(reserva=r)
@@ -331,6 +335,7 @@ def notebooks_quebrados(request):
 
 @login_required
 @admin_escola_required
+@require_POST
 def reativar_notebook(request):
     """Marca um notebook denunciado como quebrado de volta para 'ativo' (consertado)."""
     if request.method != "POST":
@@ -350,9 +355,11 @@ def reativar_notebook(request):
             f"Carrinho: {notebook.equipamento.nome}\n"
             f"Número: {notebook.numero}\n"
             f"Atualizado por: {request.user.get_full_name() or request.user.username}"
+            , escola=notebook.equipamento.escola
         )
-    except Exception as e:
-        messages.error(request, f"Erro: {e}")
+    except Exception:
+        logger.exception('Erro ao reativar notebook')
+        messages.error(request, 'Não foi possível atualizar o status do notebook.')
 
     return redirect('notebooks_quebrados')
 
@@ -425,7 +432,7 @@ def verificar_carrinho(request):
                 linhas.append(f"Fora de lugar: {itens}")
             if nao_reconhecidos:
                 linhas.append(f"Não reconhecidos: {', '.join(map(str, nao_reconhecidos))}")
-            enviar_telegram("\n".join(linhas))
+            enviar_telegram("\n".join(linhas), escola=carrinho_selecionado.escola)
 
     return render(request, 'verificar_carrinho.html', {
         'equipamentos': equipamentos,
@@ -435,6 +442,7 @@ def verificar_carrinho(request):
 
 @login_required
 @admin_escola_required
+@require_POST
 def atualizar_faixa_numeracao(request):
     """Atualiza numero_inicial/numero_final de um carrinho a partir da página
     de Verificar Carrinhos, e volta para ela (não para o mural)."""
@@ -448,14 +456,16 @@ def atualizar_faixa_numeracao(request):
             equip.numero_final = int(numero_final) if numero_final else None
             equip.save()
             messages.success(request, f"Faixa de numeração de '{equip.nome}' atualizada!")
-        except Exception as e:
-            messages.error(request, f"Erro: {e}")
+        except Exception:
+            logger.exception('Erro ao atualizar faixa de numeração')
+            messages.error(request, 'Não foi possível atualizar a faixa de numeração.')
 
     return redirect('verificar_carrinho')
 
 
 @login_required
 @admin_escola_required
+@require_POST
 def alternar_status_notebook(request):
     if request.method == "POST":
         equipamento_id = request.POST.get('equipamento_id')
@@ -481,9 +491,11 @@ def alternar_status_notebook(request):
                     f"🔧 <b>Notebook marcado como quebrado</b>\n"
                     f"Carrinho: {equip.nome}\n"
                     f"Número: {numero_int}"
+                    , escola=equip.escola
                 )
-        except Exception as e:
-            messages.error(request, f"Erro: {e}")
+        except Exception:
+            logger.exception('Erro ao alternar status do notebook')
+            messages.error(request, 'Não foi possível atualizar o status do notebook.')
 
     return redirect('verificar_carrinho')
 
@@ -577,6 +589,7 @@ def menu_ajax(request):
 
 @login_required
 @admin_escola_required
+@require_POST
 def aprovar_reserva(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, escola=obter_escola_ativa(request))
     reserva.status = 'confirmada'
@@ -590,11 +603,13 @@ def aprovar_reserva(request, reserva_id):
         f"Data: {reserva.data_uso.strftime('%d/%m/%Y')}\n"
         f"Equipamento: {reserva.equipamento.nome}\n"
         f"Aprovado por: {aprovador}"
+        , escola=reserva.escola
     )
     return redirect('mural')
 
 @login_required
 @admin_escola_required
+@require_POST
 def recusar_reserva(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, escola=obter_escola_ativa(request))
     reserva.status = 'recusada'
@@ -608,6 +623,7 @@ def recusar_reserva(request, reserva_id):
         f"Data: {reserva.data_uso.strftime('%d/%m/%Y')}\n"
         f"Equipamento: {reserva.equipamento.nome}\n"
         f"Recusado por: {recusador}"
+        , escola=reserva.escola
     )
     return redirect('mural')
 
@@ -622,29 +638,51 @@ def reserva_fixas_web(request):
             d = form.cleaned_data
             grupo = uuid.uuid4()
             criadas, conflitos = 0, 0
-            for dia_semana in [int(x) for x in d['dias_semana']]:
-                data_atual = d['data_inicio']
-                data_atual += timedelta(days=(dia_semana -data_atual.weekday()) % 7)
-                while data_atual <= d['data_fim']:
-                    existe = Reserva.objects.filter(
-                        escola=escola,
-                        equipamento =d ['equipamento'], data_uso = data_atual,
-                        horario_inicio =d ['horario_inicio'] 
-                    ).exists()
-                    if existe:
-                        conflitos += 1
-                    else:
-                        Reserva.objects.create(
+
+            with transaction.atomic():
+                equipamento = Equipamento.objects.select_for_update().get(
+                    pk=d['equipamento'].pk,
+                    escola=escola,
+                )
+                for dia_semana in [int(x) for x in d['dias_semana']]:
+                    data_atual = d['data_inicio']
+                    data_atual += timedelta(days=(dia_semana - data_atual.weekday()) % 7)
+                    while data_atual <= d['data_fim']:
+                        existe = Reserva.objects.filter(
                             escola=escola,
-                            professor=d['professor'], equipamento=d['equipamento'],
-                            sala= d['sala'], data_uso = data_atual,
-                            horario_inicio=d['horario_inicio'], horario_fim=d['horario_fim'],
-                            status = 'confirmada',
-                            grupo_fixo = grupo,
-                        )
-                        criadas += 1
-                    data_atual += timedelta(days=7)
-            messages.success(request, f"{criadas} reservas crisadas. {conflitos} conflitos ignorados (já existiam).")
+                            equipamento=equipamento,
+                            data_uso=data_atual,
+                            status__in=['confirmada', 'pendente'],
+                            horario_inicio__lt=d['horario_fim'],
+                            horario_fim__gt=d['horario_inicio'],
+                        ).exists()
+                        if existe:
+                            conflitos += 1
+                        else:
+                            Reserva.objects.create(
+                                escola=escola,
+                                professor=d['professor'],
+                                equipamento=equipamento,
+                                sala=d['sala'],
+                                data_uso=data_atual,
+                                horario_inicio=d['horario_inicio'],
+                                horario_fim=d['horario_fim'],
+                                status='confirmada',
+                                grupo_fixo=grupo,
+                            )
+                            criadas += 1
+                        data_atual += timedelta(days=7)
+            messages.success(request, f"{criadas} reservas criadas. {conflitos} conflitos ignorados (já existiam).")
+            if criadas:
+                enviar_telegram(
+                    f"📚 <b>Reservas fixas criadas</b>\n"
+                    f"Professor: {d['professor'].get_full_name() or d['professor'].username}\n"
+                    f"Equipamento: {d['equipamento'].nome}\n"
+                    f"Sala: {d['sala'].nome}\n"
+                    f"Quantidade criada: {criadas}\n"
+                    f"Conflitos ignorados: {conflitos}",
+                    escola=escola,
+                )
             return redirect('reservas_fixas_web')
     else:
         form = ReservaFixaForm(escola=escola)
@@ -673,10 +711,11 @@ def reserva_fixas_web(request):
 @login_required
 @admin_escola_required
 def lista_reservas_fixas(request):
-    ids = Reserva.objects.filter(grupo_fixo__isnull=False).values_list('grupo_fixo', flat=True).distinct()
+    escola = obter_escola_ativa(request)
+    ids = Reserva.objects.filter(escola=escola, grupo_fixo__isnull=False).values_list('grupo_fixo', flat=True).distinct()
     grupos = []
     for grupo_id in ids:
-        qs = Reserva.objects.filter(grupo_fixo=grupo_id).select_related('professor', 'sala', 'equipamento').order_by('data_uso')
+        qs = Reserva.objects.filter(escola=escola, grupo_fixo=grupo_id).select_related('professor', 'sala', 'equipamento').order_by('data_uso')
         if not qs.exists():
             continue
         primeira, ultima = qs.first(), qs.last()
@@ -693,6 +732,7 @@ def lista_reservas_fixas(request):
     return render(request, 'reservas_fixas.html', {'grupos': grupos})
 
 @admin_escola_required
+@require_POST
 def excluir_reserva_fixa(request, grupo_id):
     if request.method == 'POST':
         qtd, _ = Reserva.objects.filter(escola=obter_escola_ativa(request), grupo_fixo=grupo_id).delete()
@@ -708,18 +748,21 @@ def analise_sistema(request):
     from django.db.models import Count
     from django.db.models.functions import ExtractWeekDay
 
-    # 1. Total de reservas e fichas
-    total_reservas = Reserva.objects.count()
-    reservas_confirmadas = Reserva.objects.filter(status='confirmada').count()
-    total_fichas_entregues = RegistroUso.objects.values('reserva').distinct().count()
+    escola = obter_escola_ativa(request)
+
+    # 1. Total de reservas e fichas da escola ativa
+    reservas_escola = Reserva.objects.filter(escola=escola)
+    total_reservas = reservas_escola.count()
+    reservas_confirmadas = reservas_escola.filter(status='confirmada').count()
+    total_fichas_entregues = RegistroUso.objects.filter(reserva__escola=escola).values('reserva').distinct().count()
 
     # 2. Professores com reservas confirmadas e fichas entregues
     professores_stats = []
-    todos_professores = User.objects.filter(reserva__isnull=False).distinct()
+    todos_professores = User.objects.filter(reserva__escola=escola).distinct()
 
     for prof in todos_professores:
-        res_total = Reserva.objects.filter(professor=prof, status='confirmada').count()
-        fichas_entregues = RegistroUso.objects.filter(reserva__professor=prof).values('reserva').distinct().count()
+        res_total = Reserva.objects.filter(escola=escola, professor=prof, status='confirmada').count()
+        fichas_entregues = RegistroUso.objects.filter(reserva__escola=escola, reserva__professor=prof).values('reserva').distinct().count()
         taxa = (fichas_entregues / res_total * 100) if res_total > 0 else 0
         professores_stats.append({
             'nome': prof.get_full_name() or prof.username,
@@ -732,7 +775,7 @@ def analise_sistema(request):
     professores_menos_entregues = sorted(professores_stats, key=lambda x: x['fichas_entregues'])
 
     # 3. Status dos Equipamentos e Notebooks Quebrados
-    equipamentos = Equipamento.objects.all()
+    equipamentos = Equipamento.objects.filter(escola=escola)
     equipamentos_data = []
     for eq in equipamentos:
         total_nb = eq.quantidade_ativa() + Notebook.objects.filter(equipamento=eq, ativo=False).count()
@@ -755,7 +798,7 @@ def analise_sistema(request):
 
     # 4. Total de reservas por dia da semana (visão geral / gráfico)
     reservas_por_dia_semana_raw = (
-        Reserva.objects
+        reservas_escola
         .filter(status='confirmada')
         .annotate(dia_semana=ExtractWeekDay('data_uso'))
         .values('dia_semana')
@@ -773,7 +816,7 @@ def analise_sistema(request):
     # 5. Detalhamento: reservas por Dia da Semana + Horário de Início
     #    (para a coordenação identificar o melhor dia/horário para provas e atividades)
     matriz_bruta = (
-        Reserva.objects
+        reservas_escola
         .filter(status='confirmada')
         .annotate(dia_semana=ExtractWeekDay('data_uso'))
         .values('dia_semana', 'horario_inicio')

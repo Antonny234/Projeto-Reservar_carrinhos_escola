@@ -1,45 +1,49 @@
-from django.conf import settings
-from ..models import PerfilAdm,BloqueioEquipamento
-import requests
+from ..models import PerfilAdm, PerfilAdmEscola, BloqueioEquipamento
 
-# ─── YOLO otimizado para Railway ────────────────────────────────
-# device='cpu'  → Força execução na CPU (Railway não tem GPU)
-#   Se um dia o Railway oferecer GPU, troque para 'cuda:0'.
-# half=True     → Ativa FP16 (half precision), reduzindo uso de RAM ~2x
-#   com pouca perda de precisão na detecção.
 
-def _professor_requer_aprovacao(user):
+def _professor_requer_aprovacao(user, escola=None):
+    """Retorna a regra de aprovação do usuário no contexto da escola."""
     try:
-        return user.perfil_adm.requer_aprovacao
+        perfil = user.perfil_adm
     except (PerfilAdm.DoesNotExist, AttributeError):
-        return False
+        perfil = None
 
-def enviar_telegram(mensagem):
-    token = settings.TELEGRAM_BOT_TOKEN
-    chat_id = settings.TELEGRAM_CHAT_ID
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    if perfil is not None and (escola is None or perfil.escola_id == escola.id):
+        return perfil.requer_aprovacao
+
     try:
-        requests.post(url, data={
-            "chat_id": chat_id,
-            "text": mensagem,
-            "parse_mode": "HTML"
-        }, timeout=5)
-    except requests.RequestException as e:
-        print(f"Erro ao enviar Telegram: {e}")
+        perfil_multi = user.perfil_adm_escola
+    except (PerfilAdmEscola.DoesNotExist, AttributeError):
+        perfil_multi = None
+
+    if perfil_multi is not None and escola is not None:
+        if perfil_multi.escolas.filter(pk=escola.pk).exists():
+            return perfil_multi.requer_aprovacao
+
+    return False
+
+
+def enviar_telegram(mensagem, escola=None):
+    """Compatibilidade para módulos legados; usa o serviço Telegram por escola."""
+    from ..telegram import enviar_telegram as _enviar_telegram
+    return _enviar_telegram(mensagem, escola=escola)
+
 
 def _requer_aprovacao_para_reserva(professor, equipamento):
-    """Combina a regra global (PerfilAdm) com a lista de liberados do próprio equipamento."""
-    if _professor_requer_aprovacao(professor):
+    """Combina a regra global com a lista de professores liberados."""
+    if _professor_requer_aprovacao(professor, escola=equipamento.escola):
         return True
 
-    liberados_ids = set(equipamento.professores_liberados.values_list('professor_id', flat=True))
+    liberados_ids = set(
+        equipamento.professores_liberados.values_list('professor_id', flat=True)
+    )
     if liberados_ids and professor.id not in liberados_ids:
         return True
 
     return False
 
 
-def _equipamentos_bloqueados(data, horario_inicio, horario_fim,escola=None):
+def _equipamentos_bloqueados(data, horario_inicio, horario_fim, escola=None):
     """IDs de equipamentos com bloqueio ativo que colide com o horário informado."""
     qs = BloqueioEquipamento.objects.filter(
         data=data,

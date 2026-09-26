@@ -1,7 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
-import random
+import secrets
 from django.utils import timezone
+from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 
 class Escola(models.Model):
     nome = models.CharField("Nome da Escola", max_length=150, unique=True)
@@ -83,7 +85,7 @@ class CodigoVerificacao(models.Model):
     @classmethod
     def gerar(cls, usuario, tipo):
         cls.objects.filter(usuario=usuario, tipo=tipo, usado=False).update(usado=True)
-        codigo = f"{random.randint(0, 9999):04d}"
+        codigo = f"{secrets.randbelow(10000):04d}"
         return cls.objects.create(
             usuario=usuario,
             codigo=codigo,
@@ -95,7 +97,7 @@ class CodigoVerificacao(models.Model):
         return (not self.usado) and timezone.now() <= self.expira_em
 
     def __str__(self):
-        return f"{self.usuario.username} - {self.get_tipo_display()} - {self.codigo}"
+        return f"{self.usuario.username} - {self.get_tipo_display()}"
 
     class Meta:
         verbose_name = "Código de Verificação"
@@ -110,7 +112,7 @@ class PerfilAdm(models.Model):
         verbose_name="Reservas requerem aprovação de ADM"
     )
     pin_envio = models.CharField(
-        "PIN de envio (4 dígitos)", max_length=4, blank=True, null=True,
+        "PIN de envio", max_length=128, blank=True, null=True,
         help_text="Senha de 4 dígitos para enviar fichas no tablet"
     )
 
@@ -130,7 +132,7 @@ class PerfilAdmEscola(models.Model):
         verbose_name='Escola atualmente selecionada'
     )
     requer_aprovacao = models.BooleanField(default=False, verbose_name="Reservas requerem aprovação de ADM")
-    pin_envio = models.CharField("PIN de envio (4 dígitos)", max_length=4, blank=True, null=True)
+    pin_envio = models.CharField("PIN de envio", max_length=128, blank=True, null=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -149,7 +151,7 @@ class Equipamento(models.Model):
     nome = models.CharField("Nome do Carrinho", max_length=100)
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
     disponivel = models.BooleanField(default=True)
-    quantidade = models.PositiveIntegerField(default=0)
+    quantidade = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0)])
     numero_inicial = models.PositiveIntegerField(
         "Nº inicial do notebook", null=True, blank=True,
         help_text="Primeiro número de notebook que pertence a este carrinho"
@@ -170,14 +172,22 @@ class Equipamento(models.Model):
         return sorted(self.faixa_numeros())
 
     def quantidade_ativa(self):
-        """Retorna a quantidade de notebooks ativos (não marcados como quebrados)."""
+        """Retorna a quantidade disponível, descontando unidades inativas quando houver numeração."""
         if self.numero_inicial is None or self.numero_final is None:
-            return 0
+            return self.quantidade
         total = self.numero_final - self.numero_inicial + 1
         inativos = Notebook.objects.filter(
             equipamento=self, ativo=False
         ).count()
-        return total - inativos
+        return max(total - inativos, 0)
+
+    def clean(self):
+        super().clean()
+        if self.numero_inicial is not None and self.numero_final is not None:
+            if self.numero_final < self.numero_inicial:
+                raise ValidationError({
+                    "numero_final": "O número final deve ser maior ou igual ao número inicial."
+                })
 
     def status_numeros(self):
         """Retorna uma lista de dicts {numero, ativo} para cada número da faixa,
@@ -260,6 +270,12 @@ class Reserva(models.Model):
         """Garante que equipamento e sala pertencem à mesma escola da reserva."""
         from django.core.exceptions import ValidationError
         erros = {}
+        if self.horario_inicio and self.horario_fim and self.horario_fim <= self.horario_inicio:
+            erros["horario_fim"] = "O horário final deve ser posterior ao horário inicial."
+        if self.quantidade is not None and self.quantidade <= 0:
+            erros["quantidade"] = "A quantidade deve ser maior que zero."
+        if self.numero_notebook_unico is not None and self.quantidade is not None:
+            erros["quantidade"] = "Uma reserva não pode usar número individual e quantidade ao mesmo tempo."
         if self.equipamento_id and self.equipamento.escola_id != self.escola_id:
             erros['equipamento'] = "Este equipamento pertence a outra escola."
         if self.sala_id and self.sala.escola_id != self.escola_id:
@@ -269,6 +285,35 @@ class Reserva(models.Model):
 
     def __str__(self):
         return f"{self.professor.username} - {self.equipamento.nome} [{self.status}] ({self.escola.nome})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["escola", "data_uso", "horario_inicio", "horario_fim"]),
+            models.Index(fields=["equipamento", "data_uso", "horario_inicio", "horario_fim", "status"]),
+            models.Index(fields=["professor", "data_uso"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(status="recusada")
+                    | models.Q(horario_fim__gt=models.F("horario_inicio"))
+                ),
+                name="reserva_horario_valido",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(quantidade__isnull=True) | models.Q(quantidade__gt=0),
+                name="reserva_quantidade_positiva",
+            ),
+            models.UniqueConstraint(
+                fields=["escola", "equipamento", "data_uso", "horario_inicio", "horario_fim"],
+                condition=(
+                    models.Q(status__in=["confirmada", "pendente"])
+                    & models.Q(numero_notebook_unico__isnull=True)
+                    & models.Q(quantidade__isnull=True)
+                ),
+                name="unique_carrinho_inteiro_horario_ativo",
+            ),
+        ]
 
 
 class HorarioAula(models.Model):
@@ -457,3 +502,110 @@ class Transferencia(models.Model):
 
     def __str__(self):
         return f"{self.equipamento} | {self.local_origem} → {self.local_destino}"
+
+
+class TransferenciaEscola(models.Model):
+    """Transferência inter-escolar com recebimento explícito e trilha de auditoria."""
+    STATUS = [('pendente', 'Pendente'), ('recebida', 'Recebida'), ('recusada', 'Recusada')]
+    origem = models.ForeignKey(Escola, on_delete=models.PROTECT, related_name='transferencias_enviadas')
+    destino = models.ForeignKey(Escola, on_delete=models.PROTECT, related_name='transferencias_recebidas')
+    status = models.CharField(max_length=12, choices=STATUS, default='pendente')
+    criada_por = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='transferencias_escola_criadas')
+    recebida_por_nome = models.CharField(max_length=200, blank=True)
+    recebida_por = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='transferencias_escola_conferidas')
+    criada_em = models.DateTimeField(auto_now_add=True)
+    recebida_em = models.DateTimeField(null=True, blank=True)
+    observacao = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-criada_em']
+
+
+class ItemTransferenciaEscola(models.Model):
+    transferencia = models.ForeignKey(TransferenciaEscola, on_delete=models.CASCADE, related_name='itens')
+    equipamento = models.ForeignKey(EquipamentoInventario, on_delete=models.PROTECT, related_name='movimentacoes_escola')
+    identificador_tipo = models.CharField(max_length=20)
+    identificador_valor = models.CharField(max_length=100)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['transferencia', 'equipamento'], name='unique_item_transferencia_escola')]
+
+
+class TelegramBotEscola(models.Model):
+    """Configuração de um bot Telegram exclusivo de uma escola."""
+    escola = models.OneToOneField(
+        Escola,
+        on_delete=models.CASCADE,
+        related_name='telegram_bot',
+    )
+    bot_username = models.CharField(max_length=64, blank=True)
+    bot_nome = models.CharField(max_length=128, blank=True)
+    bot_token_cifrado = models.TextField(blank=True)
+    webhook_slug = models.CharField(max_length=96, unique=True, db_index=True)
+    ativo = models.BooleanField(default=True)
+    webhook_configurado = models.BooleanField(default=False)
+    ultima_verificacao = models.DateTimeField(null=True, blank=True)
+    ultimo_erro = models.TextField(blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Bot Telegram da Escola'
+        verbose_name_plural = 'Bots Telegram das Escolas'
+
+    def __str__(self):
+        identificador = f'@{self.bot_username}' if self.bot_username else 'não configurado'
+        return f'{self.escola.nome} — {identificador}'
+
+
+class TelegramDestino(models.Model):
+    """Chat (privado, grupo ou supergrupo) que receberá alertas da escola."""
+    bot = models.ForeignKey(
+        TelegramBotEscola,
+        on_delete=models.CASCADE,
+        related_name='destinos',
+    )
+    chat_id = models.CharField(max_length=64)
+    nome = models.CharField(max_length=200, blank=True)
+    ativo = models.BooleanField(default=True)
+    ultimo_envio = models.DateTimeField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Destino Telegram'
+        verbose_name_plural = 'Destinos Telegram'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['bot', 'chat_id'],
+                name='unique_telegram_destino_bot_chat',
+            )
+        ]
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f'{self.nome or self.chat_id} — {self.bot.escola.nome}'
+
+
+class TelegramPareamento(models.Model):
+    """Código temporário usado para vincular um chat ao bot da escola."""
+    bot = models.ForeignKey(
+        TelegramBotEscola,
+        on_delete=models.CASCADE,
+        related_name='pareamentos',
+    )
+    codigo_hash = models.CharField(max_length=64, db_index=True)
+    expira_em = models.DateTimeField()
+    usado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pareamentos_telegram_criados',
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Pareamento Telegram'
+        verbose_name_plural = 'Pareamentos Telegram'
+        ordering = ['-criado_em']

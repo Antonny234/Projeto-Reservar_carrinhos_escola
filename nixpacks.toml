@@ -1,17 +1,17 @@
 [phases.setup]
-aptPkgs = ["libgl1", "libglib2.0-0", "libsm6", "libxext6", "libxrender1", "libxcb1"]
+aptPkgs = []
 
 [phases.install]
 cmds = [
   "python -m venv --copies /opt/venv",
-  ". /opt/venv/bin/activate && pip install -r requirements.txt",
-  ". /opt/venv/bin/activate && pip install --force-reinstall --no-deps opencv-python-headless==4.10.0.84"
+  ". /opt/venv/bin/activate && pip install --no-cache-dir -r requirements.txt"
 ]
 
 [phases.build]
 cmds = [
+  ". /opt/venv/bin/activate && python manage.py check --deploy",
   ". /opt/venv/bin/activate && python manage.py collectstatic --no-input"
 ]
 
 [start]
-cmd = ". /opt/venv/bin/activate && python manage.py migrate && gunicorn configuracao.wsgi --log-file - --bind 0.0.0.0:$PORT"
+cmd = ". /opt/venv/bin/activate && python manage.py migrate --noinput && gunicorn configuracao.wsgi:application --log-level info --access-logfile - --error-logfile - --bind 0.0.0.0:$PORT"

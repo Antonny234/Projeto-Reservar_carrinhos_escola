@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from ..decorators import superuser_required
 from django.core.exceptions import PermissionDenied
 from ..models import Escola, PerfilAdm, PerfilProfessor, PerfilProfessorEscola, PerfilAdmEscola, User
 from django.db import transaction
@@ -38,17 +39,12 @@ def promover_usuario_a_admin(usuario, escola):
             perfil_multi.delete()
     return True
 
-@login_required
+@superuser_required
 def superadmin_painel(request):
 
     # ============================================================
     # SOMENTE SUPERADMIN
     # ============================================================
-
-    if not request.user.is_superuser:
-        raise PermissionDenied(
-            "Apenas o Superadmin pode acessar este painel."
-        )
 
     # ============================================================
     # DADOS GERAIS DO SISTEMA
@@ -80,13 +76,8 @@ def superadmin_painel(request):
         contexto
     )
 
-@login_required
+@superuser_required
 def cadastrar_escola(request):
-    if not request.user.is_superuser:
-        raise PermissionDenied(
-            "Apenas o Superadmin pode cadastrar escolas."
-        )
-
     if request.method == 'POST':
         escola_form = EscolaForm(request.POST)
         admin_form = AdminEscolaForm(request.POST)
@@ -124,10 +115,7 @@ def cadastrar_escola(request):
             except Exception as erro:
 
                 # ERRO
-                messages.error(
-                    request,
-                    f"❌ Não foi possível criar a escola. Erro: {erro}"
-                )
+                messages.error(request, "Não foi possível criar a escola. Revise os dados e tente novamente.")
 
     else:
         escola_form = EscolaForm()
@@ -144,11 +132,8 @@ def cadastrar_escola(request):
         contexto
     )
 
-@login_required
+@superuser_required
 def gerenciar_escola(request, escola_id):
-    if not request.user.is_superuser:
-        raise PermissionDenied("Apenas o Superadmin pode acessar esta área.")
-
     escola = get_object_or_404(Escola, id=escola_id)
 
     # Formulário de edição dos dados básicos da escola
@@ -258,11 +243,8 @@ def gerenciar_escola(request, escola_id):
     }
     return render(request, 'admin/gerenciar_escola.html', contexto)
 
-@login_required
+@superuser_required
 def adicionar_administrador(request, escola_id):
-    if not request.user.is_superuser:
-        raise PermissionDenied("Apenas o Superadmin pode acessar esta área.")
-
     escola = get_object_or_404(Escola, id=escola_id)
 
     if request.method == 'POST':
@@ -285,7 +267,7 @@ def adicionar_administrador(request, escola_id):
     }
     return render(request, 'admin/adicionar_administrador.html', contexto)
 
-@login_required
+@superuser_required
 def listar_escolas(request):
     if not request.user.is_superuser:
         raise PermissionDenied("Apenas o Superadmin pode acessar este painel.")
@@ -295,7 +277,7 @@ def listar_escolas(request):
     return render(request, 'admin/listar_escolas.html', {'escolas': escolas})
 
 
-@login_required
+@superuser_required
 def listar_usuarios(request):
     if not request.user.is_superuser:
         raise PermissionDenied("Apenas o Superadmin pode acessar este painel.")
@@ -325,7 +307,7 @@ def listar_usuarios(request):
         'escola_selecionada': escola_selecionada,})
 
 
-@login_required
+@superuser_required
 def listar_administradores(request):
     if not request.user.is_superuser:
         raise PermissionDenied("Apenas o Superadmin pode acessar este painel.")
@@ -348,7 +330,7 @@ def listar_administradores(request):
         'escola_selecionada': escola_selecionada,})
 
 
-@login_required
+@superuser_required
 def listar_professores(request):
     if not request.user.is_superuser:
         raise PermissionDenied("Apenas o Superadmin pode acessar este painel.")

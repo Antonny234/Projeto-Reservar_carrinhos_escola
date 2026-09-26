@@ -13,7 +13,7 @@
         <div class="usuario-superadmin">
             <span>{{ request.user.username }}</span>
             <a href="{% url 'superadmin' %}">Voltar ao painel</a>
-            <a href="{% url 'sair' %}">Sair</a>
+            <form method="post" action="{% url \'sair\' %}" class="form-logout">{% csrf_token %}<button type="submit" >Sair</button></form>
         </div>
     </header>
 

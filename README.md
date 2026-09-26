@@ -1,86 +1,81 @@
-<div align="center">
+# Reserva de Carrinhos Escolares
 
-# 🚀 Reserva de Carrinhos Escolares
+Sistema Django para gestão de carrinhos de notebooks/tablets, reservas por horário, controle de inventário, fichas de uso e administração por escola.
 
-Sistema web para consultar a disponibilidade e organizar reservas de carrinhos de notebooks para uso em aulas.
+## Stack
 
-[![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Django](https://img.shields.io/badge/Django-5.x-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
-[![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)](#)
+- Python 3.12+
+- Django 6.1.1
+- PostgreSQL em produção / SQLite para desenvolvimento local
+- WhiteNoise para arquivos estáticos
+- django-select2 para pesquisas nos formulários
+- Pandas + OpenPyXL para importação/exportação
+- Resend para e-mail de confirmação e recuperação de senha
 
-</div>
+Django 6.1.1 é a versão estável indicada atualmente pelo projeto Django e suporta Python 3.12–3.14.
 
-## Sobre o projeto
-
-Em ambientes escolares, pode ser difícil identificar rapidamente quais carrinhos estão disponíveis, em uso ou reservados. Este projeto centraliza essas informações em uma aplicação web, tornando o controle mais organizado e prático para professores e responsáveis.
-
-## Funcionalidades
-
-- Consulta da disponibilidade dos carrinhos;
-- Registro e controle de reservas;
-- Identificação de carrinhos disponíveis, em uso ou reservados;
-- Organização dos equipamentos em um sistema único;
-- Interface web para facilitar a consulta e o gerenciamento.
-
-## Tecnologias
-
-- **Backend:** Python e Django
-- **Frontend:** HTML, CSS e JavaScript
-- **Banco de dados:** integração via Django ORM
-- **Versionamento:** Git e GitHub
-- **Deploy:** configuração preparada para ambiente de hospedagem
-
-## Executando localmente
-
-### Pré-requisitos
-
-- Python 3.10 ou superior;
-- Git;
-- Pip.
-
-### Instalação
+## Instalação local
 
 ```bash
-git clone https://github.com/Antonny234/Projeto-Reservar_carrinhos_escola.git
-cd Projeto-Reservar_carrinhos_escola
-python -m venv venv
-```
+python -m venv .venv
 
-Ative o ambiente virtual:
-
-```bash
 # Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 
 # Linux/macOS
-source venv/bin/activate
-```
+source .venv/bin/activate
 
-Instale as dependências e execute as migrações:
-
-```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+copy .env.example .env  # Windows
+# cp .env.example .env  # Linux/macOS
+# Para desenvolvimento local, use DJANGO_DEBUG=True no .env.
 python manage.py migrate
+python manage.py check
 python manage.py runserver
 ```
 
-Abra no navegador: `http://127.0.0.1:8000/`
+## Variáveis de ambiente
 
-## Aprendizados
+Em produção, `DJANGO_SECRET_KEY`, `DATABASE_URL` e os hosts/origens autorizados devem ser configurados no provedor. Nunca coloque `.env`, backups de banco ou credenciais no Git.
 
-Este projeto foi desenvolvido para praticar a criação de uma aplicação Django completa, organização de aplicações e modelos, desenvolvimento de uma solução para um problema real, versionamento com Git e preparação para deploy.
+## Deploy
 
-## Próximos passos
+O projeto já possui `Procfile`, `railway.json` e `nixpacks.toml`. O processo de build executa `check --deploy` e `collectstatic`; o processo de inicialização aplica migrações antes do Gunicorn.
 
-- [ ] Implementar autenticação de usuários;
-- [ ] Criar níveis de acesso para diferentes perfis;
-- [ ] Adicionar calendário de reservas;
-- [ ] Criar testes automatizados;
-- [ ] Melhorar a interface e a experiência do usuário;
-- [ ] Adicionar documentação visual com capturas de tela.
+## Segurança aplicada
 
-## Autor
+- Superadmin separado da administração por escola.
+- Alterações de estado somente via POST + CSRF.
+- Isolamento de consultas pela escola ativa.
+- PIN do tablet armazenado com hash.
+- Restrições de banco para horários inválidos, quantidade inválida e reserva duplicada de carrinho inteiro.
+- Índices para as consultas de disponibilidade e reservas.
+- Configuração de produção sem segredos hard-coded.
 
-**Antonny Gabriel** — [@Antonny234](https://github.com/Antonny234)
+## Testes
 
-Este projeto faz parte do meu portfólio de estudos em Python e Django.
+```bash
+python manage.py test reservas
+```
+
+Os testes devem ser executados no ambiente com as dependências instaladas e acesso ao banco de teste.
+
+
+## Telegram por escola
+
+Cada escola pode ter seu próprio bot Telegram e vários chats de destino. O token do bot é armazenado cifrado usando `TELEGRAM_ENCRYPTION_KEY`.
+
+1. Gere uma chave Fernet para o ambiente:
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+2. Cadastre `TELEGRAM_ENCRYPTION_KEY` no ambiente da aplicação.
+3. No painel da escola, abra **Notificações Telegram**.
+4. Crie o bot pelo `@BotFather`, cole o token e salve.
+5. Gere o link de conexão e abra-o no Telegram.
+6. Use o botão de teste para conferir o recebimento.
+
+Em produção, o webhook precisa estar publicado em HTTPS. O projeto usa `setWebhook` e `secret_token` para autenticar os callbacks recebidos do Telegram.

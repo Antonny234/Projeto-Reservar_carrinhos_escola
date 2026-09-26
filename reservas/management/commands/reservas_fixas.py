@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+from django.db.models import Q
 from django.contrib.auth.models import User
 
-from reservas.models import Reserva, Sala, Equipamento
+from reservas.models import Reserva, Sala, Equipamento, Escola
 
 
 Reserva_Fixas_Manha = [
@@ -131,8 +133,14 @@ class Command(BaseCommand):
             action="store_true",
             help="sem essa flag, o comando só mostra o que seria criado (modo simulado).",
         )
+        parser.add_argument(
+            "--escola-id",
+            type=int,
+            required=True,
+            help="ID da escola à qual as reservas fixas serão vinculadas.",
+        )
 
-    def buscar_professor(self, username):
+    def buscar_professor(self, username, escola):
         """
         Busca o professor de forma tolerante:
         1) por username (case-insensitive)
@@ -141,7 +149,8 @@ class Command(BaseCommand):
         Levanta User.DoesNotExist se não achar de nenhuma forma, ou avisa se
         achar mais de um (em vez de estourar exception não tratada).
         """
-        qs = User.objects.filter(username__iexact=username)
+        professor_scope = Q(perfil_professor__escola=escola) | Q(perfil_escola__escolas=escola)
+        qs = User.objects.filter(username__iexact=username).filter(professor_scope).distinct()
         if qs.count() == 1:
             return qs.first()
         if qs.count() > 1:
@@ -153,7 +162,11 @@ class Command(BaseCommand):
         partes = username.strip().split()
         if len(partes) >= 2:
             primeiro, resto = partes[0], " ".join(partes[1:])
-            qs2 = User.objects.filter(first_name__iexact=primeiro, last_name__iexact=resto)
+            qs2 = (
+                User.objects.filter(first_name__iexact=primeiro, last_name__iexact=resto)
+                .filter(professor_scope)
+                .distinct()
+            )
             if qs2.count() == 1:
                 return qs2.first()
             if qs2.count() > 1:
@@ -163,12 +176,12 @@ class Command(BaseCommand):
 
         raise User.DoesNotExist(username)
 
-    def buscar_por_nome(self, model, nome):
+    def buscar_por_nome(self, model, nome, escola):
         """
         Busca genérica case-insensitive (iexact) para Equipamento/Sala.
         Retorna (objeto, erro) onde erro é None, 'nao_encontrado' ou 'duplicado'.
         """
-        qs = model.objects.filter(nome__iexact=nome.strip())
+        qs = model.objects.filter(nome__iexact=nome.strip(), escola=escola)
         count = qs.count()
         if count == 1:
             return qs.first(), None
@@ -178,6 +191,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         confirmar = options["confirmar"]
+        try:
+            escola = Escola.objects.get(pk=options["escola_id"])
+        except Escola.DoesNotExist:
+            raise CommandError(f"Escola {options['escola_id']} não encontrada.")
+
         data_inicio_global = datetime.strptime(Data_Inicio, "%Y-%m-%d").date()
         data_fim_global = datetime.strptime(Data_Fim, "%Y-%m-%d").date()
 
@@ -188,7 +206,7 @@ class Command(BaseCommand):
         for item in Reservas_Fixas:
             # --- Professor ---
             try:
-                professor = self.buscar_professor(item["professor_username"])
+                professor = self.buscar_professor(item["professor_username"], escola)
             except User.DoesNotExist:
                 total_erros += 1
                 self.stdout.write(self.style.ERROR(
@@ -202,7 +220,7 @@ class Command(BaseCommand):
                 continue
 
             # --- Equipamento ---
-            obj_equipamento, erro = self.buscar_por_nome(Equipamento, item["equipamento_nome"])
+            obj_equipamento, erro = self.buscar_por_nome(Equipamento, item["equipamento_nome"], escola)
             if erro == "nao_encontrado":
                 total_erros += 1
                 self.stdout.write(self.style.ERROR(
@@ -218,7 +236,7 @@ class Command(BaseCommand):
                 continue
 
             # --- Sala ---
-            sala, erro = self.buscar_por_nome(Sala, item["sala_nome"])
+            sala, erro = self.buscar_por_nome(Sala, item["sala_nome"], escola)
             if erro == "duplicado":
                 total_erros += 1
                 self.stdout.write(self.style.ERROR(
@@ -228,7 +246,7 @@ class Command(BaseCommand):
             if erro == "nao_encontrado":
                 if Criar_Sala_se_nao_existir:
                     if confirmar:
-                        sala = Sala.objects.create(nome=item["sala_nome"])
+                        sala = Sala.objects.create(escola=escola, nome=item["sala_nome"])
                     else:
                         sala = None
                     self.stdout.write(
@@ -252,36 +270,46 @@ class Command(BaseCommand):
             data_atual += timedelta(days=dias_faltando)
 
             while data_atual <= item_fim:
-                existe = Reserva.objects.filter(
-                    equipamento=obj_equipamento,
-                    data_uso=data_atual,
-                    horario_inicio=item["hora_inicio"],
-                ).exists()
-
-                if existe:
-                    total_conflitos += 1
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"CONFLITO: {obj_equipamento} em {data_atual} às {item['hora_inicio']} já reservado."
-                        )
-                    )
-                else:
+                with transaction.atomic():
                     if confirmar:
-                        Reserva.objects.create(
-                            professor=professor,
-                            equipamento=obj_equipamento,
-                            sala=sala,
-                            data_uso=data_atual,
-                            horario_inicio=item["hora_inicio"],
-                            horario_fim=item["hora_fim"],
-                            status="confirmada",
+                        obj_equipamento = Equipamento.objects.select_for_update().get(
+                            pk=obj_equipamento.pk,
+                            escola=escola,
                         )
-                    total_criadas += 1
-                    nome_sala = sala.nome if sala else item["sala_nome"]
-                    self.stdout.write(
-                        f"{'CRIADA' if confirmar else '[simulação]'}: {obj_equipamento} - {nome_sala} - {data_atual} "
-                        f"{item['hora_inicio']} - {item['hora_fim']} ({professor})"
-                    )
+                    existe = Reserva.objects.filter(
+                        escola=escola,
+                        equipamento=obj_equipamento,
+                        data_uso=data_atual,
+                        status__in=["confirmada", "pendente"],
+                        horario_inicio__lt=item["hora_fim"],
+                        horario_fim__gt=item["hora_inicio"],
+                    ).exists()
+
+                    if existe:
+                        total_conflitos += 1
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"CONFLITO: {obj_equipamento} em {data_atual} às {item['hora_inicio']} já reservado."
+                            )
+                        )
+                    else:
+                        if confirmar:
+                            Reserva.objects.create(
+                                escola=escola,
+                                professor=professor,
+                                equipamento=obj_equipamento,
+                                sala=sala,
+                                data_uso=data_atual,
+                                horario_inicio=item["hora_inicio"],
+                                horario_fim=item["hora_fim"],
+                                status="confirmada",
+                            )
+                        total_criadas += 1
+                        nome_sala = sala.nome if sala else item["sala_nome"]
+                        self.stdout.write(
+                            f"{'CRIADA' if confirmar else '[simulação]'}: {obj_equipamento} - {nome_sala} - {data_atual} "
+                            f"{item['hora_inicio']} - {item['hora_fim']} ({professor})"
+                        )
                 data_atual += timedelta(days=7)
 
         # Resumo final - agora FORA do for, roda uma única vez no final de tudo

@@ -2,6 +2,7 @@ from django import forms
 from django_select2 import forms as s2forms
 from .models import Reserva, Sala
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.db.models import Q
 from django.db import transaction
 import uuid
@@ -122,9 +123,21 @@ class HorarioAulaForm(forms.ModelForm):
         return cleaned
 class EquipamentoLiberacaoForm(forms.Form):
     professor = forms.ModelChoiceField(
-        queryset=User.objects.all(),
+        queryset=User.objects.none(),
         widget=ProfessorWidget(attrs={'data-placeholder': 'Buscar professor...'})
     )
+
+    def __init__(self, *args, escola=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if escola is not None:
+            self.fields['professor'].queryset = (
+                User.objects.filter(
+                    Q(perfil_professor__escola=escola)
+                    | Q(perfil_escola__escolas=escola)
+                )
+                .distinct()
+                .order_by('first_name', 'last_name', 'username')
+            )
 
 
 class BloqueioEquipamentoForm(forms.ModelForm):
@@ -396,6 +409,11 @@ class AdminEscolaForm(forms.Form):
                 'password_confirm',
                 'As senhas não coincidem.'
             )
+        elif senha:
+            try:
+                validate_password(senha)
+            except forms.ValidationError as exc:
+                self.add_error('password', exc)
 
         return cleaned
 class ProatsExistentesForm(forms.Form):

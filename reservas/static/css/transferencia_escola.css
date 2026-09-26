@@ -1,0 +1,186 @@
+:root {
+  color-scheme: light;
+  --transfer-ink: #172b3d;
+  --transfer-muted: #68798a;
+  --transfer-line: #dce5ec;
+  --transfer-primary: #1f7299;
+  --transfer-primary-dark: #195c7b;
+  --transfer-bg: #f3f6f9;
+}
+
+.transferencia-page,
+.transferencia-page * {
+  box-sizing: border-box;
+}
+
+.transferencia-page {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--transfer-bg);
+  color: var(--transfer-ink);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
+}
+
+.transferencia-shell {
+  width: min(100% - 40px, 1040px);
+  margin: 0 auto;
+  padding: 34px 0 64px;
+}
+
+.transferencia-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 26px;
+  color: var(--transfer-primary);
+  font-size: 0.94rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.transferencia-voltar:hover { color: var(--transfer-primary-dark); text-decoration: underline; }
+
+.transferencia-header { margin: 0 0 26px; }
+.transferencia-kicker {
+  color: var(--transfer-primary);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+
+.transferencia-header h1 {
+  margin: 7px 0 8px;
+  color: #173651;
+  font-size: clamp(1.8rem, 4vw, 2.45rem);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.transferencia-header p,
+.card-heading p { margin: 0; color: var(--transfer-muted); }
+
+.transferencia-card {
+  overflow: hidden;
+  border: 1px solid var(--transfer-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(22, 48, 69, 0.07);
+}
+
+.card-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 23px 28px;
+  border-bottom: 1px solid #e9eef2;
+}
+
+.passo {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: #eaf4f8;
+  color: var(--transfer-primary);
+  font-weight: 750;
+}
+
+.card-heading h2,
+.itens-heading h2 { margin: 0 0 3px; color: #173651; font-size: 1.18rem; }
+.card-heading p { font-size: 0.91rem; }
+
+.transferencia-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 19px 20px;
+  padding: 25px 28px 23px;
+}
+
+.campo { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
+.campo-destino, .campo-identificadores { grid-column: 1 / -1; }
+.campo label { color: #263d50; font-size: 0.91rem; font-weight: 700; }
+.campo select,
+.campo textarea {
+  width: 100%;
+  border: 1px solid #cbd7e0;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: var(--transfer-ink);
+  font: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.campo select { min-height: 46px; padding: 0 13px; }
+.campo textarea { min-height: 128px; padding: 12px 13px; resize: vertical; }
+.campo select:focus,
+.campo textarea:focus { border-color: var(--transfer-primary); box-shadow: 0 0 0 3px rgba(31, 114, 153, 0.14); }
+.campo textarea::placeholder { color: #92a0ac; }
+.campo small { color: var(--transfer-muted); font-size: 0.81rem; }
+
+.botao-enviar {
+  display: flex;
+  min-height: 48px;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 17px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--transfer-primary);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  transition: background 150ms ease, transform 150ms ease;
+}
+.botao-enviar:hover { transform: translateY(-1px); background: var(--transfer-primary-dark); }
+.botao-enviar:focus-visible { outline: 3px solid rgba(31, 114, 153, 0.35); outline-offset: 3px; }
+.botao-enviar span:last-child { font-size: 1.25rem; }
+.nota-pdf { grid-column: 1 / -1; margin: -12px 0 0; color: var(--transfer-muted); font-size: 0.82rem; }
+
+.transferencia-mensagens { margin: 0 0 18px; }
+.mensagem { margin: 0 0 8px; padding: 12px 15px; border: 1px solid #f0d18b; border-radius: 9px; background: #fff8e7; color: #704e0c; }
+.mensagem.success { border-color: #b9e2cb; background: #effaf3; color: #21613b; }
+.mensagem.error { border-color: #efc1c1; background: #fff1f1; color: #8b2929; }
+
+.itens-section { margin-top: 35px; }
+.itens-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+.itens-heading h2 { margin-top: 5px; font-size: 1.3rem; }
+.contador-itens { padding: 5px 10px; border-radius: 999px; background: #e8eef3; color: #526779; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+.equipamentos-lista { display: grid; gap: 10px; }
+.equipamento-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 17px;
+  border: 1px solid var(--transfer-line);
+  border-radius: 12px;
+  background: #fff;
+}
+.equipamento-icone { display: grid; width: 40px; height: 40px; flex: 0 0 40px; place-items: center; border-radius: 11px; background: #edf4f8; color: var(--transfer-primary); font-size: 1.2rem; }
+.equipamento-dados { display: grid; min-width: 125px; gap: 2px; }
+.equipamento-dados strong { color: #233d52; }
+.equipamento-dados > span { color: var(--transfer-muted); font-size: 0.82rem; }
+.equipamento-identificadores { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-left: auto; }
+.equipamento-identificadores span { display: grid; gap: 1px; color: #344d60; font-size: 0.86rem; overflow-wrap: anywhere; }
+.equipamento-identificadores b { color: var(--transfer-muted); font-size: 0.69rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.05em; }
+.lista-vazia { padding: 20px; border: 1px dashed #cbd7e0; border-radius: 11px; color: var(--transfer-muted); text-align: center; }
+
+@media (max-width: 640px) {
+  .transferencia-shell { width: min(100% - 28px, 1040px); padding-top: 22px; }
+  .transferencia-header { margin-bottom: 20px; }
+  .card-heading { padding: 18px; }
+  .transferencia-form { grid-template-columns: 1fr; gap: 16px; padding: 20px 18px; }
+  .campo-destino, .campo-identificadores, .botao-enviar, .nota-pdf { grid-column: auto; }
+  .itens-heading { align-items: start; }
+  .equipamento-item { align-items: flex-start; flex-wrap: wrap; }
+  .equipamento-identificadores { width: 100%; margin-left: 54px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .campo select, .campo textarea, .botao-enviar { transition: none; }
+}

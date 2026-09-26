@@ -2,10 +2,12 @@
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.views.decorators.http import require_POST
 from django.utils.http import url_has_allowed_host_and_scheme
 from ..models import Escola
 
 @login_required
+@require_POST
 def trocar_escola_ativa(request, escola_id):
     """Permite que o professor troque a escola ativa quando tem 2+ escolas."""
     escola = get_object_or_404(Escola, id=escola_id)

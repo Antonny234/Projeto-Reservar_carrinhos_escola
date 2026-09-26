@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models.functions import Lower
 from django.core.exceptions import ValidationError
+from django.views.decorators.http import require_POST
 
 from ..models import (Aluno, Equipamento, HorarioAula, EquipamentoLiberado, BloqueioEquipamento, Sala)
 from ..forms import EquipamentoForm, HorarioAulaForm, EquipamentoLiberacaoForm, BloqueioEquipamentoForm
@@ -213,7 +214,7 @@ def editar_equipamento(request, equipamento_id):
                 messages.error(request, 'Corrija os erros no formulário de equipamento.')
 
         elif acao == 'liberar_professor':
-            form_liberacao = EquipamentoLiberacaoForm(request.POST)
+            form_liberacao = EquipamentoLiberacaoForm(request.POST, escola=equipamento.escola)
             if form_liberacao.is_valid():
                 professor = form_liberacao.cleaned_data['professor']
                 _, criado = EquipamentoLiberado.objects.get_or_create(equipamento=equipamento, professor=professor)
@@ -241,7 +242,7 @@ def editar_equipamento(request, equipamento_id):
         return redirect('editar_equipamento', equipamento_id=equipamento.id)
 
     form = EquipamentoForm(instance=equipamento)
-    form_liberacao = EquipamentoLiberacaoForm()
+    form_liberacao = EquipamentoLiberacaoForm(escola=equipamento.escola)
     form_bloqueio = BloqueioEquipamentoForm()
 
     liberados = equipamento.professores_liberados.select_related('professor').order_by('professor__username')
@@ -261,6 +262,7 @@ def editar_equipamento(request, equipamento_id):
 
 @login_required
 @admin_escola_required
+@require_POST
 def remover_liberacao(request, equipamento_id, liberacao_id):
     liberacao = get_object_or_404(EquipamentoLiberado, id=liberacao_id, equipamento_id=equipamento_id, equipamento__escola=obter_escola_ativa(request))
     if request.method == 'POST':
@@ -272,6 +274,7 @@ def remover_liberacao(request, equipamento_id, liberacao_id):
 
 @login_required
 @admin_escola_required
+@require_POST
 def remover_bloqueio(request, equipamento_id, bloqueio_id):
     bloqueio = get_object_or_404(BloqueioEquipamento, id=bloqueio_id, equipamento_id=equipamento_id, equipamento__escola=obter_escola_ativa(request))
     if request.method == 'POST':
@@ -281,6 +284,7 @@ def remover_bloqueio(request, equipamento_id, bloqueio_id):
 
 @login_required
 @admin_escola_required
+@require_POST
 def excluir_equipamento(request, equipamento_id):
     equipamento = get_object_or_404(Equipamento, id=equipamento_id, escola=obter_escola_ativa(request))
     if request.method == 'POST':
@@ -328,6 +332,7 @@ def editar_horario(request, horario_id):
 
 @login_required
 @admin_escola_required
+@require_POST
 def excluir_horario(request, horario_id):
     horario = get_object_or_404(HorarioAula, id=horario_id, escola=obter_escola_ativa(request))
     if request.method == 'POST':

@@ -1,13 +1,14 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST,require_GET
+from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_protect
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 
 from datetime import date, datetime, timedelta
+from django.db import transaction
 from django.db.models import Sum, Q
 from ..models import PerfilProfessor, PerfilProfessorEscola, CodigoVerificacao, BloqueioEquipamento
 from ..whatsapp_utils import enviar_codigo_email, EmailError
@@ -18,7 +19,9 @@ from ..models import (
 )
 from ..forms import ReservaForm
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login,logout
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import check_password, make_password
 import pandas as pd
 import re
 from django.urls import reverse
@@ -82,7 +85,8 @@ def _horario_existe(horario_inicio, horario_fim, escola):
     ).exists()
 
 def home(request):
-    return render(request, 'apresentacao.html')
+    escolas = Escola.objects.only('id', 'nome', 'cidade').order_by('nome')
+    return render(request, 'apresentacao.html', {'escolas': escolas})
 
 def CriarConta(request):
     """Cadastro de professor: valida e-mail, cria usuário e permite múltiplas escolas.
@@ -111,6 +115,12 @@ def CriarConta(request):
             messages.error(request, "As senhas não coincidem!")
             return render(request, 'index.html', {'escolas': Escola.objects.all()})
 
+        try:
+            validate_password(senha)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
         if User.objects.filter(username=usuario).exists():
             messages.error(request, "Este nome de usuário já está em uso.")
             return render(request, 'index.html', {'escolas': Escola.objects.all()})
@@ -129,30 +139,27 @@ def CriarConta(request):
             messages.error(request, "Erro ao processar escolas.")
             return render(request, 'index.html', {'escolas': Escola.objects.all()})
 
-        # Criar usuário
-        user = User.objects.create_user(username=usuario, email=email, password=senha)
-        user.is_active = False  # ativa depois de confirmar código
-        user.save()
-
-        # 🔑 LÓGICA: Se selecionou 1 escola, usar PerfilProfessor comum
-        #           Se selecionou 2+, usar PerfilProfessorEscola
-        if len(escola_ids) == 1:
-            escola = escolas.first()
-            PerfilProfessor.objects.create(usuario=user, escola=escola)
-        else:
-            # Múltiplas escolas
-            perfil_multi = PerfilProfessorEscola.objects.create(usuario=user)
-            perfil_multi.escolas.set(escolas)
-            perfil_multi.escola_ativa = escolas.first()  # Define primeira como ativa
-            perfil_multi.save()
-
-        # Enviar código de verificação
-        codigo_obj = CodigoVerificacao.gerar(user, tipo='cadastro')
+        # Criar usuário, perfil e código de forma atômica. Se o e-mail falhar,
+        # não deixamos uma conta parcialmente cadastrada no banco.
         try:
-            enviar_codigo_email(email, codigo_obj.codigo)
-        except EmailError as e:
-            user.delete()
-            messages.error(request, str(e))
+            with transaction.atomic():
+                user = User.objects.create_user(username=usuario, email=email, password=senha)
+                user.is_active = False
+                user.save(update_fields=['is_active'])
+
+                if len(escola_ids) == 1:
+                    escola = escolas.first()
+                    PerfilProfessor.objects.create(usuario=user, escola=escola)
+                else:
+                    perfil_multi = PerfilProfessorEscola.objects.create(usuario=user)
+                    perfil_multi.escolas.set(escolas)
+                    perfil_multi.escola_ativa = escolas.first()
+                    perfil_multi.save(update_fields=['escola_ativa'])
+
+                codigo_obj = CodigoVerificacao.gerar(user, tipo='cadastro')
+                enviar_codigo_email(email, codigo_obj.codigo)
+        except EmailError as exc:
+            messages.error(request, str(exc))
             return render(request, 'index.html', {'escolas': Escola.objects.all()})
 
         request.session['cadastro_pendente_user_id'] = user.id
@@ -165,7 +172,7 @@ def Entrar(request):
     # Login: valida credenciais e redireciona pendências de confirmação de cadastro
     if request.method == "POST":
         usuario_digitado = request.POST.get('usuario').strip()
-        senha_digitada = request.POST.get('senha').strip()
+        senha_digitada = request.POST.get('senha', "")
 
         user_obj = User.objects.filter(username=usuario_digitado).first()
 
@@ -195,6 +202,7 @@ def Entrar(request):
     return render(request, 'longa.html', {'escolas': Escola.objects.order_by('nome')})
 
 @login_required
+@require_POST
 def sair(request):
     logout(request)
     return redirect('longa')
@@ -238,6 +246,7 @@ def confirmar_cadastro(request):
     return render(request, 'confirmar_cadastro.html')
 
 
+@require_POST
 def reenviar_codigo_cadastro(request):
     # Gera e reenvia um novo código de confirmação para cadastro pendente
     user_id = request.session.get('cadastro_pendente_user_id')
@@ -339,7 +348,7 @@ def listar_disponiveis(request):
                 'nome': e.nome,
                 'tipo': e.get_tipo_display(),
                 'quantidade': qtd_disponivel,
-                'tem_numeracao': bool(e.numero_inicial and e.numero_final),
+                'tem_numeracao': e.numero_inicial is not None and e.numero_final is not None,
             })
 
         return JsonResponse({
@@ -352,7 +361,8 @@ def listar_disponiveis(request):
     except PermissionDenied as e:
         return JsonResponse({'erro': str(e)}, status=403)
     except Exception as e:
-        return JsonResponse({'erro': str(e)}, status=500)
+        logger.exception('Erro ao consultar números disponíveis')
+        return JsonResponse({'erro': 'Não foi possível consultar a disponibilidade.'}, status=500)
 # Mural / Reservas
 
 @login_required
@@ -423,11 +433,9 @@ def mural(request):
             escola=escola,
             equipamento=equipamento_reserva,
             data_uso=data_reservae,
-            horario_inicio=horario_inicio_obj,
-            horario_fim=horario_fim_obj,
             status__in=['confirmada', 'pendente'],
-            numero_notebook_unico__isnull=True,
-            quantidade__isnull=True,
+            horario_inicio__lt=horario_fim_obj,
+            horario_fim__gt=horario_inicio_obj,
         ).exists()
 
         if carrinho_inteiro_ocupado:
@@ -465,16 +473,36 @@ def mural(request):
             id=request.POST.get('sala'),
             escola=escola
         )
-        nova_reserva = Reserva.objects.create(
-            escola=escola,
-            professor=professor_reserva,
-            equipamento=equipamento_reserva,
-            sala=sala_obj,
-            horario_inicio=horario_inicio_obj,
-            horario_fim=horario_fim_obj,
-            data_uso=data_reservae,
-            status=status_reserva,
-        )
+        with transaction.atomic():
+            Equipamento.objects.select_for_update().get(
+                pk=equipamento_reserva.pk,
+                escola=escola,
+            )
+            concorrencia = Reserva.objects.filter(
+                escola=escola,
+                equipamento=equipamento_reserva,
+                data_uso=data_reservae,
+                status__in=['confirmada', 'pendente'],
+                horario_inicio__lt=horario_fim_obj,
+                horario_fim__gt=horario_inicio_obj,
+            ).exists()
+            if concorrencia:
+                messages.error(
+                    request,
+                    f"O carrinho '{equipamento_reserva.nome}' acabou de ser reservado para este horário.",
+                )
+                return redirect(f"/Logar/?data={data_reserva_str}")
+
+            nova_reserva = Reserva.objects.create(
+                escola=escola,
+                professor=professor_reserva,
+                equipamento=equipamento_reserva,
+                sala=sala_obj,
+                horario_inicio=horario_inicio_obj,
+                horario_fim=horario_fim_obj,
+                data_uso=data_reservae,
+                status=status_reserva,
+            )
 
         if request.POST.get('aula_seguida') == 'sim':
 
@@ -537,6 +565,21 @@ def mural(request):
         else:
             messages.success(request, "Reserva realizada com sucesso!")
 
+        tipo_notificacao = 'Nova reserva pendente' if status_reserva == 'pendente' else 'Nova reserva confirmada'
+        texto_notificacao = (
+            f"📥 <b>{tipo_notificacao}</b>\n"
+            f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
+            f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
+            f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
+            f"Equipamento: {equipamento_reserva.nome}\n"
+            f"Sala: {sala_obj.nome}"
+        )
+        transaction.on_commit(
+            lambda texto=texto_notificacao, escola_id=escola.id: enviar_telegram(
+                texto, escola=Escola.objects.get(pk=escola_id)
+            )
+        )
+
         return redirect(f"/Logar/?data={data_reserva_str}")
     filtro_reservas = {
         'escola': escola,
@@ -572,11 +615,14 @@ def mural(request):
             'equipamento'
         ).order_by('data_criacao')
 
-    tem_pin = False
-    try:
-        tem_pin = bool(request.user.perfil_adm.pin_envio)
-    except PerfilAdm.DoesNotExist:
-        tem_pin = False
+    tem_pin = bool(PerfilAdm.objects.filter(usuario=request.user, escola=escola).exclude(pin_envio__isnull=True).exclude(pin_envio='').exists())
+    if not tem_pin:
+        tem_pin = bool(
+            PerfilAdmEscola.objects.filter(usuario=request.user, escolas=escola)
+            .exclude(pin_envio__isnull=True)
+            .exclude(pin_envio='')
+            .exists()
+        )
 
     return render(request, 'mural.html', {
         'escola': escola,
@@ -604,6 +650,7 @@ def todos_horarios(escola):
 
 
 @login_required
+@require_POST
 def excluir_reserva(request, reserva_id):
     # Exclui uma reserva (somente o professor dono da Reserva ou um staff pode excluir)
     data_param = request.GET.get('data')
@@ -682,8 +729,9 @@ def numeros_disponiveis(request):
 
         return JsonResponse({'numeros': numeros, 'carrinho_indisponivel': False})
 
-    except Exception as e:
-        return JsonResponse({'erro': str(e)}, status=500)
+    except Exception:
+        logger.exception('Erro ao consultar números disponíveis')
+        return JsonResponse({'erro': 'Não foi possível consultar os números disponíveis.'}, status=500)
 
 @login_required
 def carregar_mural(request):
@@ -862,6 +910,7 @@ def carrinho_principal(request, escola_id=None):
 
 
 @login_required
+@require_POST
 def atualizar_quantidade(request):
     # Permite a um staff atualizar a quantidade total de unidades de um equipamento
     escola = obter_escola_ativa(request)
@@ -892,17 +941,22 @@ def atualizar_quantidade(request):
     return redirect('mural')
 
 
-def importar_de_excel(caminho_arquivo):
-    # Importa alunos e salas em massa a partir de uma planilha Excel
+def importar_de_excel(caminho_arquivo, escola):
+    """Importa alunos e salas vinculando tudo explicitamente à escola."""
     df = pd.read_excel(caminho_arquivo)
-    for index, row in df.iterrows():
-        sala_obj, _ = Sala.objects.get_or_create(nome=row['sala'])
-        Aluno.objects.get_or_create(nome=row['nome'], sala=sala_obj)
+    for _, row in df.iterrows():
+        nome_sala = str(row['sala']).strip()
+        nome_aluno = str(row['nome']).strip()
+        if not nome_sala or not nome_aluno:
+            continue
+        sala_obj, _ = Sala.objects.get_or_create(escola=escola, nome=nome_sala)
+        Aluno.objects.get_or_create(nome=nome_aluno, sala=sala_obj)
 
 
 # PIN de envio para tablet
 
 @login_required
+@require_POST
 def criar_pin(request):
     # Professor cria/atualiza seu PIN de 4 dígitos usado para confirmar o envio da ficha no tablet
     escola = obter_escola_ativa(request)
@@ -919,15 +973,22 @@ def criar_pin(request):
             escola=escola
         ).first()
 
-        if perfil is None:
-            messages.error(
-                request,
-                "Não existe perfil de administrador para esta escola."
-            )
-            return redirect('mural')
-
-        perfil.pin_envio = pin
-        perfil.save()
+        if perfil is not None:
+            perfil.pin_envio = make_password(pin)
+            perfil.save(update_fields=['pin_envio'])
+        else:
+            perfil_multi = PerfilAdmEscola.objects.filter(
+                usuario=request.user,
+                escolas=escola,
+            ).first()
+            if perfil_multi is None:
+                messages.error(
+                    request,
+                    "Não existe perfil de administrador para esta escola."
+                )
+                return redirect('mural')
+            perfil_multi.pin_envio = make_password(pin)
+            perfil_multi.save(update_fields=['pin_envio'])
 
         messages.success(request, "PIN de envio criado com sucesso!")
         return redirect('mural')
@@ -950,7 +1011,7 @@ LIMITES_CARRINHO = {
 }
 
 
-def notificar_erro_telegram(titulo: str, detalhes: str, equipamento_id, agora, extra: str = ""):
+def notificar_erro_telegram(titulo: str, detalhes: str, equipamento_id, agora, extra: str = "", escola=None):
     """Centraliza o envio de alertas de erro para o Telegram."""
     try:
         enviar_telegram(
@@ -959,6 +1020,7 @@ def notificar_erro_telegram(titulo: str, detalhes: str, equipamento_id, agora, e
             f"Horário: {agora.strftime('%d/%m/%Y %H:%M:%S')}\n"
             f"Detalhes: {detalhes}\n"
             f"{extra}"
+            , escola=escola
         )
     except Exception:
         # Se o próprio envio do Telegram falhar, não pode derrubar a view.
@@ -1010,67 +1072,144 @@ def reportar_notebook_quebrado(request):
     try:
         equip = get_object_or_404(Equipamento,id=equipamento_id,escola=escola)
 
-        numeros_marcados = []
-        for num_str in numeros_notebook:
-            num_int = int(num_str)
-            notebook, _ = Notebook.objects.get_or_create(
-                equipamento=equip, numero=num_int, defaults={'ativo': False}
+        faixa = equip.faixa_numeros()
+        if not faixa:
+            return JsonResponse({
+                'sucesso': False,
+                'erro': 'Este carrinho não possui uma faixa de numeração configurada.',
+            }, status=400)
+
+        numeros_int = sorted({int(num) for num in numeros_notebook})
+        fora_da_faixa = [num for num in numeros_int if num not in faixa]
+        if fora_da_faixa:
+            return JsonResponse({
+                'sucesso': False,
+                'erro': f'Número(s) fora da faixa deste carrinho: {fora_da_faixa}.',
+            }, status=400)
+
+        with transaction.atomic():
+            # O lock garante que a baixa do estoque dos notebooks e eventual
+            # pedido de reposição sejam avaliados em uma única transação.
+            equip = Equipamento.objects.select_for_update().get(
+                pk=equip.id,
+                escola=escola,
             )
-            notebook.ativo = False
-            notebook.save()
-            numeros_marcados.append(num_int)
 
-        enviar_telegram(
-            f"🔧 <b>Notebook(s) Quebrado(s)</b>\n"
-            f"Carrinho: {equip.nome}\n"
-            f"Notebook(s): {', '.join(map(str, numeros_marcados))}\n"
-            f"Professor: {request.user.username}"
-        )
-
-        mensagem = f"Notebook(s) {', '.join(map(str, numeros_marcados))} marcado(s) como quebrado(s)."
-
-        if carrinho_avulso_id and qtd_avulso:
-            try:
-                qtd = int(qtd_avulso)
-                if qtd <= 0:
-                    raise ValueError("Quantidade inválida")
-
-                sala = get_object_or_404(Sala,id=request.POST.get('sala_id'),escola=escola)
-                data_uso = datetime.strptime(request.POST.get('data_uso'), '%Y-%m-%d').date()
-                horario_inicio = datetime.strptime(request.POST.get('horario_inicio'), '%H:%M').time()
-                horario_fim = datetime.strptime(request.POST.get('horario_fim'), '%H:%M').time()
-
-                equip_avulso = get_object_or_404(Equipamento,id=carrinho_avulso_id,escola=escola)
-
-                Reserva.objects.create(
-                    escola=escola,
-                    professor=request.user,
-                    equipamento=equip_avulso,
-                    sala=sala,
-                    horario_inicio=horario_inicio,
-                    horario_fim=horario_fim,
-                    data_uso=data_uso,
-                    quantidade=qtd,
-                    status='confirmada',
+            mensagem = f"Notebook(s) {', '.join(map(str, numeros_int))} marcado(s) como quebrado(s)."
+            for num_int in numeros_int:
+                notebook, _ = Notebook.objects.get_or_create(
+                    equipamento=equip, numero=num_int, defaults={'ativo': False}
                 )
+                if notebook.ativo:
+                    notebook.ativo = False
+                    notebook.save(update_fields=['ativo'])
 
-                mensagem += f" Pedido de {qtd} unidade(s) do carrinho '{equip_avulso.nome}' realizado."
-            except (Sala.DoesNotExist, Equipamento.DoesNotExist, ValueError, TypeError) as e:
-                return JsonResponse({
-                    'sucesso': False,
-                    'erro': f"Falha ao criar pedido avulso: {e}",
-                    'notebooks_marcados': numeros_marcados,
-                }, status=400)
+            # Telegram só deve ser enviado depois que a transação efetivamente
+            # confirmar; assim não há alerta de baixa que acabou em rollback.
+            telegram_texto = (
+                f"🔧 <b>Notebook(s) Quebrado(s)</b>\n"
+                f"Carrinho: {equip.nome}\n"
+                f"Notebook(s): {', '.join(map(str, numeros_int))}\n"
+                f"Professor: {request.user.username}"
+            )
+            transaction.on_commit(lambda texto=telegram_texto, escola=escola: enviar_telegram(texto, escola=escola))
+
+            if carrinho_avulso_id and qtd_avulso:
+                try:
+                    qtd = int(qtd_avulso)
+                    if qtd <= 0:
+                        raise ValueError("Quantidade inválida")
+
+                    sala = Sala.objects.get(
+                        id=request.POST.get('sala_id'),
+                        escola=escola,
+                    )
+                    data_uso = datetime.strptime(request.POST.get('data_uso'), '%Y-%m-%d').date()
+                    horario_inicio = datetime.strptime(request.POST.get('horario_inicio'), '%H:%M').time()
+                    horario_fim = datetime.strptime(request.POST.get('horario_fim'), '%H:%M').time()
+                    if horario_fim <= horario_inicio:
+                        raise ValueError("Horário final deve ser posterior ao inicial")
+
+                    equip_avulso = Equipamento.objects.select_for_update().get(
+                        id=carrinho_avulso_id,
+                        escola=escola,
+                    )
+
+                    # Valida disponibilidade real para o pedido de reposição,
+                    # evitando que o endpoint seja uma forma de furar o estoque.
+                    if equip_avulso.pk in _equipamentos_bloqueados(
+                        data_uso, horario_inicio, horario_fim, escola=escola
+                    ):
+                        raise ValueError("O carrinho de reposição está bloqueado neste horário")
+
+                    reservas_base = Reserva.objects.filter(
+                        escola=escola,
+                        equipamento=equip_avulso,
+                        data_uso=data_uso,
+                        status__in=['confirmada', 'pendente'],
+                    ).filter(
+                        horario_inicio__lt=horario_fim,
+                        horario_fim__gt=horario_inicio,
+                    )
+                    carrinho_inteiro_ocupado = reservas_base.filter(
+                        quantidade__isnull=True,
+                        numero_notebook_unico__isnull=True,
+                    ).exists()
+                    if carrinho_inteiro_ocupado:
+                        raise ValueError("O carrinho de reposição já está reservado inteiro neste período")
+
+                    total_reservado = reservas_base.filter(
+                        quantidade__isnull=False
+                    ).aggregate(total=Sum('quantidade'))['total'] or 0
+                    disponivel = equip_avulso.quantidade_ativa() - total_reservado
+                    if qtd > disponivel:
+                        raise ValueError(
+                            f"Há apenas {disponivel} unidade(s) disponível(is) no carrinho de reposição"
+                        )
+
+                    status = (
+                        'pendente'
+                        if _requer_aprovacao_para_reserva(request.user, equip_avulso)
+                        else 'confirmada'
+                    )
+                    Reserva.objects.create(
+                        escola=escola,
+                        professor=request.user,
+                        equipamento=equip_avulso,
+                        sala=sala,
+                        horario_inicio=horario_inicio,
+                        horario_fim=horario_fim,
+                        data_uso=data_uso,
+                        quantidade=qtd,
+                        status=status,
+                    )
+
+                    if status == 'pendente':
+                        mensagem += (
+                            f" Pedido de {qtd} unidade(s) do carrinho '{equip_avulso.nome}' "
+                            "enviado para aprovação."
+                        )
+                    else:
+                        mensagem += (
+                            f" Pedido de {qtd} unidade(s) do carrinho '{equip_avulso.nome}' realizado."
+                        )
+                except (Sala.DoesNotExist, Equipamento.DoesNotExist, ValueError, TypeError):
+                    logger.exception('Falha ao criar pedido avulso para notebook reportado')
+                    return JsonResponse({
+                        'sucesso': False,
+                        'erro': 'Falha ao criar o pedido avulso. Verifique a disponibilidade e os dados informados.',
+                        'notebooks_marcados': numeros_int,
+                    }, status=400)
 
         return JsonResponse({
             'sucesso': True,
             'mensagem': mensagem,
-            'notebooks_marcados': numeros_marcados,
+            'notebooks_marcados': numeros_int,
         })
 
-    except Exception as e:
+    except Exception:
         logger.exception("Erro ao reportar notebook")
-        return JsonResponse({'sucesso': False, 'erro': str(e)}, status=500)
+        return JsonResponse({'sucesso': False, 'erro': 'Não foi possível registrar o problema no equipamento.'}, status=500)
 
 def escolher_carrinho(request):
     """
@@ -1155,6 +1294,7 @@ def view_tablet(request, equipamento_id):
                 str(e),
                 equipamento_id,
                 agora,
+                escola=escola,
             )
             messages.error(
                 request,
@@ -1223,6 +1363,7 @@ def view_tablet(request, equipamento_id):
                 equipamento_id,
                 agora,
                 extra=f"Professor: {reserva.professor.username if reserva else 'desconhecido'}",
+                escola=reserva.escola if reserva else escola,
             )
             messages.error(
                 request,
@@ -1234,16 +1375,25 @@ def view_tablet(request, equipamento_id):
         pin_digitado = request.POST.get('pin_envio', '').strip()
         professor = reserva.professor
 
-        try:
-            pin_correto = professor.perfil_adm.pin_envio
-        except PerfilAdm.DoesNotExist:
-            pin_correto = None
+        pin_correto = (
+            PerfilAdm.objects.filter(
+                usuario=professor,
+                escola=reserva.escola,
+            ).values_list('pin_envio', flat=True).first()
+        )
+        if not pin_correto:
+            pin_correto = (
+                PerfilAdmEscola.objects.filter(
+                    usuario=professor,
+                    escolas=reserva.escola,
+                ).values_list('pin_envio', flat=True).first()
+            )
 
         if not pin_correto:
             messages.error(request, "Professor não possui PIN cadastrado. Crie um PIN no mural primeiro.")
             return render(request, 'tablet_checkin.html', contexto_erro)
 
-        if not pin_digitado or pin_digitado != pin_correto:
+        if not pin_digitado or not check_password(pin_digitado, pin_correto):
             messages.error(request, "PIN inválido! Digite o PIN de 4 dígitos correto.")
             return render(request, 'tablet_checkin.html', contexto_erro)
 
@@ -1350,6 +1500,7 @@ def pagina_unico(request):
 
 
 @login_required
+@transaction.atomic
 def reserva_quantidade(request):
     if request.method != "POST":
         return redirect('unico')
@@ -1418,7 +1569,11 @@ def reserva_quantidade(request):
             return redirect('unico')
 
     try:
-        equip_obj = get_object_or_404(Equipamento,id=equipamento_id,escola=escola)
+        equip_obj = get_object_or_404(
+            Equipamento.objects.select_for_update(),
+            id=equipamento_id,
+            escola=escola,
+        )
     except Equipamento.DoesNotExist:
         messages.error(request, "Equipamento não encontrado!")
         return redirect('unico')
@@ -1448,7 +1603,7 @@ def reserva_quantidade(request):
         quantidade__isnull=False,
     ).aggregate(total=Sum('quantidade'))['total'] or 0
 
-    disponivel = equip_obj.quantidade - total_reservado
+    disponivel = equip_obj.quantidade_ativa() - total_reservado
 
     if quantidade_solicitada > disponivel:
         messages.error(
@@ -1456,7 +1611,7 @@ def reserva_quantidade(request):
             f"Só há {disponivel} unidade(s) disponível(is) de '{equip_obj.nome}' nesse horário!"
         )
         return redirect("unico")
-    tem_numeracao = bool(equip_obj.numero_inicial and equip_obj.numero_final)
+    tem_numeracao = equip_obj.numero_inicial is not None and equip_obj.numero_final is not None
     numeros_escolhidos = []
 
     if tem_numeracao:
@@ -1512,7 +1667,7 @@ def reserva_quantidade(request):
             return redirect('unico')
 
     status_reserva = 'confirmada'
-    if _professor_requer_aprovacao(professor_reserva):
+    if _professor_requer_aprovacao(professor_reserva, escola=escola):
         status_reserva = 'pendente'
 
     nova_reserva = Reserva.objects.create(
@@ -1548,6 +1703,7 @@ def reserva_quantidade(request):
             f"Sala: {sala_obj.nome}\n"
             f"Quantidade: {quantidade_solicitada} unidade(s)"
             + (f"\nNúmeros: {', '.join(map(str, numeros_escolhidos))}" if numeros_escolhidos else "")
+            , escola=escola
         )
     else:
         messages.success(
@@ -1563,6 +1719,7 @@ def reserva_quantidade(request):
             f"Sala: {sala_obj.nome}\n"
             f"Quantidade: {quantidade_solicitada} unidade(s)"
             + (f"\nNúmeros: {', '.join(map(str, numeros_escolhidos))}" if numeros_escolhidos else "")
+            , escola=escola
         )
 
     if tem_numeracao:
@@ -1571,6 +1728,7 @@ def reserva_quantidade(request):
         return redirect('preencher_numeracao_quantidade', reserva_id=nova_reserva.id)
 
 @login_required
+@transaction.atomic
 def preencher_numeracao_quantidade(request, reserva_id):
     # Após reservar por quantidade, professor informa quais números de notebook específicos usará
     escola = obter_escola_ativa(request)
@@ -1585,8 +1743,8 @@ def preencher_numeracao_quantidade(request, reserva_id):
         return redirect('mural')
 
     equip = reserva.equipamento
-
     if request.method == "POST":
+        equip = Equipamento.objects.select_for_update().get(pk=reserva.equipamento_id)
         numeros_raw = [n.strip() for n in request.POST.getlist('numero') if n.strip()]
 
         if len(numeros_raw) != reserva.quantidade:

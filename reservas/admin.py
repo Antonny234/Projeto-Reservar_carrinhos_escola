@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
 from .models import Equipamento, Reserva, Aluno, RegistroUso, PerfilAdm, NotificacaoFichaAusente,Escola
-from .models import GrupoEquipamento, EquipamentoInventario, Transferencia,Sala,PerfilProfessor, CodigoVerificacao, PerfilProfessorEscola
+from .models import GrupoEquipamento, EquipamentoInventario, Transferencia,Sala,PerfilProfessor, CodigoVerificacao, PerfilProfessorEscola, TelegramBotEscola, TelegramDestino, TelegramPareamento
 from django.utils.safestring import mark_safe
 
 
@@ -120,9 +120,10 @@ class PerfilProfessorAdmin(admin.ModelAdmin):
 
 @admin.register(CodigoVerificacao)
 class CodigoVerificacaoAdmin(admin.ModelAdmin):
-    list_display = ('usuario', 'tipo', 'codigo', 'criado_em', 'expira_em', 'usado')
+    list_display = ('usuario', 'tipo', 'criado_em', 'expira_em', 'usado')
     list_filter = ('tipo', 'usado')
     search_fields = ('usuario__username',)
+    exclude = ('codigo',)
 
 @admin.register(GrupoEquipamento)
 class GrupoEquipamentoAdmin(admin.ModelAdmin):
@@ -144,3 +145,31 @@ class EscolaAdmin(admin.ModelAdmin):
     list_display = ('nome',)
     search_fields = ('nome',)
     ordering = ('nome',)
+
+@admin.register(TelegramBotEscola)
+class TelegramBotEscolaAdmin(admin.ModelAdmin):
+    list_display = ('escola', 'bot_identificacao', 'ativo', 'webhook_configurado', 'ultima_verificacao')
+    list_filter = ('ativo', 'webhook_configurado')
+    search_fields = ('escola__nome', 'bot_username')
+    readonly_fields = ('bot_token_cifrado', 'webhook_slug', 'criado_em', 'atualizado_em', 'ultima_verificacao')
+    exclude = ('bot_token_cifrado',)
+
+    @admin.display(description='Bot')
+    def bot_identificacao(self, obj):
+        return f'@{obj.bot_username}' if obj.bot_username else 'Não configurado'
+
+
+@admin.register(TelegramDestino)
+class TelegramDestinoAdmin(admin.ModelAdmin):
+    list_display = ('bot', 'nome', 'chat_id', 'ativo', 'ultimo_envio')
+    list_filter = ('ativo',)
+    search_fields = ('nome', 'chat_id', 'bot__escola__nome')
+    readonly_fields = ('criado_em', 'ultimo_envio')
+
+
+@admin.register(TelegramPareamento)
+class TelegramPareamentoAdmin(admin.ModelAdmin):
+    list_display = ('bot', 'expira_em', 'usado_em', 'criado_por', 'criado_em')
+    list_filter = ('usado_em',)
+    search_fields = ('bot__escola__nome', 'criado_por__username')
+    readonly_fields = ('codigo_hash', 'expira_em', 'usado_em', 'criado_por', 'criado_em')

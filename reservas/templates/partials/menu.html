@@ -38,6 +38,10 @@
             <span class="icone"></span> Cadastro
         </a>
 
+        <a href="{% url 'telegram_painel' %}" class="sidebar-link {% if request.resolver_match.url_name == 'telegram_painel' %}ativo{% endif %}">
+            <span class="icone"></span> Notificações Telegram
+        </a>
+
         <a href="https://www.educacao.sp.gov.br/uresaojoaquimdabarra" class="sidebar-link {% if request.resolver_match.url_name == 'exportar_todas_excel' %}ativo{% endif %}">
             <span class="icone"></span> Abertura de Chamado
         </a>

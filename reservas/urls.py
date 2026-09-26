@@ -99,6 +99,11 @@ urlpatterns = [
     path('inventario/<int:pk>/editar/', views.equipamento_editar, name='equipamento_editar'),
     path('inventario/<int:pk>/excluir/', views.equipamento_excluir, name='equipamento_excluir'),
     path('inventario/<int:pk>/transferir/', views.transferir_equipamento, name='transferir_equipamento'),
+    path('inventario/transferencias-escola/nova/', views.iniciar_transferencia_escola, name='iniciar_transferencia_escola'),
+    path('inventario/transferencias-escola/', views.transferencias_pendentes, name='transferencias_pendentes'),
+    path('inventario/transferencias-escola/<int:pk>/receber/', views.receber_transferencia_escola, name='receber_transferencia_escola'),
+    path('inventario/transferencias-escola/<int:pk>/checklist.csv', views.checklist_transferencia_escola, name='checklist_transferencia_escola'),
+    path('inventario/transferencias-escola/<int:pk>/comprovante.pdf', views.comprovante_transferencia_escola, name='comprovante_transferencia_escola'),
     #troca de escola
     path('trocar-escola/<int:escola_id>/', views.trocar_escola_ativa, name='trocar_escola'),
     path('superadmin/escolas/nova/', views.cadastrar_escola, name='cadastrar_escola'),
@@ -108,4 +113,7 @@ urlpatterns = [
     path('superadmin/usuarios/', views.listar_usuarios, name='listar_usuarios'),
     path('superadmin/administradores/', views.listar_administradores, name='listar_administradores'),
     path('superadmin/professores/', views.listar_professores, name='listar_professores'),
+    # Integração Telegram por escola
+    path('painel/telegram/', views.telegram_painel, name='telegram_painel'),
+    path('telegram/webhook/<str:webhook_slug>/', views.telegram_webhook, name='telegram_webhook'),
 ]

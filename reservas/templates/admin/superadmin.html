@@ -1,209 +1,142 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
-
-<head>
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'css/superadmin.css' %}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="{% static 'css/superadmin.css' %}" />
     <title>PROATI 2026 - Superadmin</title>
-   
-</head>
+  </head>
 
-<body>
-
+  <body>
     <header class="topo-superadmin">
+      <div>
+        <h1>PROATI 2026</h1>
+      </div>
 
-        <div>
-            <h1>PROATI 2026</h1>
-        </div>
+      <div class="usuario-superadmin">
+        <span> {{ request.user.username }} </span>
 
-        <div class="usuario-superadmin">
+        <a href="{% url 'mural' %}"> Voltar ao sistema </a>
 
-            <span>
-                {{ request.user.username }}
-            </span>
-
-            <a href="{% url 'mural' %}">
-                Voltar ao sistema
-            </a>
-
-            <a href="{% url 'sair' %}">
-                Sair
-            </a>
-
-        </div>
-
+        <form method="post" action="{% url 'sair' %}" class="form-logout">
+          {% csrf_token %}<button type="submit">Sair</button>
+        </form>
+      </div>
     </header>
 
-
     <main class="superadmin-container">
+      <section class="cabecalho-pagina">
+        <div>
+          <h2>Visão geral do sistema</h2>
 
-        <section class="cabecalho-pagina">
+          <p>Administração geral das escolas e usuários do PROATI.</p>
+        </div>
+      </section>
 
-            <div>
-                <h2>Visão geral do sistema</h2>
-
-                <p>
-                    Administração geral das escolas e usuários
-                    do PROATI.
-                </p>
-            </div>
-
-        </section>
-
-
-        <!-- =====================================================
+      <!-- =====================================================
              CARDS
         ====================================================== -->
 
-        <section class="cards-resumo">
+      <section class="cards-resumo">
+        <div class="card-resumo">
+          <span class="card-icone">🏫</span>
+          <div>
+            <strong>{{ total_escolas }}</strong>
+            <span>Escolas</span>
+          </div>
+        </div>
 
-            <div class="card-resumo">
+        <div class="card-resumo">
+          <span class="card-icone">👥</span>
+          <div>
+            <strong>{{ total_usuarios }}</strong>
+            <span>Usuários</span>
+          </div>
+        </div>
 
-                    <span class="card-icone">🏫</span>
-                    <div>
-                        <strong>{{ total_escolas }}</strong>
-                        <span>Escolas</span>
-                    </div>
+        <div class="card-resumo">
+          <span class="card-icone">👨‍💼</span>
+          <div>
+            <strong>{{ total_administradores }}</strong>
+            <span>Administradores</span>
+          </div>
+        </div>
 
-            </div>
+        <div class="card-resumo">
+          <span class="card-icone">👨‍🏫</span>
+          <div>
+            <strong>{{ total_professores }}</strong>
+            <span>Professores</span>
+          </div>
+        </div>
+      </section>
 
-
-            <div class="card-resumo">
-
-                    <span class="card-icone">👥</span>
-                    <div>
-                        <strong>{{ total_usuarios }}</strong>
-                        <span>Usuários</span>
-                    </div>
-
-            </div>
-
-
-            <div class="card-resumo">
-
-                    <span class="card-icone">👨‍💼</span>
-                    <div>
-                        <strong>{{ total_administradores }}</strong>
-                        <span>Administradores</span>
-                    </div>
-
-            </div>
-
-
-            <div class="card-resumo">
-
-                    <span class="card-icone">👨‍🏫</span>
-                    <div>
-                        <strong>{{ total_professores }}</strong>
-                        <span>Professores</span>
-                    </div>
-
-                
-            </div>
-
-        </section>
-
-
-        <!-- =====================================================
+      <!-- =====================================================
              ESCOLAS
         ====================================================== -->
 
-        <section class="painel">
+      <section class="painel">
+        <div class="painel-cabecalho">
+          <div>
+            <h2>Escolas cadastradas</h2>
 
-            <div class="painel-cabecalho">
+            <p>Gerencie as escolas participantes do sistema.</p>
+          </div>
 
-                <div>
+          <a href="{% url 'cadastrar_escola' %}" class="btn btn-principal"
+            >+ Cadastrar Escola</a
+          >
+        </div>
 
-                    <h2>Escolas cadastradas</h2>
+        <div class="tabela-wrapper">
+          <table class="tabela-escolas">
+            <thead>
+              <tr>
+                <th>Escola</th>
 
-                    <p>
-                        Gerencie as escolas participantes
-                        do sistema.
-                    </p>
+                <th>Cidade</th>
 
-                </div>
+                <th>Administradores</th>
 
-                <a href="{% url 'cadastrar_escola' %}" class="btn btn-principal">+ Cadastrar Escola</a>
+                <th>Ações</th>
+              </tr>
+            </thead>
 
-            </div>
+            <tbody>
+              {% for escola in escolas %}
 
+              <tr>
+                <td>
+                  <strong> {{ escola.nome }} </strong>
+                </td>
 
-            <div class="tabela-wrapper">
+                <td>{{ escola.cidade|default:"-" }}</td>
 
-                <table class="tabela-escolas">
+                <td>{{ escola.administradores.count }}</td>
 
-                    <thead>
+                <td class="acoes">
+                  <a
+                    href="{% url 'gerenciar_escola' escola.id %}"
+                    class="btn-secundario"
+                    >Gerenciar</a
+                  >
+                </td>
+              </tr>
 
-                        <tr>
+              {% empty %}
 
-                            <th>Escola</th>
+              <tr>
+                <td colspan="4" class="sem-registros">
+                  Nenhuma escola cadastrada.
+                </td>
+              </tr>
 
-                            <th>Cidade</th>
-
-                            <th>Administradores</th>
-
-                            <th>Ações</th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        {% for escola in escolas %}
-
-                        <tr>
-
-                            <td>
-                                <strong>
-                                    {{ escola.nome }}
-                                </strong>
-                            </td>
-
-                            <td>
-                                {{ escola.cidade|default:"-" }}
-                            </td>
-
-                            <td>
-                                {{ escola.administradores.count }}
-                            </td>
-
-                            <td class="acoes">
-
-                               <a href="{% url 'gerenciar_escola' escola.id %}" class="btn-secundario">Gerenciar</a>
-
-                            </td>
-
-                        </tr>
-
-                        {% empty %}
-
-                        <tr>
-
-                            <td
-                                colspan="4"
-                                class="sem-registros"
-                            >
-                                Nenhuma escola cadastrada.
-                            </td>
-
-                        </tr>
-
-                        {% endfor %}
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </section>
-
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
-
-</body>
-
+  </body>
 </html>

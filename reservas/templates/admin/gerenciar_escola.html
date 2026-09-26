@@ -47,6 +47,12 @@
       <h2>{{ escola.nome }}</h2>
       <p class="resumo-escola"><strong>{{ escola.cidade }}</strong> &middot; {{ total_vinculados }} pessoa(s) vinculada(s)</p>
     </div>
+
+    <div class="painel">
+      <h3 class="painel-titulo">Integração Telegram</h3>
+      <p class="painel-descricao">Configure o bot exclusivo desta escola e os chats que receberão alertas.</p>
+      <a href="{% url 'telegram_painel' %}?escola_id={{ escola.id }}" class="btn-novo-administrador">Abrir configuração do Telegram →</a>
+    </div>
  
     {% if messages %}
       <div class="mensagens-sistema">

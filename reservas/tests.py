@@ -6,8 +6,9 @@ Execucao:
 """
 from datetime import date, time, timedelta
 
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
@@ -15,13 +16,14 @@ from django.utils import timezone
 
 from .forms import (
     CadastroLoteEquipamentosForm,
+    AdminEscolaForm,
+    EquipamentoLiberacaoForm,
     EquipamentoInventarioForm,
     campo_nativo_do_inventario,
     dados_para_campos_nativos,
     normalizar_campos_inventario,
 )
 
-from reservas.models import Escola
 from .models import (
     CodigoVerificacao,
     Equipamento,
@@ -30,6 +32,7 @@ from .models import (
     GrupoEquipamento,
     Notebook,
     PerfilAdm,
+    PerfilAdmEscola,
     PerfilProfessor,
     Reserva,
     Sala,
@@ -45,40 +48,6 @@ CAMPOS_INVENTARIO = [
     {'nome': 'N Patrimonio', 'tipo': 'ambos'},
 ]
 
-  # certifique-se de que o modelo Escola está importado
-
-def obter_ou_criar_escola_teste():
-    escola, _ = Escola.objects.get_or_create(
-        nome="Escola Modelo de Teste"
-    )
-    return escola
-
-def criar_professor(user=None, whatsapp="11999999999", escola=None):
-    if escola is None:
-        escola = obter_ou_criar_escola_teste()
-    if user is None:
-        # mantenha a criação do seu user padrão aqui...
-        user = ... 
-    
-    return PerfilProfessor.objects.create(
-        usuario=user,
-        whatsapp=whatsapp,
-        escola=escola  # <-- campo adicionado
-    )
-
-def criar_admin(user=None, pin="1234", requer_aprovacao=False, escola=None):
-    if escola is None:
-        escola = obter_ou_criar_escola_teste()
-    if user is None:
-        # mantenha a criação do seu user admin padrão aqui...
-        user = ...
-
-    return PerfilAdm.objects.create(
-        usuario=user,
-        pin_envio=pin,
-        requer_aprovacao=requer_aprovacao,
-        escola=escola  # <-- campo adicionado
-    )
 class BaseEscolaTestCase(TestCase):
     """Base com duas escolas para validar isolamento de dados."""
 
@@ -369,3 +338,168 @@ class ModelosEIsolamentoTest(BaseEscolaTestCase):
         class Request:
             escola_ativa = self.escola
         self.assertEqual(list(filtrar_reservas(Request())), [reserva])
+
+class HardeningRegressionTest(BaseEscolaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.equipamento = Equipamento.objects.create(
+            escola=self.escola, nome='Carrinho 9', tipo='notebook', quantidade=5,
+            numero_inicial=1, numero_final=5,
+        )
+        self.sala = Sala.objects.create(escola=self.escola, nome='Sala Hardening')
+
+    def _reserva(self, **kwargs):
+        defaults = {
+            'escola': self.escola,
+            'professor': self.professor,
+            'equipamento': self.equipamento,
+            'sala': self.sala,
+            'data_uso': date.today() + timedelta(days=1),
+            'horario_inicio': time(8, 0),
+            'horario_fim': time(9, 0),
+            'status': 'confirmada',
+        }
+        defaults.update(kwargs)
+        return Reserva.objects.create(**defaults)
+
+    def test_pin_de_administrador_e_armazenado_com_hash(self):
+        self.login_admin()
+        resposta = self.client.post(reverse('criar_pin'), {'pin': '1234'})
+        self.assertEqual(resposta.status_code, 302)
+        perfil = PerfilAdm.objects.get(usuario=self.admin, escola=self.escola)
+        self.assertNotEqual(perfil.pin_envio, '1234')
+        self.assertTrue(check_password('1234', perfil.pin_envio))
+
+    def test_get_nao_pode_aprovar_ou_recusar_reserva(self):
+        self.login_admin()
+        reserva = self._reserva(status='pendente')
+        self.assertEqual(
+            self.client.get(reverse('aprovar_reserva', args=[reserva.pk])).status_code,
+            405,
+        )
+        self.assertEqual(
+            self.client.get(reverse('recusar_reserva', args=[reserva.pk])).status_code,
+            405,
+        )
+
+    def test_superadmin_exige_superusuario(self):
+        self.client.force_login(self.professor)
+        self.assertEqual(self.client.get(reverse('superadmin')).status_code, 403)
+
+    def test_reserva_integral_nao_pode_ser_duplicada_no_mesmo_slot(self):
+        self._reserva()
+        with self.assertRaises(IntegrityError):
+            self._reserva()
+
+    def test_horario_invalido_de_reserva_ativa_e_rejeitado_pelo_banco(self):
+        with self.assertRaises(IntegrityError):
+            self._reserva(horario_inicio=time(10, 0), horario_fim=time(9, 0))
+
+
+    def test_quantidade_ativa_usa_quantidade_sem_faixa_numerada(self):
+        equipamento = Equipamento.objects.create(
+            escola=self.escola, nome='Carrinho Tablets', tipo='tablet', quantidade=12
+        )
+        self.assertEqual(equipamento.quantidade_ativa(), 12)
+
+    def test_formulario_de_liberacao_nao_oferece_professor_de_outra_escola(self):
+        professor_outra = User.objects.create_user('prof_outra', password='Senha@12345')
+        PerfilProfessor.objects.create(usuario=professor_outra, escola=self.outra_escola)
+        form = EquipamentoLiberacaoForm(escola=self.escola)
+        self.assertIn(self.professor, list(form.fields['professor'].queryset))
+        self.assertNotIn(professor_outra, list(form.fields['professor'].queryset))
+
+    def test_formulario_de_admin_aplica_validadores_de_senha(self):
+        form = AdminEscolaForm({
+            'username': 'admin_novo',
+            'email': 'admin@example.com',
+            'password': '1234567890',
+            'password_confirm': '1234567890',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('password', form.errors)
+
+    def test_admin_multiescola_nao_pode_acessar_escola_nao_vinculada(self):
+        admin_multi = User.objects.create_user('admin_multi', password='Senha@12345')
+        PerfilAdmEscola.objects.create(usuario=admin_multi, escola_ativa=self.escola)
+        perfil = admin_multi.perfil_adm_escola
+        perfil.escolas.add(self.escola)
+        self.client.force_login(admin_multi)
+
+        # Simula uma escola ativa adulterada no request para validar a checagem
+        # do decorator independentemente do middleware.
+        from django.test import RequestFactory
+        from django.http import HttpResponse
+        from reservas.decorators import admin_escola_required
+
+        rf = RequestFactory()
+
+        @admin_escola_required
+        def view(request):
+            return HttpResponse('ok')
+
+        request = rf.get('/')
+        request.user = admin_multi
+        request.escola_ativa = self.outra_escola
+        with self.assertRaises(PermissionDenied):
+            view(request)
+
+
+class TelegramIntegracaoTest(BaseEscolaTestCase):
+    def setUp(self):
+        super().setUp()
+        from cryptography.fernet import Fernet
+        from django.test import override_settings
+        self.telegram_key = Fernet.generate_key().decode()
+        self.override_settings = override_settings(TELEGRAM_ENCRYPTION_KEY=self.telegram_key)
+        self.override_settings.enable()
+
+    def tearDown(self):
+        self.override_settings.disable()
+        super().tearDown()
+
+    def test_painel_telegram_exige_admin_da_escola(self):
+        self.client.force_login(self.professor)
+        resposta = self.client.get(reverse('telegram_painel'))
+        self.assertEqual(resposta.status_code, 403)
+
+    def test_token_e_cifrado_e_pode_ser_recuperado(self):
+        from .models import TelegramBotEscola
+        from .telegram import cifrar_token, decifrar_token
+
+        bot = TelegramBotEscola.objects.create(
+            escola=self.escola,
+            bot_username='gtrep_escola_bot',
+            webhook_slug='slug-teste-telegram',
+            bot_token_cifrado=cifrar_token('123456:token-secreto'),
+        )
+        self.assertNotIn('123456:token-secreto', bot.bot_token_cifrado)
+        self.assertEqual(decifrar_token(bot), '123456:token-secreto')
+
+    def test_pareamento_guarda_somente_hash_do_codigo(self):
+        from .models import TelegramBotEscola, TelegramPareamento
+        from .telegram import gerar_pareamento
+        import hashlib
+
+        self.login_admin()
+        bot = TelegramBotEscola.objects.create(
+            escola=self.escola,
+            bot_username='gtrep_escola_bot',
+            webhook_slug='slug-pareamento',
+            bot_token_cifrado='placeholder',
+        )
+        codigo, link = gerar_pareamento(bot, self.admin)
+        pareamento = TelegramPareamento.objects.get(bot=bot)
+
+        self.assertEqual(pareamento.codigo_hash, hashlib.sha256(codigo.encode()).hexdigest())
+        self.assertNotIn(codigo, pareamento.codigo_hash)
+        self.assertIn(codigo, link)
+
+
+class LandingPageTest(TestCase):
+    def test_home_exibe_escolas_para_consulta_publica(self):
+        escola = Escola.objects.create(nome='Escola Central', cidade='Franca')
+        resposta = self.client.get(reverse('home'))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, escola.nome)
+        self.assertContains(resposta, 'Consultar mural público')

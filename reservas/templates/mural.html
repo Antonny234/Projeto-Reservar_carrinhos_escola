@@ -79,8 +79,14 @@
                                     <span class="pendente-det">{{ r.equipamento.nome }} · Sala {{ r.sala }} · {{ r.data_uso|date:"d/m/Y" }} · {{ r.horario_inicio|time:"H:i" }}–{{ r.horario_fim|time:"H:i" }}</span>
                                 </div>
                                 <div class="pendente-acoes">
-                                    <a href="{% url 'aprovar_reserva' r.id %}" class="btn-aprovar">Aprovar</a>
-                                    <a href="{% url 'recusar_reserva' r.id %}" class="btn-recusar">Recusar</a>
+                                    <form method="post" action="{% url 'aprovar_reserva' r.id %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-aprovar">Aprovar</button>
+                                    </form>
+                                    <form method="post" action="{% url 'recusar_reserva' r.id %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-recusar">Recusar</button>
+                                    </form>
                                 </div>
                             </div>
                             {% endfor %}
