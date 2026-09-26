@@ -57,7 +57,7 @@ def hash_existing_pins(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [("reservas", "0011_fix_perfiladm_escola")]
+    dependencies = [("reservas", "0012_add_escola_missing_columns")]
 
     operations = [
         migrations.AlterField(

@@ -5,7 +5,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('reservas', '0013_telegram'),
+        ('reservas', '0014_telegram'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

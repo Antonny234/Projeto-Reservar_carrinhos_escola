@@ -5,7 +5,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('reservas', '0012_hardening'),
+        ('reservas', '0013_hardening'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
