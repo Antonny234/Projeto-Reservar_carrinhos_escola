@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/superadmin.css' %}">
+    <title>PROATI 2026 - Administradores</title>
+</head>
+<body>
+    <header class="topo-superadmin">
+        <div><h1>PROATI 2026</h1></div>
+        <div class="usuario-superadmin">
+            <span>{{ request.user.username }}</span>
+            <a href="{% url 'superadmin' %}">Voltar ao painel</a>
+            <form method="post" action="{% url \'sair\' %}" class="form-logout">{% csrf_token %}<button type="submit" >Sair</button></form>
+        </div>
+    </header>
+
+    <main class="superadmin-container">
+        <section class="cabecalho-pagina">
+            <div>
+                <h2>Administradores</h2>
+                <p>Todos os administradores e suas escolas.</p>
+            </div>
+        </section>
+        <section class="filtro-escolas">
+            <a href="?" class="pill-escola {% if not escola_selecionada %}pill-ativa{% endif %}">
+                Todas as escolas
+            </a>
+            {% for escola in escolas %}
+            <a href="?escola={{ escola.id }}" class="pill-escola {% if escola_selecionada.id == escola.id %}pill-ativa{% endif %}">
+                {{ escola.nome }}
+            </a>
+            {% endfor %}
+        </section>
+
+        <section class="painel">
+            <div class="painel-cabecalho">
+                <div><h2>{{ administradores.count }} administrador(es)</h2></div>
+            </div>
+
+            <div class="tabela-wrapper">
+                <table class="tabela-escolas">
+                    <thead>
+                        <tr>
+                            <th>Administrador</th>
+                            <th>E-mail</th>
+                            <th>Escola</th>
+                            <th>Requer aprovação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for adm in administradores %}
+                        <tr>
+                            <td><strong>{{ adm.usuario.username }}</strong></td>
+                            <td>{{ adm.usuario.email|default:"-" }}</td>
+                            <td>{{ adm.escola.nome }}</td>
+                            <td>{% if adm.requer_aprovacao %}Sim{% else %}Não{% endif %}</td>
+                            <td class="acoes">
+                                <a href="{% url 'gerenciar_escola' adm.escola.id %}" class="btn-secundario">Ver escola</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="sem-registros">Nenhum administrador cadastrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

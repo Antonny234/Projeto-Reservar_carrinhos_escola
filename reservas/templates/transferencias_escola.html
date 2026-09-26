@@ -1,0 +1,40 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transferências entre escolas</title>
+  <link rel="stylesheet" href="{% static 'css/transferencias_escola.css' %}">
+</head>
+<body class="transferencias-page">
+  <main class="transferencias-shell">
+    <a class="transferencias-voltar" href="{% url 'inventario_lista' %}">← Voltar ao inventário</a>
+    <header class="transferencias-header">
+      <div><span class="transferencias-kicker">GESTÃO DE INVENTÁRIO</span><h1>Transferências entre escolas</h1><p>Acompanhe os equipamentos enviados e confira os recebimentos pendentes.</p></div>
+      <a class="nova-transferencia" href="{% url 'iniciar_transferencia_escola' %}"><span aria-hidden="true">＋</span> Nova transferência</a>
+    </header>
+
+    {% if messages %}<div class="transferencias-mensagens" aria-live="polite">{% for message in messages %}<p class="mensagem {{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+
+    <section class="transferencias-section">
+      <div class="section-heading"><div><span class="section-icon pendente" aria-hidden="true">↓</span><div><h2>Recebimentos pendentes</h2><p>Confira os itens antes de incorporá-los ao inventário.</p></div></div><span class="section-count">{{ recebidas|length }}</span></div>
+      {% if recebidas %}<div class="transferencias-lista">
+        {% for t in recebidas %}<article class="transferencia-card pendente-card">
+          <div class="transferencia-card-top"><div><span class="card-label">ENVIADA POR</span><h3>{{ t.origem.nome }}</h3></div><span class="status-pill pendente">Pendente de conferência</span></div>
+          <p class="data-transferencia">Recebida para conferência em {{ t.criada_em|date:'d/m/Y H:i' }}</p>
+          <div class="itens-transferencia"><h4>Itens <span>{{ t.itens.all|length }}</span></h4><ul>{% for item in t.itens.all %}<li><span><b>{{ item.identificador_tipo|title }}</b> {{ item.identificador_valor }}</span><span>{{ item.equipamento.tipo }}</span></li>{% endfor %}</ul></div>
+          <div class="card-acoes"><a class="botao-secundario" href="{% url 'checklist_transferencia_escola' t.pk %}">Baixar checklist CSV</a><form method="post" action="{% url 'receber_transferencia_escola' t.pk %}">{% csrf_token %}<label for="nome-{{ t.pk }}">Nome completo de quem conferiu</label><div class="confirmar-linha"><input id="nome-{{ t.pk }}" name="nome_completo" placeholder="Ex.: Maria da Silva" required minlength="5" autocomplete="name"><button class="botao-confirmar" type="submit">Confirmar recebimento</button></div></form></div>
+        </article>{% endfor %}
+      </div>{% else %}<div class="estado-vazio"><span aria-hidden="true">✓</span><div><h3>Nenhum recebimento pendente</h3><p>Quando uma escola enviar equipamentos para cá, eles aparecerão nesta lista.</p></div></div>{% endif %}
+    </section>
+
+    <section class="transferencias-section enviadas-section">
+      <div class="section-heading"><div><span class="section-icon enviada" aria-hidden="true">↑</span><div><h2>Transferências enviadas</h2><p>Consulte o andamento e os comprovantes dos envios.</p></div></div><span class="section-count">{{ enviadas|length }}</span></div>
+      {% if enviadas %}<div class="transferencias-lista">
+        {% for t in enviadas %}<article class="envio-row"><div class="envio-destino"><span class="card-label">DESTINO</span><strong>{{ t.destino.nome }}</strong><small>{{ t.criada_em|date:'d/m/Y H:i' }} · {{ t.itens.all|length }} item{{ t.itens.all|length|pluralize }}</small></div><span class="status-pill {{ t.status }}">{{ t.get_status_display }}</span><a class="botao-secundario" href="{% url 'comprovante_transferencia_escola' t.pk %}">Baixar comprovante PDF</a></article>{% endfor %}
+      </div>{% else %}<div class="estado-vazio compacto"><span aria-hidden="true">↗</span><div><h3>Nenhuma transferência enviada</h3><p>Os envios que você iniciar serão listados aqui.</p></div></div>{% endif %}
+    </section>
+  </main>
+</body>
+</html>

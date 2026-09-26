@@ -1,0 +1,1029 @@
+        .superadmin-page,
+        .superadmin-page *,
+        .superadmin-page *::before,
+        .superadmin-page *::after {
+            box-sizing: border-box;
+        }
+
+
+        /* ============================================================
+        PÁGINA
+        ============================================================ */
+
+        body {
+            margin: 0;
+            padding: 0;
+
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+            background-color: #f0f2f5;
+            color: #333;
+
+            overflow-x: hidden;
+            max-width: 100%;
+
+            min-height: 100vh;
+
+            display: block;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+
+        /* ============================================================
+        TOPO DO SUPERADMIN
+        ============================================================ */
+
+        .topo-superadmin {
+            width: 100%;
+
+            min-height: 82px;
+
+            background: #1B3A5C;
+            color: white;
+
+            border-bottom: 1px solid #ddd;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 0 35px;
+
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+        }
+
+
+        /* ============================================================
+        LOGO / TÍTULO
+        ============================================================ */
+
+        .superadmin-identidade {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 2px;
+        }
+
+        .superadmin-identidade h1 {
+            margin: 0;
+
+            font-size: 25px;
+
+            font-weight: 700;
+
+            color: #1B3A5C;
+        }
+
+        .superadmin-identidade span {
+            font-size: 13px;
+
+            color: #777;
+        }
+
+
+        /* ============================================================
+        USUÁRIO
+        ============================================================ */
+
+        .usuario-superadmin {
+            display: flex;
+
+            align-items: center;
+
+            gap: 15px;
+
+            color: white;
+        }
+
+        .usuario-superadmin .nome-usuario {
+            font-size: 14px;
+
+            font-weight: 600;
+
+            color: #333;
+
+            color: white;
+        }
+
+
+        /* ============================================================
+        LINKS DO TOPO
+        ============================================================ */
+
+        .usuario-superadmin a {
+            text-decoration: none;
+
+            font-size: 14px;
+
+            font-weight: 600;
+
+            color: white;
+
+            padding: 8px 12px;
+
+            border-radius: 6px;
+
+            transition: background .2s;
+        }
+
+        .usuario-superadmin a:hover {
+            background: #28a745;
+        }
+
+
+        /* ============================================================
+        CONTAINER PRINCIPAL
+        ============================================================ */
+
+        .superadmin-container {
+            width: 94%;
+
+            max-width: 1500px;
+
+            margin: 35px auto 50px;
+        }
+
+
+        /* ============================================================
+        CABEÇALHO DA PÁGINA
+        ============================================================ */
+
+        .cabecalho-pagina {
+            margin-bottom: 25px;
+        }
+
+        .cabecalho-pagina h2 {
+            margin: 0 0 6px;
+
+            font-size: 28px;
+
+            color: #1B3A5C;
+        }
+
+        .cabecalho-pagina p {
+            margin: 0;
+
+            font-size: 14px;
+
+            color: #777;
+        }
+
+        /* ============================================================
+        SEÇÕES DO PAINEL (dados / administradores / professores)
+        Reaproveita .painel, só ajustando o espaçamento entre seções
+        ============================================================ */
+        
+        .painel + .painel {
+            margin-top: 25px;
+        }
+        
+        .painel-titulo {
+            margin: 0 0 4px;
+        
+            font-size: 18px;
+            font-weight: 700;
+        
+            color: #1B3A5C;
+            
+        }
+        
+        .painel-descricao {
+            margin: 0 0 20px;
+        
+            font-size: 13px;
+        
+            color: #777;
+        }
+
+        .filtro-escolas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .funcao-view {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .funcao-edit {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pill-escola {
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #fff;
+            border: 1px solid #d0d7e2;
+            color: #1e3a5f;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .pill-escola:hover {
+            background: #1e3a5f;
+            color: white;
+        }
+        .pill-ativa {
+            background: #1e3a5f;
+            color: #fff;
+            border-color: #1e3a5f;
+        }
+        
+        
+        /* ============================================================
+        FORMULÁRIO — DADOS DA ESCOLA
+        ============================================================ */
+        
+        .formulario-grade {
+            display: grid;
+        
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        
+            gap: 18px;
+        
+            margin-bottom: 20px;
+        }
+        
+        .campo-grupo {
+            display: flex;
+        
+            flex-direction: column;
+        
+            gap: 6px;
+        }
+        
+        .campo-grupo label {
+            font-size: 13px;
+            font-weight: 700;
+        
+            color: #333;
+        }
+        
+        .campo-grupo input[type="text"],
+        .campo-grupo input[type="email"],
+        .campo-grupo input[type="password"],
+        .campo-grupo select {
+            width: 100%;
+        
+            padding: 10px 12px;
+        
+            border: 1px solid #d5dce4;
+            border-radius: 7px;
+        
+            font-family: inherit;
+            font-size: 14px;
+        
+            background: #fff;
+            color: #333;
+        
+            transition: border-color .2s, box-shadow .2s;
+        }
+        
+        .campo-grupo input:focus,
+        .campo-grupo select:focus {
+            outline: none;
+        
+            border-color: #1B3A5C;
+            box-shadow: 0 0 0 3px rgba(27, 58, 92, .12);
+        }
+        
+        
+        /* ============================================================
+        LINHA DE NOVO USUÁRIO (cadastro de novos PROATs)
+        ============================================================ */
+        
+        .linha-novo-usuario {
+            background: #f8f9fb;
+        
+            border: 1px solid #eceff3;
+            border-radius: 8px;
+        
+            padding: 16px;
+        
+            margin-bottom: 14px;
+        }
+        
+        .linha-novo-usuario .formulario-grade {
+            margin-bottom: 0;
+        
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        
+        @media (max-width: 900px) {
+            .linha-novo-usuario .formulario-grade,
+            .formulario-grade {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        
+        /* ============================================================
+        TABELA DE VÍNCULOS (administradores / professores)
+        Reaproveita .tabela-escolas
+        ============================================================ */
+        
+        .tabela-escolas td .sem-info {
+            color: #aaa;
+            font-style: italic;
+        }
+        
+        
+        /* ============================================================
+        BADGES — escolas vinculadas a um professor multi-escola
+        ============================================================ */
+        
+        .badge-vinculo {
+            display: inline-block;
+        
+            padding: 4px 10px;
+        
+            margin: 2px 3px 2px 0;
+        
+            border-radius: 20px;
+        
+            background: #eef3f8;
+            border: 1px solid #d5dce4;
+        
+            font-size: 12px;
+            font-weight: 600;
+        
+            color: #1B3A5C;
+        }
+
+        /* ============================================================
+        BOTÃO PERIGO (remover / desvincular)
+        ============================================================ */
+        
+        .btn-perigo {
+            border: 1px solid #f0c1c1;
+        
+            background: #fff0f0;
+        
+            color: #a12626;
+        
+            padding: 7px 12px;
+        
+            border-radius: 6px;
+        
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+        
+            cursor: pointer;
+        
+            transition: background .2s, border-color .2s;
+        }
+        
+        .btn-perigo:hover {
+            background: #fde0e0;
+            border-color: #e3a3a3;
+        }
+        
+        
+        /* ============================================================
+        RODAPÉ DE AÇÕES DO FORMULÁRIO
+        ============================================================ */
+        
+        .acoes-formulario {
+            display: flex;
+        
+            gap: 10px;
+        
+            margin-top: 5px;
+        }
+        
+        /* ============================================================
+        CARDS DE RESUMO
+        ============================================================ */
+
+        .cards-resumo {
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+
+            gap: 20px;
+
+            margin-bottom: 30px;
+        }
+
+
+        /* ============================================================
+        CARD
+        ============================================================ */
+
+        .card-resumo {
+            background: #ffffff;
+
+            border-radius: 10px;
+
+            padding: 22px;
+
+            min-height: 120px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 18px;
+
+            border: 1px solid #e5e5e5;
+
+            box-shadow:
+                0 3px 10px rgba(0, 0, 0, .06);
+
+            transition:
+                transform .2s,
+                box-shadow .2s;
+        }
+
+        .card-resumo:hover {
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 5px 16px rgba(0, 0, 0, .10);
+        }
+
+
+        /* ============================================================
+        ÍCONE DO CARD
+        ============================================================ */
+
+        .card-icone {
+            width: 55px;
+
+            height: 55px;
+
+            border-radius: 10px;
+
+            background: #eef3f8;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 27px;
+
+            flex-shrink: 0;
+        }
+
+
+        /* ============================================================
+        NÚMERO DO CARD
+        ============================================================ */
+
+        .superadmin-card-info strong {
+            display: block;
+
+            font-size: 28px;
+
+            line-height: 1;
+
+            color: #1B3A5C;
+
+            margin-bottom: 7px;
+        }
+
+        .superadmin-card-info span {
+            display: block;
+
+            font-size: 13px;
+
+            color: #777;
+        }
+
+
+        /* ============================================================
+        PAINEL
+        ============================================================ */
+
+        .painel {
+            background: #ffffff;
+
+            border-radius: 10px;
+
+            border: 1px solid #e5e5e5;
+
+            box-shadow: 0 3px 10px rgba(0, 0, 0, .06);
+
+            padding: 25px;
+
+            margin: 30px;
+        }
+
+
+        /* ============================================================
+        CABEÇALHO DO PAINEL
+        ============================================================ */
+
+        .painel-cabecalho {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 20px;
+
+            margin-bottom: 20px;
+        }
+
+        .painel-cabecalho h2 {
+            margin: 0 0 5px;
+
+            font-size: 20px;
+
+            color: #1B3A5C;
+        }
+
+        .painel-cabecalho p {
+            margin: 0;
+
+            font-size: 13px;
+
+            color: #777;
+        }
+
+
+        /* ============================================================
+        BOTÃO PRINCIPAL
+        ============================================================ */
+
+        .btn-principal {
+            border: none;
+
+            background: #1B3A5C;
+
+            color: #ffffff;
+
+            text-decoration: none;
+
+            padding: 10px 17px;
+
+            border-radius: 7px;
+
+            font-family: inherit;
+
+            font-size: 14px;
+
+            font-weight: 600;
+
+            cursor: pointer;
+
+            transition:
+                background .2s,
+                transform .1s;
+        }
+
+        .btn-principal:hover {
+            background: #16304f;
+        }
+
+        .btn-principal:active {
+            transform: scale(.98);
+        }
+
+
+        /* ============================================================
+        TABELA
+        ============================================================ */
+
+        .tabela-wrapper {
+            width: 100%;
+
+            overflow-x: auto;
+        }
+
+        .tabela-escolas {
+            width: 100%;
+
+            border-collapse: collapse;
+        }
+
+        .tabela-escolas th,
+        .tabela-escolas td {
+            padding: 14px 15px;
+
+            border-bottom: 1px solid #e8e8e8;
+
+            text-align: left;
+
+            font-size: 14px;
+        }
+
+        .tabela-escolas th {
+            background: #f5f7fa;
+
+            color: #1B3A5C;
+
+            font-size: 13px;
+
+            font-weight: 700;
+        }
+
+        .tabela-escolas tbody tr {
+            transition: background .15s;
+        }
+
+        .tabela-escolas tbody tr:hover {
+            background: #fafbfd;
+        }
+
+
+        /* ============================================================
+        NOME DA ESCOLA
+        ============================================================ */
+
+        .superadmin-escola-nome {
+            font-weight: 600;
+
+            color: #1B3A5C;
+        }
+
+
+        /* ============================================================
+        COLUNA DE AÇÕES
+        ============================================================ */
+
+        .acoes {
+            text-align: center !important;
+
+            white-space: nowrap;
+        }
+
+
+        /* ============================================================
+        BOTÃO SECUNDÁRIO
+        ============================================================ */
+
+        .btn-secundario {
+            border: 1px solid #d5dce4;
+
+            background: #ffffff;
+
+            color: #1B3A5C;
+
+            text-decoration: none;
+
+            padding: 8px 13px;
+
+            border-radius: 6px;
+
+            font-family: inherit;
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+            cursor: pointer;
+
+            transition:
+                background .2s,
+                border-color .2s;
+        }
+
+        .btn-secundario:hover {
+            background: #eef3f8;
+
+            border-color: #b8c6d6;
+        }
+
+        /* ============================================================
+        BOTÃO NOVO ADMINISTRADOR
+        ============================================================ */
+        .btn-novo-administrador {
+            border: none;
+            background: #1B3A5C;
+            color: #ffffff;
+            text-decoration: none;
+            
+            left: 100px;
+            
+            width: auto;
+            flex-shrink: 0;
+            
+            padding: 10px 17px;
+            border-radius: 7px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s, transform .1s;
+        }
+
+        /* ============================================================
+        NENHUMA ESCOLA
+        ============================================================ */
+
+        .sem-registros {
+            text-align: center !important;
+
+            padding: 35px !important;
+
+            color: #888;
+
+            font-style: italic;
+        }
+
+        /* =========================================================
+        MENSAGENS DO SISTEMA
+        ========================================================= */
+
+        .mensagens-sistema {
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+
+        .mensagem {
+            display: flex;
+            align-items: center;
+
+            width: 100%;
+            box-sizing: border-box;
+
+            padding: 15px 18px;
+            margin-bottom: 12px;
+
+            border-radius: 10px;
+
+            font-size: 15px;
+            font-weight: 600;
+
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+            animation: aparecerMensagem 0.3s ease;
+        }
+
+
+        .mensagem-icone {
+            width: 32px;
+            height: 32px;
+
+            min-width: 32px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin-right: 12px;
+
+            border-radius: 50%;
+
+            background: rgba(255, 255, 255, 0.75);
+
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+
+        .mensagem-texto {
+            flex: 1;
+            line-height: 1.5;
+        }
+
+
+        .mensagem-fechar {
+            width: 32px;
+            height: 32px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin-left: 10px;
+
+            border: none;
+            border-radius: 6px;
+
+            background: transparent;
+
+            color: inherit;
+
+            font-size: 24px;
+            line-height: 1;
+
+            cursor: pointer;
+
+            opacity: 0.65;
+        }
+
+
+        .mensagem-fechar:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+
+        /* =========================================================
+        SUCESSO
+        ========================================================= */
+
+        .mensagem-success {
+            background: #e9f8ef;
+
+            color: #176b3a;
+
+            border: 1px solid #a9dfbf;
+        }
+
+
+        .mensagem-success .mensagem-icone {
+            background: #c9efd8;
+        }
+
+
+        /* =========================================================
+        ERRO
+        ========================================================= */
+
+        .mensagem-error {
+            background: #fdecec;
+
+            color: #a12626;
+
+            border: 1px solid #efb0b0;
+        }
+
+
+        .mensagem-error .mensagem-icone {
+            background: #f8cccc;
+        }
+
+
+        /* =========================================================
+        AVISO
+        ========================================================= */
+
+        .mensagem-warning {
+            background: #fff7df;
+
+            color: #856404;
+
+            border: 1px solid #eed58a;
+        }
+
+
+        .mensagem-warning .mensagem-icone {
+            background: #f7e7aa;
+        }
+
+
+        /* =========================================================
+        INFORMAÇÃO
+        ========================================================= */
+
+        .mensagem-info {
+            background: #eaf4ff;
+
+            color: #185a8d;
+
+            border: 1px solid #acd3f2;
+        }
+
+
+        .mensagem-info .mensagem-icone {
+            background: #cce5f8;
+        }
+
+
+        /* =========================================================
+        ERRO INDIVIDUAL DOS CAMPOS
+        ========================================================= */
+
+        .erro-formulario {
+            margin-top: 6px;
+
+            padding: 7px 10px;
+
+            border-radius: 6px;
+
+            background: #fff0f0;
+
+            color: #b3261e;
+
+            border: 1px solid #f0c1c1;
+
+            font-size: 13px;
+
+            font-weight: 600;
+        }
+
+
+        /* =========================================================
+        ERROS GERAIS DO FORMULÁRIO
+        ========================================================= */
+
+        .erros-gerais-formulario {
+            margin-top: 18px;
+        }
+
+
+        /* =========================================================
+        ANIMAÇÃO
+        ========================================================= */
+
+        @keyframes aparecerMensagem {
+
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+        }
+
+        /* ============================================================
+        RESPONSIVIDADE
+        ============================================================ */
+
+        @media (max-width: 1000px) {
+
+            .superadmin-cards {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+        }
+
+
+        /* ============================================================
+        TABLET / CELULAR
+        ============================================================ */
+
+        @media (max-width: 700px) {
+
+            .superadmin-topo {
+                padding: 18px 20px;
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 15px;
+            }
+
+            .superadmin-usuario {
+                width: 100%;
+
+                flex-wrap: wrap;
+            }
+
+            .superadmin-container {
+                width: 94%;
+
+                margin-top: 25px;
+            }
+
+            .superadmin-painel {
+                padding: 18px;
+            }
+
+            .superadmin-painel-header {
+                flex-direction: column;
+
+                align-items: flex-start;
+            }
+
+        }
+
+
+        /* ============================================================
+        CELULAR
+        ============================================================ */
+
+        @media (max-width: 500px) {
+
+            .superadmin-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .superadmin-identidade h1 {
+                font-size: 22px;
+            }
+
+            .superadmin-cabecalho h2 {
+                font-size: 23px;
+            }
+
+            .superadmin-tabela th,
+            .superadmin-tabela td {
+                padding: 11px;
+
+                font-size: 13px;
+            }
+
+        }

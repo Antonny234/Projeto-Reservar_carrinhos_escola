@@ -1,0 +1,302 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/superadmin.css' %}"
+    >
+
+    <title>PROATI 2026 - Gerenciar Dados das Escola</title>
+
+</head>
+
+<header class="topo-superadmin">
+
+        <div>
+            <h1>PROATI 2026</h1>
+        </div>
+
+        <div class="usuario-superadmin">
+
+            <span>
+                {{ request.user.username }}
+            </span>
+
+            <a href="{% url 'superadmin' %}">
+                Voltar ao painel
+            </a>
+        </div>
+</header>
+
+{% block content %}
+<div class="superadmin-page">
+  <div class="superadmin-container">
+ 
+    <div class="cabecalho-pagina">
+      <h2>{{ escola.nome }}</h2>
+      <p class="resumo-escola"><strong>{{ escola.cidade }}</strong> &middot; {{ total_vinculados }} pessoa(s) vinculada(s)</p>
+    </div>
+
+    <div class="painel">
+      <h3 class="painel-titulo">Integração Telegram</h3>
+      <p class="painel-descricao">Configure o bot exclusivo desta escola e os chats que receberão alertas.</p>
+      <a href="{% url 'telegram_painel' %}?escola_id={{ escola.id }}" class="btn-novo-administrador">Abrir configuração do Telegram →</a>
+    </div>
+ 
+    {% if messages %}
+      <div class="mensagens-sistema">
+        {% for msg in messages %}
+          <div class="mensagem mensagem-success">
+            <div class="mensagem-icone">✓</div>
+            <div class="mensagem-texto">{{ msg }}</div>
+            <button type="button" class="mensagem-fechar" onclick="this.parentElement.remove()">&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <datalist id="cargos-sugeridos">
+      {% for cargo_sugerido in cargos_sugeridos %}<option value="{{ cargo_sugerido }}">{% endfor %}
+    </datalist>
+ 
+    <!-- DADOS DA ESCOLA -->
+    <div class="painel">
+      <h3 class="painel-titulo">Dados da escola</h3>
+      <p class="painel-descricao">Altere o nome ou a cidade da escola.</p>
+ 
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="editar_escola">
+ 
+        <div class="formulario-grade">
+          <div class="campo-grupo">
+            <label for="{{ escola_form.nome.id_for_label }}">Nome da escola</label>
+            {{ escola_form.nome }}
+            {% for erro in escola_form.nome.errors %}
+              <div class="erro-formulario">{{ erro }}</div>
+            {% endfor %}
+          </div>
+ 
+          <div class="campo-grupo">
+            <label for="{{ escola_form.cidade.id_for_label }}">Cidade</label>
+            {{ escola_form.cidade }}
+            {% for erro in escola_form.cidade.errors %}
+              <div class="erro-formulario">{{ erro }}</div>
+            {% endfor %}
+          </div>
+        </div>
+ 
+        <div class="acoes-formulario">
+          <button type="submit" class="btn-principal">Salvar alterações</button>
+        </div>
+      </form>
+    </div>
+ 
+    <!-- ADMINISTRADORES -->
+    <div class="painel">
+      <h3 class="painel-titulo">Administradores ({{ administradores.count }})</h3>
+      <p class="painel-descricao">Usuários responsáveis pela configuração desta escola.</p>
+      <div class="flex items-center justify-between">
+        <div>
+            <a href="{% url 'adicionar_administrador' escola.id %}"
+            class="btn-novo-administrador">
+                + Novo administrador
+            </a>
+        </div>
+ 
+      {% if administradores %}
+        <div class="tabela-wrapper">
+          <table class="tabela-escolas">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>E-mail</th>
+                <th>Requer aprovação</th>
+                <th class="acoes">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for adm in administradores %}
+                <tr>
+                  <td class="superadmin-escola-nome">{{ adm.usuario.username }}</td>
+                  <td>{{ adm.usuario.email|default:"—" }}</td>
+                  <td>{{ adm.requer_aprovacao|yesno:"Sim,Não" }}</td>
+                  <td class="acoes">
+                    <form method="post" onsubmit="return confirm('Remover este administrador da escola?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="acao" value="remover_admin">
+                      <input type="hidden" name="adm_id" value="{{ adm.id }}">
+                      <button type="submit" class="btn-perigo">Remover</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="sem-registros">Nenhum administrador vinculado a esta escola.</p>
+      {% endif %}
+
+      {% if administradores_multiplos %}
+        <div class="tabela-wrapper">
+          <table class="tabela-escolas">
+            <thead><tr><th>Administrador multi-escola</th><th>Outras escolas</th><th class="acoes">Ações</th></tr></thead>
+            <tbody>
+              {% for adm in administradores_multiplos %}
+              <tr>
+                <td class="superadmin-escola-nome">{{ adm.usuario.username }}</td>
+                <td>{% for e in adm.escolas.all %}{% if e.id != escola.id %}<span class="badge-vinculo">{{ e.nome }}</span>{% endif %}{% endfor %}</td>
+                <td class="acoes"><form method="post" onsubmit="return confirm('Remover este administrador da escola?');">{% csrf_token %}<input type="hidden" name="acao" value="remover_admin_multiplo"><input type="hidden" name="perfil_id" value="{{ adm.id }}"><button type="submit" class="btn-perigo">Remover</button></form></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+    </div>
+ 
+    <!-- PROFESSORES (escola única) -->
+    <div class="painel">
+      <h3 class="painel-titulo">Professores / PROATs ({{ professores.count }})</h3>
+      <p class="painel-descricao">Professores vinculados exclusivamente a esta escola.</p>
+ 
+      {% if professores %}
+        <div class="tabela-wrapper">
+          <table class="tabela-escolas">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>E-mail</th>
+                <th>WhatsApp</th>
+                <th>Função</th>
+                <th class="acoes">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for prof in professores %}
+                <tr>
+                  <td class="superadmin-escola-nome">{{ prof.usuario.username }}</td>
+                  <td>{{ prof.usuario.email|default:"—" }}</td>
+                  <td>{{ prof.whatsapp|default:"—" }}</td>
+                  <td>
+                    <div class="funcao-view" id="funcao-view-unico-{{ prof.id }}">
+                      <span>{{ prof.cargo|default:"—" }}</span>
+                      <button type="button" class="btn-secundario" onclick="toggleFuncaoEdit('unico-{{ prof.id }}')">Editar</button>
+                    </div>
+                    <form method="post" class="form-funcao funcao-edit" id="funcao-edit-unico-{{ prof.id }}" style="display:none;">
+                      {% csrf_token %}<input type="hidden" name="acao" value="atualizar_cargo"><input type="hidden" name="tipo_perfil" value="unico"><input type="hidden" name="perfil_id" value="{{ prof.id }}">
+                      <input name="cargo" value="{{ prof.cargo }}" list="cargos-sugeridos" maxlength="100" aria-label="Função de {{ prof.usuario.username }}">
+                      <button type="submit" class="btn-secundario">Salvar</button>
+                      <button type="button" class="btn-secundario" onclick="toggleFuncaoEdit('unico-{{ prof.id }}')">Cancelar</button>
+                    </form>
+                </td>
+                  <td class="acoes">
+                    <form method="post" onsubmit="return confirm('Promover este usuário a administrador?');">
+                      {% csrf_token %}<input type="hidden" name="acao" value="promover_admin"><input type="hidden" name="usuario_id" value="{{ prof.usuario.id }}">
+                      <button type="submit" class="btn-secundario">Tornar admin</button>
+                    </form>
+                    <form method="post" onsubmit="return confirm('Remover este professor da escola?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="acao" value="remover_professor">
+                      <input type="hidden" name="prof_id" value="{{ prof.id }}">
+                      <button type="submit" class="btn-perigo">Remover</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="sem-registros">Nenhum professor de escola única vinculado.</p>
+      {% endif %}
+    </div>
+    
+ 
+    <!-- PROFESSORES MULTI-ESCOLA -->
+    <div class="painel">
+      <h3 class="painel-titulo">Professores de múltiplas escolas ({{ perfis_multiplos.count }})</h3>
+      <p class="painel-descricao">Professores que atuam nesta e em outras escolas do sistema.</p>
+ 
+      {% if perfis_multiplos %}
+        <div class="tabela-wrapper">
+          <table class="tabela-escolas">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Outras escolas</th>
+                <th>Função</th>
+                <th class="acoes">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for perfil in perfis_multiplos %}
+                <tr>
+                  <td class="superadmin-escola-nome">{{ perfil.usuario.username }}</td>
+                  <td>
+                    {% for e in perfil.escolas.all %}
+                      {% if e.id != escola.id %}
+                        <span class="badge-vinculo">{{ e.nome }}</span>
+                      {% endif %}
+                    {% endfor %}
+                  </td>
+                  <td>
+                      <div class="funcao-view" id="funcao-view-multiplo-{{ perfil.id }}">
+                        <span>{{ perfil.cargo|default:"—" }}</span>
+                        <button type="button" class="btn-secundario" onclick="toggleFuncaoEdit('multiplo-{{ perfil.id }}')">Editar</button>
+                      </div>
+                      <form method="post" class="form-funcao funcao-edit" id="funcao-edit-multiplo-{{ perfil.id }}" style="display:none;">
+                        {% csrf_token %}<input type="hidden" name="acao" value="atualizar_cargo"><input type="hidden" name="tipo_perfil" value="multiplo"><input type="hidden" name="perfil_id" value="{{ perfil.id }}">
+                        <input name="cargo" value="{{ perfil.cargo }}" list="cargos-sugeridos" maxlength="100" aria-label="Função de {{ perfil.usuario.username }}">
+                        <button type="submit" class="btn-secundario">Salvar</button>
+                        <button type="button" class="btn-secundario" onclick="toggleFuncaoEdit('multiplo-{{ perfil.id }}')">Cancelar</button>
+                      </form>
+                  </td>
+                  <td class="acoes">
+                    <form method="post" onsubmit="return confirm('Promover este usuário a administrador?');">
+                      {% csrf_token %}<input type="hidden" name="acao" value="promover_admin"><input type="hidden" name="usuario_id" value="{{ perfil.usuario.id }}">
+                      <button type="submit" class="btn-secundario">Tornar admin</button>
+                    </form>
+                    <form method="post" onsubmit="return confirm('Desvincular este professor desta escola?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="acao" value="remover_professor_multiplo">
+                      <input type="hidden" name="perfil_id" value="{{ perfil.id }}">
+                      <button type="submit" class="btn-perigo">Desvincular</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="sem-registros">Nenhum professor multi-escola vinculado.</p>
+      {% endif %}
+    </div>
+ 
+  </div>
+</div>
+<script>
+function toggleFuncaoEdit(id) {
+  var viewEl = document.getElementById('funcao-view-' + id);
+  var editEl = document.getElementById('funcao-edit-' + id);
+  var mostrarEdicao = editEl.style.display === 'none';
+  viewEl.style.display = mostrarEdicao ? 'none' : 'flex';
+  editEl.style.display = mostrarEdicao ? 'flex' : 'none';
+}
+</script>
+{% endblock %}
+ 

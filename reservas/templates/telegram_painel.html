@@ -1,0 +1,196 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Telegram — {{ escola.nome }}</title>
+  <link rel="stylesheet" href="{% static 'css/painel.css' %}">
+  <link rel="stylesheet" href="{% static 'css/telegram.css' %}">
+</head>
+<body class="telegram-page">
+  <main class="telegram-shell">
+    <header class="telegram-header">
+      <div>
+        <p class="eyebrow">CONFIGURAÇÃO DA ESCOLA</p>
+        <h1>Notificações pelo Telegram</h1>
+        <p class="subtitle">Conecte um bot próprio de <strong>{{ escola.nome }}</strong> e receba reservas, aprovações, divergências e alertas diretamente no Telegram.</p>
+      </div>
+      <a class="btn-secondary" href="{% url 'mural' %}">← Voltar ao mural</a>
+    </header>
+
+    {% if messages %}
+      <div class="messages" aria-live="polite">
+        {% for message in messages %}
+          <div class="message message-{{ message.tags|default:'info' }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <section class="grid-main">
+      <article class="card card-main">
+        <div class="card-title-row">
+          <div>
+            <span class="step-badge">1</span>
+            <div>
+              <h2>Bot da escola</h2>
+              <p>Use um bot exclusivo para esta escola. Os tokens ficam cifrados no banco.</p>
+            </div>
+          </div>
+          {% if bot and bot.ativo %}
+            <span class="status status-ok">● Ativo</span>
+          {% elif bot %}
+            <span class="status status-off">● Desativado</span>
+          {% else %}
+            <span class="status status-neutral">● Não configurado</span>
+          {% endif %}
+        </div>
+
+        {% if bot %}
+          <div class="bot-summary">
+            <div><span>Bot</span><strong>@{{ bot.bot_username|default:'—' }}</strong></div>
+            <div><span>Webhook</span><strong>{% if bot.webhook_configurado %}Configurado{% else %}Pendente{% endif %}</strong></div>
+            <div><span>Destinos ativos</span><strong>{{ destinos|length }}</strong></div>
+          </div>
+        {% endif %}
+
+        <form method="post" class="form-stack">
+          {% csrf_token %}
+          {% if request.user.is_superuser %}<input type="hidden" name="escola_id" value="{{ escola.id }}">{% endif %}
+          <input type="hidden" name="acao" value="configurar">
+          <label for="bot_token">Token do bot</label>
+          <input id="bot_token" name="bot_token" type="password" autocomplete="new-password" placeholder="Cole aqui o token recebido no @BotFather">
+          <p class="help">{% if bot %}Deixe em branco para manter o token atual.{% else %}O token é usado somente pelo servidor para conversar com a API oficial do Telegram.{% endif %}</p>
+          <button class="btn-primary" type="submit">{% if bot %}Salvar e verificar bot{% else %}Conectar bot{% endif %}</button>
+        </form>
+
+        {% if bot and bot.ultimo_erro %}
+          <div class="alert alert-error"><strong>Último erro:</strong> {{ bot.ultimo_erro }}</div>
+        {% endif %}
+
+        <div class="info-box">
+          <strong>Como criar o bot</strong>
+          <ol>
+            <li>Abra o <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer">@BotFather</a> no Telegram.</li>
+            <li>Use <code>/newbot</code> e crie o bot com o nome da escola.</li>
+            <li>Copie o token gerado e cole acima.</li>
+          </ol>
+          <p>O webhook usa HTTPS e um segredo exclusivo do bot para aceitar somente chamadas autenticadas do Telegram.</p>
+        </div>
+      </article>
+
+      <aside class="card card-side">
+        <div class="card-title-row">
+          <div>
+            <span class="step-badge">2</span>
+            <div>
+              <h2>Conectar um chat</h2>
+              <p>Gere um link e abra-o pelo Telegram.</p>
+            </div>
+          </div>
+        </div>
+
+        {% if bot and bot.ativo %}
+          <form method="post" class="form-stack">
+            {% csrf_token %}
+            {% if request.user.is_superuser %}<input type="hidden" name="escola_id" value="{{ escola.id }}">{% endif %}
+            <input type="hidden" name="acao" value="parear">
+            <button class="btn-telegram" type="submit">Gerar link de conexão</button>
+          </form>
+
+          {% if pareamento %}
+            <div class="pairing-result">
+              <div class="pairing-code">{{ pareamento.codigo }}</div>
+              <a class="btn-primary" target="_blank" rel="noopener noreferrer" href="{{ pareamento.link }}">Abrir no Telegram</a>
+              <p>O administrador pode abrir este link no grupo ou conta que deve receber as notificações e tocar em <strong>Start</strong>.</p>
+            </div>
+          {% endif %}
+
+          <div class="mini-note">O código expira em 10 minutos e pode ser usado uma única vez.</div>
+        {% else %}
+          <div class="empty-state">Configure e ative o bot para gerar links de conexão.</div>
+        {% endif %}
+      </aside>
+    </section>
+
+    <section class="card">
+      <div class="card-title-row">
+        <div>
+          <span class="step-badge">3</span>
+          <div>
+            <h2>Destinos que recebem os alertas</h2>
+            <p>Uma escola pode enviar notificações para mais de um chat, inclusive grupos.</p>
+          </div>
+        </div>
+        {% if bot and destinos %}<span class="count-pill">{{ destinos|length }} ativo{{ destinos|length|pluralize }}</span>{% endif %}
+      </div>
+
+      <div class="destination-list">
+        {% for destino in destinos %}
+          <div class="destination-row">
+            <div>
+              <strong>{{ destino.nome|default:destino.chat_id }}</strong>
+              <span>chat_id: {{ destino.chat_id }}</span>
+            </div>
+            <form method="post">
+              {% csrf_token %}
+              {% if request.user.is_superuser %}<input type="hidden" name="escola_id" value="{{ escola.id }}">{% endif %}
+              <input type="hidden" name="acao" value="remover_destino">
+              <input type="hidden" name="destino_id" value="{{ destino.id }}">
+              <button class="btn-danger" type="submit">Remover</button>
+            </form>
+          </div>
+        {% empty %}
+          <div class="empty-state">Nenhum chat conectado ainda.</div>
+        {% endfor %}
+      </div>
+
+      <details class="manual-destination">
+        <summary>Adicionar chat_id manualmente</summary>
+        <form method="post" class="manual-grid">
+          {% csrf_token %}
+          {% if request.user.is_superuser %}<input type="hidden" name="escola_id" value="{{ escola.id }}">{% endif %}
+          <input type="hidden" name="acao" value="adicionar_destino">
+          <label>Nome
+            <input name="nome" maxlength="200" placeholder="Ex.: Grupo Coordenação">
+          </label>
+          <label>chat_id
+            <input name="chat_id" inputmode="numeric" placeholder="Ex.: -1001234567890" required>
+          </label>
+          <button class="btn-secondary" type="submit">Adicionar</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="card test-card">
+      <div>
+        <h2>Teste e manutenção</h2>
+        <p>Use o teste depois de conectar ao menos um destino para confirmar o recebimento.</p>
+      </div>
+      <div class="actions-row">
+        {% if bot and bot.ativo %}
+          <form method="post">
+            {% csrf_token %}
+            {% if request.user.is_superuser %}<input type="hidden" name="escola_id" value="{{ escola.id }}">{% endif %}
+            <input type="hidden" name="acao" value="testar">
+            <button class="btn-primary" type="submit">Enviar mensagem de teste</button>
+          </form>
+          <form method="post">
+            {% csrf_token %}
+            {% if request.user.is_superuser %}<input type="hidden" name="escola_id" value="{{ escola.id }}">{% endif %}
+            <input type="hidden" name="acao" value="desativar">
+            <button class="btn-danger" type="submit">Desativar bot</button>
+          </form>
+        {% elif bot %}
+          <form method="post">
+            {% csrf_token %}
+            {% if request.user.is_superuser %}<input type="hidden" name="escola_id" value="{{ escola.id }}">{% endif %}
+            <input type="hidden" name="acao" value="reativar">
+            <button class="btn-primary" type="submit">Reativar bot</button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>

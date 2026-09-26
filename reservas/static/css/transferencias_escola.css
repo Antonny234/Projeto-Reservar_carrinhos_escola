@@ -1,0 +1,93 @@
+:root {
+  --teal: #1f7299;
+  --teal-dark: #195c7b;
+  --ink: #17334a;
+  --muted: #6d7e8c;
+  --line: #dce5ec;
+  --page: #f3f6f9;
+}
+
+.transferencias-page,
+.transferencias-page * { box-sizing: border-box; }
+.transferencias-page {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
+}
+.transferencias-shell { width: min(100% - 40px, 1080px); margin: 0 auto; padding: 32px 0 64px; }
+.transferencias-voltar { display: inline-block; margin-bottom: 24px; color: var(--teal); font-size: .93rem; font-weight: 650; text-decoration: none; }
+.transferencias-voltar:hover { color: var(--teal-dark); text-decoration: underline; }
+.transferencias-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 29px; }
+.transferencias-kicker, .card-label { color: var(--teal); font-size: .7rem; font-weight: 750; letter-spacing: .12em; }
+.transferencias-header h1 { margin: 6px 0 7px; color: #173651; font-size: clamp(1.8rem, 4vw, 2.35rem); letter-spacing: -.035em; line-height: 1.15; }
+.transferencias-header p, .section-heading p { margin: 0; color: var(--muted); }
+.nova-transferencia { display: inline-flex; min-height: 46px; flex: 0 0 auto; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: 9px; background: var(--teal); color: #fff; font-weight: 700; text-decoration: none; transition: background .15s ease, transform .15s ease; }
+.nova-transferencia:hover { transform: translateY(-1px); background: var(--teal-dark); }
+.nova-transferencia span { font-size: 1.25rem; line-height: 1; }
+.transferencias-section { margin-top: 25px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 13px; }
+.section-heading > div { display: flex; align-items: center; gap: 12px; }
+.section-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 12px; font-size: 1.2rem; font-weight: 800; }
+.section-icon.pendente { background: #fff4d9; color: #a76c00; }
+.section-icon.enviada { background: #e7f2f8; color: var(--teal); }
+.section-heading h2 { margin: 0 0 2px; color: #203c51; font-size: 1.18rem; }
+.section-heading p { font-size: .87rem; }
+.section-count { display: grid; min-width: 30px; height: 30px; padding: 0 8px; place-items: center; border-radius: 999px; background: #e7edf2; color: #526779; font-size: .81rem; font-weight: 750; }
+.transferencias-lista { display: grid; gap: 12px; }
+.transferencia-card, .envio-row { border: 1px solid var(--line); border-radius: 13px; background: #fff; box-shadow: 0 7px 22px rgba(22, 48, 69, .045); }
+.transferencia-card { padding: 21px 23px; }
+.transferencia-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.transferencia-card h3 { margin: 3px 0 0; color: #203d52; font-size: 1.08rem; }
+.status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid transparent; border-radius: 999px; font-size: .76rem; font-weight: 750; white-space: nowrap; }
+.status-pill.pendente { border-color: #f0d99b; background: #fff8e7; color: #815900; }
+.status-pill.recebida { border-color: #b9e2cb; background: #effaf3; color: #21613b; }
+.status-pill.recusada { border-color: #efc1c1; background: #fff1f1; color: #8b2929; }
+.data-transferencia { margin: 5px 0 16px; color: var(--muted); font-size: .83rem; }
+.itens-transferencia { padding: 13px 15px; border-radius: 10px; background: #f6f8fa; }
+.itens-transferencia h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 7px; color: #365064; font-size: .85rem; }
+.itens-transferencia h4 span { display: grid; min-width: 21px; height: 21px; padding: 0 5px; place-items: center; border-radius: 999px; background: #e5edf2; color: #536a7a; font-size: .72rem; }
+.itens-transferencia ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.itens-transferencia li { display: flex; justify-content: space-between; gap: 14px; color: #5c6e7c; font-size: .83rem; }
+.itens-transferencia li b { margin-right: 4px; color: #334d60; font-weight: 700; }
+.card-acoes { display: grid; grid-template-columns: auto minmax(260px, 1fr); align-items: end; gap: 18px; margin-top: 17px; }
+.card-acoes form label { display: block; margin-bottom: 6px; color: #344d60; font-size: .83rem; font-weight: 700; }
+.confirmar-linha { display: flex; gap: 8px; }
+.confirmar-linha input { min-width: 0; min-height: 42px; flex: 1; padding: 0 11px; border: 1px solid #cbd7e0; border-radius: 8px; color: var(--ink); font: inherit; outline: none; }
+.confirmar-linha input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(31, 114, 153, .13); }
+.botao-secundario, .botao-confirmar { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: 0 13px; border: 1px solid #c9d8e2; border-radius: 8px; background: #fff; color: #286c8b; cursor: pointer; font: inherit; font-size: .85rem; font-weight: 700; text-decoration: none; white-space: nowrap; transition: background .15s ease, border-color .15s ease; }
+.botao-secundario:hover { border-color: #9bb9ca; background: #f2f8fb; }
+.botao-confirmar { border-color: var(--teal); background: var(--teal); color: #fff; }
+.botao-confirmar:hover { border-color: var(--teal-dark); background: var(--teal-dark); }
+.envio-row { display: flex; align-items: center; gap: 18px; padding: 17px 20px; }
+.envio-destino { display: grid; flex: 1; gap: 2px; }
+.envio-destino strong { color: #263f52; }
+.envio-destino small { color: var(--muted); font-size: .8rem; }
+.estado-vazio { display: flex; align-items: center; gap: 14px; padding: 20px 22px; border: 1px dashed #cbd7e0; border-radius: 12px; background: rgba(255,255,255,.65); }
+.estado-vazio > span { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border-radius: 11px; background: #eaf6ee; color: #338253; font-size: 1.15rem; font-weight: 800; }
+.estado-vazio h3 { margin: 0 0 2px; color: #314c60; font-size: .96rem; }
+.estado-vazio p { margin: 0; color: var(--muted); font-size: .85rem; }
+.estado-vazio.compacto { padding: 16px 20px; }
+.estado-vazio.compacto > span { background: #edf4f8; color: var(--teal); }
+.transferencias-mensagens { margin: 0 0 18px; }
+.mensagem { margin: 0 0 8px; padding: 12px 15px; border: 1px solid #f0d18b; border-radius: 9px; background: #fff8e7; color: #704e0c; }
+.mensagem.success { border-color: #b9e2cb; background: #effaf3; color: #21613b; }
+.mensagem.error { border-color: #efc1c1; background: #fff1f1; color: #8b2929; }
+
+@media (max-width: 760px) {
+  .transferencias-shell { width: min(100% - 28px, 1080px); padding-top: 22px; }
+  .transferencias-header { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .card-acoes { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .transferencia-card { padding: 17px 15px; }
+  .transferencia-card-top { flex-direction: column; }
+  .itens-transferencia li { align-items: flex-start; flex-direction: column; gap: 1px; }
+  .envio-row { align-items: flex-start; flex-wrap: wrap; gap: 10px; padding: 15px; }
+  .envio-destino { flex-basis: 100%; }
+  .confirmar-linha { align-items: stretch; flex-direction: column; }
+  .confirmar-linha input, .botao-confirmar { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .nova-transferencia, .botao-secundario, .botao-confirmar { transition: none; } }

@@ -1,0 +1,63 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transferir equipamentos</title>
+  <link rel="stylesheet" href="{% static 'css/transferencia_escola.css' %}">
+</head>
+<body class="transferencia-page">
+  <main class="transferencia-shell">
+    <a class="transferencia-voltar" href="{% url 'inventario_lista' %}">← Voltar ao inventário</a>
+    <header class="transferencia-header">
+      <span class="transferencia-kicker">GESTÃO DE INVENTÁRIO</span>
+      <h1>Transferir equipamentos</h1>
+      <p>Envie bens para outra escola. Os itens só mudam de inventário depois da conferência de recebimento.</p>
+    </header>
+
+    {% if messages %}<div class="transferencia-mensagens" aria-live="polite">{% for message in messages %}<p class="mensagem {{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+
+    <section class="transferencia-card">
+      <div class="card-heading"><span class="passo">1</span><div><h2>Dados do envio</h2><p>Escolha o destino e informe os identificadores dos itens.</p></div></div>
+      <form method="post" class="transferencia-form">{% csrf_token %}
+        <div class="campo campo-destino">
+          <label for="destino">Escola de destino</label>
+          <select id="destino" name="destino" required>
+            <option value="" disabled selected>Selecione uma escola</option>
+            {% for escola in escolas %}<option value="{{ escola.pk }}">{{ escola.nome }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="campo">
+          <label for="identificador_tipo">Identificar os equipamentos por</label>
+          <select id="identificador_tipo" name="identificador_tipo" required>
+            <option value="id">ID</option><option value="serie">Número de série</option><option value="patrimonio">Número de patrimônio</option>
+          </select>
+        </div>
+        <div class="campo campo-identificadores">
+          <label for="identificadores">Identificadores dos itens</label>
+          <textarea id="identificadores" name="identificadores" rows="5" placeholder="Digite um identificador por linha" required></textarea>
+          <small>Use a mesma identificação escolhida acima. Você pode incluir vários itens, um por linha.</small>
+        </div>
+        <button class="botao-enviar" type="submit"><span>Confirmar envio</span><span aria-hidden="true">→</span></button>
+        <p class="nota-pdf">O comprovante da transferência será baixado em PDF após a confirmação.</p>
+      </form>
+    </section>
+
+    <section class="itens-section">
+      <div class="itens-heading"><div><span class="transferencia-kicker">CONSULTA RÁPIDA</span><h2>Equipamentos disponíveis</h2></div><span class="contador-itens">{{ equipamentos|length }} item{{ equipamentos|length|pluralize:",s" }}</span></div>
+      {% if equipamentos %}
+        <div class="equipamentos-lista">
+          {% for item in equipamentos %}
+            <article class="equipamento-item">
+              <span class="equipamento-icone" aria-hidden="true">▣</span>
+              <div class="equipamento-dados"><strong>{{ item.tipo }}</strong><span>ID {{ item.identificador|default:item.pk }}</span></div>
+              <div class="equipamento-identificadores"><span><b>Série</b>{{ item.numero_serie }}</span><span><b>Patrimônio</b>{{ item.numero_patrimonio }}</span></div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}<p class="lista-vazia">Não há equipamentos cadastrados nesta escola.</p>{% endif %}
+    </section>
+  </main>
+</body>
+</html>

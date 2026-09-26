@@ -1,0 +1,17 @@
+{% if mostra_seletor_escola %}
+<details class="seletor-escola">
+    <summary>🏫 {{ escola_ativa.nome }} <span aria-hidden="true">▾</span></summary>
+    <div class="opcoes-escola">
+        {% for escola in escolas_usuario %}
+            <form method="post" action="{% url 'trocar_escola' escola.id %}?next={{ request.path|urlencode }}" class="form-trocar-escola">
+                {% csrf_token %}
+                <button type="submit" class="{% if escola.id == escola_ativa.id %}ativa{% endif %}">
+                    {% if escola.id == escola_ativa.id %}✓ {% endif %}{{ escola.nome }}
+                </button>
+            </form>
+        {% endfor %}
+    </div>
+</details>
+{% elif escola_ativa %}
+<span class="nome-escola">🏫 {{ escola_ativa.nome }}</span>
+{% endif %}

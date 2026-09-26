@@ -1,0 +1,1815 @@
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.csrf import csrf_protect
+from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
+from django.core.exceptions import PermissionDenied, ValidationError
+
+from datetime import date, datetime, timedelta
+from django.db import transaction
+from django.db.models import Sum, Q
+from ..models import PerfilProfessor, PerfilProfessorEscola, CodigoVerificacao, BloqueioEquipamento
+from ..whatsapp_utils import enviar_codigo_email, EmailError
+from ..utils import filtrar_equipamentos, obter_escola_ativa
+from ..models import (
+    Aluno, NumeroReservaQuantidade, RegistroUso, Reserva, Equipamento, Sala, Notebook, PerfilAdm, PerfilAdmEscola,
+    HorarioAula,BloqueioEquipamento,Escola
+)
+from ..forms import ReservaForm
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import check_password, make_password
+import pandas as pd
+import re
+from django.urls import reverse
+from urllib.parse import urlencode
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def usuario_eh_admin(usuario):
+    return usuario.is_staff or usuario.is_superuser or hasattr(usuario, 'perfil_adm') or hasattr(usuario, 'perfil_adm_escola')
+
+# Helper
+from .helpers import _professor_requer_aprovacao, _requer_aprovacao_para_reserva, _equipamentos_bloqueados, enviar_telegram
+
+def _todos_horarios_por_periodo(escola):
+    horarios = HorarioAula.objects.filter(
+        escola=escola,
+        ativo=True
+    ).order_by('periodo', 'numero')
+
+    agrupado = {}
+
+    for h in horarios:
+        agrupado.setdefault(h.periodo, []).append(
+            (h.horario_inicio, h.horario_fim)
+        )
+
+    return agrupado
+
+
+def _proximo_horario(horario_inicio, escola):
+    if isinstance(horario_inicio, str):
+        try:
+            horario_inicio = datetime.strptime(
+                horario_inicio[:5],
+                '%H:%M'
+            ).time()
+        except ValueError:
+            return None
+
+    agrupado = _todos_horarios_por_periodo(escola)
+
+    for lista_periodo in agrupado.values():
+        for indice, (ini, fim) in enumerate(lista_periodo):
+            if ini == horario_inicio:
+                if indice + 1 < len(lista_periodo):
+                    return lista_periodo[indice + 1]
+                return None
+
+    return None
+
+
+def _horario_existe(horario_inicio, horario_fim, escola):
+    return HorarioAula.objects.filter(
+        escola=escola,
+        ativo=True,
+        horario_inicio=horario_inicio,
+        horario_fim=horario_fim,
+    ).exists()
+
+def home(request):
+    escolas = Escola.objects.only('id', 'nome', 'cidade').order_by('nome')
+    return render(request, 'apresentacao.html', {'escolas': escolas})
+
+def CriarConta(request):
+    """Cadastro de professor: valida e-mail, cria usuário e permite múltiplas escolas.
+    Se o professor selecionar 2+ escolas, cria PerfilProfessorEscola.
+    Se selecionar apenas 1, usa o PerfilProfessor comum."""
+    from ..models import Escola, PerfilProfessor, PerfilProfessorEscola
+
+    if request.method == "POST":
+        usuario = request.POST.get('usuario', '').strip()
+        email = request.POST.get('email', '').strip()
+        senha = request.POST.get('senha', '')
+        confirmar = request.POST.get('confirmar_senha', '')
+        escola_ids = request.POST.getlist('escolas')  # Retorna lista
+
+        dominios_permitidos = ("@professor.educacao.sp.gov.br", "@prof.educacao.sp.gov.br")
+
+        if not usuario or not email or not senha or not escola_ids:
+            messages.error(request, "Preencha todos os campos!")
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+        if not email.lower().endswith(dominios_permitidos):
+            messages.error(request, "Erro: Apenas e-mails corporativos SEDUC!")
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+        if senha != confirmar:
+            messages.error(request, "As senhas não coincidem!")
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+        try:
+            validate_password(senha)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+        if User.objects.filter(username=usuario).exists():
+            messages.error(request, "Este nome de usuário já está em uso.")
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "Este e-mail já está em uso.")
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+        # Validar se as escolas existem
+        try:
+            escolas = Escola.objects.filter(id__in=escola_ids)
+            if escolas.count() != len(escola_ids):
+                messages.error(request, "Uma ou mais escolas selecionadas não existem.")
+                return render(request, 'index.html', {'escolas': Escola.objects.all()})
+        except (ValueError, TypeError):
+            messages.error(request, "Erro ao processar escolas.")
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+        # Criar usuário, perfil e código de forma atômica. Se o e-mail falhar,
+        # não deixamos uma conta parcialmente cadastrada no banco.
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(username=usuario, email=email, password=senha)
+                user.is_active = False
+                user.save(update_fields=['is_active'])
+
+                if len(escola_ids) == 1:
+                    escola = escolas.first()
+                    PerfilProfessor.objects.create(usuario=user, escola=escola)
+                else:
+                    perfil_multi = PerfilProfessorEscola.objects.create(usuario=user)
+                    perfil_multi.escolas.set(escolas)
+                    perfil_multi.escola_ativa = escolas.first()
+                    perfil_multi.save(update_fields=['escola_ativa'])
+
+                codigo_obj = CodigoVerificacao.gerar(user, tipo='cadastro')
+                enviar_codigo_email(email, codigo_obj.codigo)
+        except EmailError as exc:
+            messages.error(request, str(exc))
+            return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+        request.session['cadastro_pendente_user_id'] = user.id
+        messages.success(request, "Cadastro quase concluído! Enviamos um código para o seu e-mail.")
+        return redirect('confirmar_cadastro')
+
+    return render(request, 'index.html', {'escolas': Escola.objects.all()})
+
+def Entrar(request):
+    # Login: valida credenciais e redireciona pendências de confirmação de cadastro
+    if request.method == "POST":
+        usuario_digitado = request.POST.get('usuario').strip()
+        senha_digitada = request.POST.get('senha', "")
+
+        user_obj = User.objects.filter(username=usuario_digitado).first()
+
+        if not user_obj:
+            messages.error(request, "Usuário não encontrado!")
+            return render(request, 'longa.html', {'escolas': Escola.objects.order_by('nome')})
+
+        if not user_obj.is_active:
+            messages.error(request, "Você ainda não confirmou seu cadastro pelo e-mail.")
+            request.session['cadastro_pendente_user_id'] = user_obj.id
+            return redirect('confirmar_cadastro')
+
+        user = authenticate(request, username=usuario_digitado, password=senha_digitada)
+
+        if user is None:
+            messages.error(request, "Senha incorreta!")
+            return render(request, 'longa.html', {'escolas': Escola.objects.order_by('nome')})
+
+        login(request, user)
+        # Superadmin vai para o painel exclusivo do sistema
+        if user.is_superuser:
+            return redirect('superadmin')
+
+        # Demais usuários continuam no mural
+        return redirect('mural')
+
+    return render(request, 'longa.html', {'escolas': Escola.objects.order_by('nome')})
+
+@login_required
+@require_POST
+def sair(request):
+    logout(request)
+    return redirect('longa')
+
+def confirmar_cadastro(request):
+    # Confirma o código enviado por e-mail e ativa a conta do professor
+    user_id = request.session.get('cadastro_pendente_user_id')
+    if not user_id:
+        messages.error(request, "Nenhum cadastro pendente encontrado. Cadastre-se novamente.")
+        return redirect('index')
+
+    user = get_object_or_404(User, id=user_id, is_active=False)
+
+    if request.method == "POST":
+        codigo_digitado = request.POST.get('codigo', '').strip()
+        codigo_obj = CodigoVerificacao.objects.filter(
+            usuario=user, tipo='cadastro', codigo=codigo_digitado
+        ).order_by('-criado_em').first()
+
+        if not codigo_obj or not codigo_obj.valido():
+            messages.error(request, "Código inválido ou expirado.")
+            return render(request, 'confirmar_cadastro.html')
+
+        codigo_obj.usado = True
+        codigo_obj.save()
+
+        user.is_active = True
+        user.save()
+
+        # perfil já foi criado no cadastro; nada extra a fazer aqui além do save
+        # O perfil pode ser de uma escola ou de múltiplas escolas.
+        if hasattr(user, 'perfil_professor'):
+            user.perfil_professor.save()
+        elif hasattr(user, 'perfil_escola'):
+            user.perfil_escola.save()
+
+        del request.session['cadastro_pendente_user_id']
+        messages.success(request, "Conta confirmada com sucesso! Faça login.")
+        return redirect('longa')
+
+    return render(request, 'confirmar_cadastro.html')
+
+
+@require_POST
+def reenviar_codigo_cadastro(request):
+    # Gera e reenvia um novo código de confirmação para cadastro pendente
+    user_id = request.session.get('cadastro_pendente_user_id')
+    if not user_id:
+        messages.error(request, "Nenhum cadastro pendente encontrado.")
+        return redirect('index')
+
+    user = get_object_or_404(User, id=user_id, is_active=False)
+    codigo_obj = CodigoVerificacao.gerar(user, tipo='cadastro')
+    try:
+        enviar_codigo_email(user.email, codigo_obj.codigo)
+        messages.success(request, "Reenviamos o código para o seu e-mail.")
+    except EmailError as e:
+        messages.error(request, str(e))
+
+    return redirect('confirmar_cadastro')
+
+@login_required
+@require_GET
+def listar_disponiveis(request):
+    """
+    Lista equipamentos disponíveis APENAS da escola ativa para um horário.
+    Se aula_seguida=sim, só lista carrinhos livres nos DOIS horários seguidos
+    (o selecionado E o próximo horário real da grade).
+    """
+    data_sel = request.GET.get('data')
+    horario_inicio_sel = request.GET.get('horario_inicio')
+    horario_fim_sel = request.GET.get('horario_fim')
+    aula_seguida = request.GET.get('aula_seguida') == 'sim'
+
+    if not all([data_sel, horario_inicio_sel, horario_fim_sel]):
+        return JsonResponse({'erro': 'Dados inválidos'}, status=400)
+
+    try:
+        escola = obter_escola_ativa(request)
+
+        data_sel_obj = datetime.strptime(data_sel, '%Y-%m-%d').date()
+        horario_inicio_obj = datetime.strptime(horario_inicio_sel, '%H:%M').time()
+        horario_fim_obj = datetime.strptime(horario_fim_sel, '%H:%M').time()
+
+        # Monta a lista de horários que precisam estar livres
+        slots = [(horario_inicio_obj, horario_fim_obj)]
+        proximo_info = None
+        if aula_seguida:
+            proximo = _proximo_horario(horario_inicio_obj, escola)
+            if proximo:
+                slots.append(proximo)
+                proximo_info = {
+                    'inicio': proximo[0].strftime('%H:%M'),
+                    'fim': proximo[1].strftime('%H:%M'),
+                }
+
+        
+        equipamentos_escola = filtrar_equipamentos(request).filter(disponivel=True)
+
+        # Acumula ocupados/bloqueados de TODOS os slots exigidos (corrige bug do
+        # loop anterior, que só considerava o último slot em aula seguida)
+        ocupados_todos_slots = set()
+        bloqueados_todos_slots = set()
+        reservado_por_slot = []
+
+        for slot_ini, slot_fim in slots:
+            ocupados_inteiro = set(Reserva.objects.filter(
+                escola=escola,
+                data_uso=data_sel_obj,
+                horario_inicio=slot_ini,
+                horario_fim=slot_fim,
+                status__in=['confirmada', 'pendente'],
+                numero_notebook_unico__isnull=True,
+                quantidade__isnull=True,
+            ).values_list('equipamento_id', flat=True))
+            ocupados_todos_slots |= ocupados_inteiro
+
+            bloqueados_todos_slots |= _equipamentos_bloqueados(
+                data_sel_obj, slot_ini, slot_fim, escola=escola
+            )
+
+            reservas_quantidade = Reserva.objects.filter(
+                escola=escola,
+                data_uso=data_sel_obj,
+                horario_inicio=slot_ini,
+                horario_fim=slot_fim,
+                status__in=['confirmada', 'pendente'],
+                quantidade__isnull=False,
+            ).values('equipamento_id').annotate(total=Sum('quantidade'))
+            reservado_por_slot.append({r['equipamento_id']: r['total'] for r in reservas_quantidade})
+
+        disponiveis = equipamentos_escola.exclude(id__in=ocupados_todos_slots | bloqueados_todos_slots)
+
+        data = []
+        for e in disponiveis:
+            quantidades_por_slot = [
+                max(e.quantidade_ativa() - slot_map.get(e.id, 0), 0)
+                for slot_map in reservado_por_slot
+            ]
+            qtd_disponivel = min(quantidades_por_slot) if quantidades_por_slot else e.quantidade_ativa()
+            data.append({
+                'id': e.id,
+                'nome': e.nome,
+                'tipo': e.get_tipo_display(),
+                'quantidade': qtd_disponivel,
+                'tem_numeracao': e.numero_inicial is not None and e.numero_final is not None,
+            })
+
+        return JsonResponse({
+            'equipamentos': data,
+            'escola': escola.nome,
+            'proximo_horario': proximo_info,
+            'aula_dupla_valida': bool(aula_seguida and proximo_info),
+        })
+
+    except PermissionDenied as e:
+        return JsonResponse({'erro': str(e)}, status=403)
+    except Exception as e:
+        logger.exception('Erro ao consultar números disponíveis')
+        return JsonResponse({'erro': 'Não foi possível consultar a disponibilidade.'}, status=500)
+# Mural / Reservas
+
+@login_required
+def mural(request):
+
+    # Tela principal: lista reservas do dia e processa criação de nova reserva (com opção de aula seguida)
+    agora = timezone.localtime(timezone.now())
+    hoje = agora.date()
+    hora_atual = agora.time()
+    escola = obter_escola_ativa(request)
+
+    data_param = request.GET.get('data')
+    data_selecionada = data_param if data_param else hoje.strftime('%Y-%m-%d')
+    data_selecionada_obj = datetime.strptime(data_selecionada, '%Y-%m-%d').date()
+    if request.method == "POST":
+        data_reserva_str = request.POST.get('data')
+        horario_inicio = request.POST.get('horario_inicio')
+        horario_fim = request.POST.get('horario_fim')
+
+        data_reservae = datetime.strptime(data_reserva_str, '%Y-%m-%d').date()
+        horario_inicio_obj = datetime.strptime(horario_inicio, '%H:%M').time()
+        horario_fim_obj = datetime.strptime(horario_fim, '%H:%M').time()
+
+        # 1) Bloqueia data/horário que já passou
+        if data_reservae < hoje:
+            messages.error(
+                request,
+                f"⚠️ Não é possível reservar para o dia {data_reservae.strftime('%d/%m/%Y')}, "
+                f"pois hoje é {hoje.strftime('%d/%m/%Y')}."
+            )
+            return redirect(f"/Logar/?data={data_reserva_str}")
+
+        if data_reservae == hoje and horario_fim_obj < hora_atual:
+            messages.error(request, "Este horário já passou e não pode ser reservado!")
+            return redirect(f"/Logar/?data={data_reserva_str}")
+
+        # 2) Busca o equipamento (precisa existir antes de checar bloqueio/aprovação)
+        equipamento_reserva = get_object_or_404(
+            Equipamento,
+            id=request.POST.get('equipamento'),
+            escola=escola
+        )
+
+        # 3) Checa se o carrinho está bloqueado nesse horário
+        if BloqueioEquipamento.objects.filter(
+            equipamento=equipamento_reserva,
+            data=data_reservae,
+            horario_inicio__lt=horario_fim_obj,
+            horario_fim__gt=horario_inicio_obj,
+        ).exists():
+            messages.error(
+                request,
+                f"O carrinho '{equipamento_reserva.nome}' está indisponível para este horário no momento."
+            )
+            return redirect(f"/Logar/?data={data_reserva_str}")
+
+        # 4) Só aceita horários de aula que realmente existem na grade da escola
+        if not _horario_existe(horario_inicio_obj, horario_fim_obj, escola):
+            messages.error(
+                request,
+                f"O horário {horario_inicio}-{horario_fim} não existe na grade de aulas. "
+                "Selecione um dos horários disponíveis no formulário."
+            )
+            return redirect(f"/Logar/?data={data_reserva_str}")
+
+        # 5) Checa se o carrinho inteiro já está reservado nesse horário
+        carrinho_inteiro_ocupado = Reserva.objects.filter(
+            escola=escola,
+            equipamento=equipamento_reserva,
+            data_uso=data_reservae,
+            status__in=['confirmada', 'pendente'],
+            horario_inicio__lt=horario_fim_obj,
+            horario_fim__gt=horario_inicio_obj,
+        ).exists()
+
+        if carrinho_inteiro_ocupado:
+            messages.error(
+                request,
+                f"O carrinho '{equipamento_reserva.nome}' já está reservado inteiro para este horário!"
+            )
+            return redirect(f"/Logar/?data={data_reserva_str}")
+
+        # 6) Resolve quem é o professor da reserva
+        professor_reserva = request.user
+        if usuario_eh_admin(request.user) and request.POST.get('professor'):
+            professor_id = request.POST.get('professor')
+            professor_reserva = (
+                User.objects.filter(
+                    id=professor_id,
+                ).filter(
+                    Q(perfil_professor__escola=escola) |
+                    Q(perfil_escola__escolas=escola)
+                ).distinct().first()
+            )
+            if not professor_reserva:
+                messages.error(
+                    request,
+                    "Erro: Professor não pertence à escola ativa."
+                )
+                return redirect(f"/Logar/?data={data_reserva_str}")
+
+        # 7) Define se precisa de aprovação (regra global + lista de liberados do carrinho)
+        status_reserva = 'confirmada'
+        if _requer_aprovacao_para_reserva(professor_reserva, equipamento_reserva):
+            status_reserva = 'pendente'
+        sala_obj = get_object_or_404(
+            Sala,
+            id=request.POST.get('sala'),
+            escola=escola
+        )
+        with transaction.atomic():
+            Equipamento.objects.select_for_update().get(
+                pk=equipamento_reserva.pk,
+                escola=escola,
+            )
+            concorrencia = Reserva.objects.filter(
+                escola=escola,
+                equipamento=equipamento_reserva,
+                data_uso=data_reservae,
+                status__in=['confirmada', 'pendente'],
+                horario_inicio__lt=horario_fim_obj,
+                horario_fim__gt=horario_inicio_obj,
+            ).exists()
+            if concorrencia:
+                messages.error(
+                    request,
+                    f"O carrinho '{equipamento_reserva.nome}' acabou de ser reservado para este horário.",
+                )
+                return redirect(f"/Logar/?data={data_reserva_str}")
+
+            nova_reserva = Reserva.objects.create(
+                escola=escola,
+                professor=professor_reserva,
+                equipamento=equipamento_reserva,
+                sala=sala_obj,
+                horario_inicio=horario_inicio_obj,
+                horario_fim=horario_fim_obj,
+                data_uso=data_reservae,
+                status=status_reserva,
+            )
+
+        if request.POST.get('aula_seguida') == 'sim':
+
+            proximo = _proximo_horario(horario_inicio_obj, escola)
+
+            if proximo is None:
+                messages.warning(
+                    request,
+                    f"Reserva feita! Atenção: não existe um próximo horário de aula depois "
+                    f"de {horario_inicio}-{horario_fim}. Somente este horário foi reservado."
+                )
+            else:
+                proximo_horario_inicio, proximo_horario_fim = proximo
+
+                colisao = Reserva.objects.filter(
+                    escola=escola,
+                    equipamento=nova_reserva.equipamento,
+                    data_uso=data_reservae,
+                    horario_inicio=proximo_horario_inicio,
+                    status__in=['confirmada', 'pendente']
+                ).first()
+
+                bloqueio_proximo = BloqueioEquipamento.objects.filter(
+                    equipamento=equipamento_reserva,
+                    data=data_reservae,
+                    horario_inicio__lt=proximo_horario_fim,
+                    horario_fim__gt=proximo_horario_inicio,
+                ).exists()
+
+                if colisao:
+                    messages.warning(
+                        request,
+                        f"Reserva feita! Atenção: O próximo horário ({proximo_horario_inicio.strftime('%H:%M')}–"
+                        f"{proximo_horario_fim.strftime('%H:%M')}) está reservado pelo professor "
+                        f"{colisao.professor.username}. Por favor, converse com ele."
+                    )
+                elif bloqueio_proximo:
+                    messages.warning(
+                        request,
+                        f"Reserva feita! Atenção: O próximo horário ({proximo_horario_inicio.strftime('%H:%M')}–"
+                        f"{proximo_horario_fim.strftime('%H:%M')}) está bloqueado. Somente este horário foi reservado."
+                    )
+                else:
+                    Reserva.objects.create(
+                        escola=escola,
+                        professor=professor_reserva,
+                        equipamento=nova_reserva.equipamento,
+                        sala=nova_reserva.sala,
+                        horario_inicio=proximo_horario_inicio,
+                        horario_fim=proximo_horario_fim,
+                        data_uso=data_reservae,
+                        status=status_reserva
+                    )
+                    messages.success(
+                        request,
+                        f"Reserva realizada para os dois horários com sucesso! "
+                        f"({horario_inicio}–{horario_fim} e "
+                        f"{proximo_horario_inicio.strftime('%H:%M')}–{proximo_horario_fim.strftime('%H:%M')})"
+                    )
+        else:
+            messages.success(request, "Reserva realizada com sucesso!")
+
+        tipo_notificacao = 'Nova reserva pendente' if status_reserva == 'pendente' else 'Nova reserva confirmada'
+        texto_notificacao = (
+            f"📥 <b>{tipo_notificacao}</b>\n"
+            f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
+            f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
+            f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
+            f"Equipamento: {equipamento_reserva.nome}\n"
+            f"Sala: {sala_obj.nome}"
+        )
+        transaction.on_commit(
+            lambda texto=texto_notificacao, escola_id=escola.id: enviar_telegram(
+                texto, escola=Escola.objects.get(pk=escola_id)
+            )
+        )
+
+        return redirect(f"/Logar/?data={data_reserva_str}")
+    filtro_reservas = {
+        'escola': escola,
+        'data_uso': data_selecionada_obj,
+        'status__in': ['confirmada', 'pendente'],
+    }
+    if data_selecionada_obj == hoje:
+        filtro_reservas['horario_fim__gte'] = hora_atual
+
+    equipamentos = Equipamento.objects.filter(
+        escola=escola
+        )
+    reservas = Reserva.objects.filter(**filtro_reservas).order_by('horario_inicio') 
+
+    reservas_com_fichas = Reserva.objects.filter(
+        escola=escola,
+        registrouso__isnull=False
+    ).select_related(
+        'professor',
+        'equipamento'
+    ).prefetch_related(
+        'registrouso_set__aluno__sala'
+    ).distinct().order_by('-data_uso')
+
+    reservas_pendentes = []
+
+    if usuario_eh_admin(request.user):
+        reservas_pendentes = Reserva.objects.filter(
+            escola=escola,
+            status='pendente'
+        ).select_related(
+            'professor',
+            'equipamento'
+        ).order_by('data_criacao')
+
+    tem_pin = bool(PerfilAdm.objects.filter(usuario=request.user, escola=escola).exclude(pin_envio__isnull=True).exclude(pin_envio='').exists())
+    if not tem_pin:
+        tem_pin = bool(
+            PerfilAdmEscola.objects.filter(usuario=request.user, escolas=escola)
+            .exclude(pin_envio__isnull=True)
+            .exclude(pin_envio='')
+            .exists()
+        )
+
+    return render(request, 'mural.html', {
+        'escola': escola,
+        'reservas': reservas,
+        'equipamentos': equipamentos,
+        'hoje': data_selecionada,
+        'reservas_com_fichas': reservas_com_fichas,
+        'reservas_pendentes': reservas_pendentes,
+        'form': ReservaForm(escola=escola),
+        'escola_ativa': escola,
+        'tem_pin': tem_pin,
+        'horarios': HorarioAula.objects.filter(escola=escola, ativo=True).order_by('periodo', 'numero'),
+    })
+
+def todos_horarios(escola):
+    return list(
+        HorarioAula.objects.filter(
+            escola=escola,
+            ativo=True
+        ).order_by('numero').values_list(
+            'horario_inicio',
+            'horario_fim'
+        )
+    )
+
+
+@login_required
+@require_POST
+def excluir_reserva(request, reserva_id):
+    # Exclui uma reserva (somente o professor dono da Reserva ou um staff pode excluir)
+    data_param = request.GET.get('data')
+    if not data_param:
+        data_param = timezone.localtime(timezone.now()).date().strftime('%Y-%m-%d')
+
+    escola = obter_escola_ativa(request)
+
+    reserva = get_object_or_404(
+        Reserva,
+        id=reserva_id,
+        escola=escola
+    )
+
+    if request.user == reserva.professor or usuario_eh_admin(request.user):
+        reserva.delete()
+        messages.success(request, "Reserva excluída com sucesso!")
+    else:
+        messages.error(request, "Você não tem permissão para excluir esta reserva.")
+
+    query_string = urlencode({'data': data_param})
+    return redirect(f"{reverse('mural')}?{query_string}")
+
+
+@login_required
+def numeros_disponiveis(request):
+    # Retorna via AJAX os números de notebook livres de um carrinho específico num horário
+    equipamento_id = request.GET.get('equipamento_id')
+    data_sel = request.GET.get('data')
+    horario_inicio_sel = request.GET.get('horario_inicio')
+    horario_fim_sel = request.GET.get('horario_fim')
+    escola = obter_escola_ativa(request)
+
+    try:
+
+        equip = get_object_or_404(
+            Equipamento,
+            id=equipamento_id,
+            escola=escola
+        )
+        data_sel_obj = datetime.strptime(data_sel, '%Y-%m-%d').date()
+        horario_inicio_obj = datetime.strptime(horario_inicio_sel, '%H:%M').time()
+        horario_fim_obj = datetime.strptime(horario_fim_sel, '%H:%M').time()
+
+        carrinho_inteiro_ocupado = Reserva.objects.filter(
+            escola=escola,
+            equipamento=equip,
+            data_uso=data_sel_obj,
+            horario_inicio=horario_inicio_obj,
+            horario_fim=horario_fim_obj,
+            status__in=['confirmada', 'pendente'],
+            numero_notebook_unico__isnull=True,
+        ).exists()
+
+        if carrinho_inteiro_ocupado:
+            return JsonResponse({'numeros': [], 'carrinho_indisponivel': True})
+
+        numeros_reservados = set(Reserva.objects.filter(
+            escola=escola,
+            equipamento=equip,
+            data_uso=data_sel_obj,
+            horario_inicio=horario_inicio_obj,
+            horario_fim=horario_fim_obj,
+            status__in=['confirmada', 'pendente'],
+            numero_notebook_unico__isnull=False,
+        ).values_list('numero_notebook_unico', flat=True))
+
+        inativos = set(
+            Notebook.objects.filter(equipamento=equip, ativo=False).values_list('numero', flat=True)
+        )
+
+        numeros = [
+            n for n in equip.lista_numeros()
+            if n not in numeros_reservados and n not in inativos
+        ]
+
+        return JsonResponse({'numeros': numeros, 'carrinho_indisponivel': False})
+
+    except Exception:
+        logger.exception('Erro ao consultar números disponíveis')
+        return JsonResponse({'erro': 'Não foi possível consultar os números disponíveis.'}, status=500)
+
+@login_required
+def carregar_mural(request):
+    # Retorna via AJAX o parcial HTML com a lista de reservas do dia.
+    # Filtra pela escola ativa do usuário.
+
+    data_sel = request.GET.get('data')
+    inicio_sel = request.GET.get('inicio')
+    fim_sel = request.GET.get('fim')
+
+    escola = obter_escola_ativa(request)
+
+    if not escola:
+        raise PermissionDenied()
+
+    # ============================================================
+    # DATA SELECIONADA
+    # ============================================================
+
+    if not data_sel:
+        data_sel_obj = timezone.localdate()
+    else:
+        try:
+            data_sel_obj = datetime.strptime(
+                data_sel,
+                '%Y-%m-%d'
+            ).date()
+        except ValueError:
+            data_sel_obj = timezone.localdate()
+
+    # ============================================================
+    # HORÁRIO ATUAL
+    # ============================================================
+
+    agora_local = timezone.localtime(timezone.now())
+    hora_atual = agora_local.time()
+    hoje = agora_local.date()
+
+    # ============================================================
+    # FILTRO DAS RESERVAS
+    # ============================================================
+
+    filtro = {
+        'escola': escola,
+        'data_uso': data_sel_obj,
+        'status__in': ['confirmada', 'pendente'],
+    }
+
+    # ============================================================
+    # FILTRO POR HORÁRIO ESPECÍFICO
+    # ============================================================
+
+    if inicio_sel and fim_sel:
+
+        try:
+            filtro['horario_inicio'] = datetime.strptime(
+                inicio_sel,
+                '%H:%M'
+            ).time()
+
+            filtro['horario_fim'] = datetime.strptime(
+                fim_sel,
+                '%H:%M'
+            ).time()
+
+        except ValueError:
+            pass
+
+    # ============================================================
+    # SE FOR HOJE, ESCONDE HORÁRIOS QUE JÁ TERMINARAM
+    # ============================================================
+
+    elif data_sel_obj == hoje:
+
+        filtro['horario_fim__gte'] = hora_atual
+
+    # ============================================================
+    # BUSCA AS RESERVAS
+    # ============================================================
+
+    reservas = list(
+        Reserva.objects
+        .filter(**filtro)
+        .order_by('horario_inicio')
+    )
+
+    for r in reservas:
+
+        r.mostrar_botao_numeracao = bool(
+            r.quantidade
+            and not r.numeracao_preenchida
+            and hora_atual >= r.horario_inicio
+        )
+
+    return render(
+        request,
+        'partials/lista_reservas.html',
+        {
+            'reservas': reservas,
+            'user': request.user,
+        }
+    )
+
+def _obter_escola_publica(request, escola_id=None):
+    # O mural público não tem usuário logado, portanto a escola precisa
+    # ser informada explicitamente pela URL/query string.
+    escola_id = escola_id or request.GET.get('escola_id') or request.GET.get('escola')
+
+    if not escola_id:
+        raise PermissionDenied(
+            "O mural público precisa informar a escola."
+        )
+
+    return get_object_or_404(Escola, id=escola_id)
+
+
+def carregar_mural_publico(request, escola_id=None):
+    # Versão pública (sem login) do parcial de reservas do dia, só mostra confirmadas
+    escola = _obter_escola_publica(request, escola_id)
+    data_sel = request.GET.get('data')
+
+    if not data_sel:
+        data_sel = date.today().strftime('%Y-%m-%d')
+
+    data_sel_obj = (
+        datetime.strptime(data_sel, '%Y-%m-%d').date()
+        if isinstance(data_sel, str)
+        else data_sel
+    )
+
+    agora_local = timezone.localtime(timezone.now())
+    hora_atual = agora_local.time()
+    hoje = agora_local.date()
+
+    if data_sel_obj == hoje:
+        reservas = Reserva.objects.filter(
+            escola=escola,
+            data_uso=data_sel_obj,
+            horario_fim__gte=hora_atual,
+            status='confirmada'
+        ).order_by('horario_inicio')
+    else:
+        reservas = Reserva.objects.filter(
+            escola=escola,
+            data_uso=data_sel_obj,
+            status='confirmada'
+        ).order_by('horario_inicio')
+
+    return render(
+        request,
+        'partials/lista_reservas_consulta.html',
+        {'reservas': reservas, 'escola': escola}
+    )
+
+
+def carrinho_principal(request, escola_id=None):
+    # Página pública de consulta do mural do dia atual
+    escola = _obter_escola_publica(request, escola_id)
+    hoje = date.today()
+    hora_atual = timezone.localtime(timezone.now()).time()
+    data_sel = date.today().strftime('%Y-%m-%d')
+    data_sel_obj = datetime.strptime(data_sel, '%Y-%m-%d').date()
+
+    reservas_hoje = Reserva.objects.filter(
+        escola=escola,
+        data_uso=data_sel_obj,
+        horario_fim__gte=hora_atual,
+        status='confirmada'
+    ).order_by('horario_inicio')
+
+    return render(request, 'mural_consulta.html', {
+        'hoje': hoje.strftime('%d/%m/%Y'),
+        'reservas': reservas_hoje,
+        'escola': escola,
+    })
+
+
+@login_required
+@require_POST
+def atualizar_quantidade(request):
+    # Permite a um staff atualizar a quantidade total de unidades de um equipamento
+    escola = obter_escola_ativa(request)
+
+    if not usuario_eh_admin(request.user):
+        messages.error(request, "Sem permissão.")
+        return redirect('mural')
+
+    if request.method == "POST":
+        equipamento_id = request.POST.get('equipamento_id')
+        quantidade = request.POST.get('quantidade')
+        try:
+            equip = get_object_or_404(
+                Equipamento,
+                id=equipamento_id,
+                escola=escola
+            )
+            equip.quantidade = int(quantidade)
+            equip.save()
+            messages.success(
+                request,
+                f"Quantidade do equipamento '{equip.nome}' atualizada."
+            )
+
+        except (ValueError, TypeError):
+            messages.error(request, "Quantidade inválida.")
+
+    return redirect('mural')
+
+
+def importar_de_excel(caminho_arquivo, escola):
+    """Importa alunos e salas vinculando tudo explicitamente à escola."""
+    df = pd.read_excel(caminho_arquivo)
+    for _, row in df.iterrows():
+        nome_sala = str(row['sala']).strip()
+        nome_aluno = str(row['nome']).strip()
+        if not nome_sala or not nome_aluno:
+            continue
+        sala_obj, _ = Sala.objects.get_or_create(escola=escola, nome=nome_sala)
+        Aluno.objects.get_or_create(nome=nome_aluno, sala=sala_obj)
+
+
+# PIN de envio para tablet
+
+@login_required
+@require_POST
+def criar_pin(request):
+    # Professor cria/atualiza seu PIN de 4 dígitos usado para confirmar o envio da ficha no tablet
+    escola = obter_escola_ativa(request)
+
+    if request.method == "POST":
+        pin = request.POST.get('pin', '').strip()
+
+        if not pin.isdigit() or len(pin) != 4:
+            messages.error(request, "O PIN deve ter exatamente 4 dígitos numéricos.")
+            return redirect('mural')
+
+        perfil = PerfilAdm.objects.filter(
+            usuario=request.user,
+            escola=escola
+        ).first()
+
+        if perfil is not None:
+            perfil.pin_envio = make_password(pin)
+            perfil.save(update_fields=['pin_envio'])
+        else:
+            perfil_multi = PerfilAdmEscola.objects.filter(
+                usuario=request.user,
+                escolas=escola,
+            ).first()
+            if perfil_multi is None:
+                messages.error(
+                    request,
+                    "Não existe perfil de administrador para esta escola."
+                )
+                return redirect('mural')
+            perfil_multi.pin_envio = make_password(pin)
+            perfil_multi.save(update_fields=['pin_envio'])
+
+        messages.success(request, "PIN de envio criado com sucesso!")
+        return redirect('mural')
+
+    return redirect('mural')
+
+
+# Tablet / Fichas
+
+MINIMO_ALUNOS_PADRAO = 5
+
+LIMITES_CARRINHO = {
+    1: (1, 40),
+    2: (41, 80),
+    3: (81, 120),
+    4: (121, 160),
+    5: (161, 200),
+    6: (1, 20),
+    7: (2, 111),
+}
+
+
+def notificar_erro_telegram(titulo: str, detalhes: str, equipamento_id, agora, extra: str = "", escola=None):
+    """Centraliza o envio de alertas de erro para o Telegram."""
+    try:
+        enviar_telegram(
+            f"🔴 <b>{titulo}</b>\n"
+            f"Equipamento ID: {equipamento_id}\n"
+            f"Horário: {agora.strftime('%d/%m/%Y %H:%M:%S')}\n"
+            f"Detalhes: {detalhes}\n"
+            f"{extra}"
+            , escola=escola
+        )
+    except Exception:
+        # Se o próprio envio do Telegram falhar, não pode derrubar a view.
+        logger.exception("Falha ao enviar notificação de erro pro Telegram")
+
+
+def buscar_reserva_ativa(equipamento_id, agora, escola):
+    return Reserva.objects.filter(
+        escola=escola,
+        equipamento_id=equipamento_id,
+        status='confirmada',
+        data_uso=agora.date(),
+        horario_inicio__lte=agora.time(),
+        horario_fim__gte=agora.time(),
+        quantidade__isnull=True,
+        numeracao_preenchida=False,
+    ).first()
+
+
+@login_required
+def reportar_notebook_quebrado(request):
+    # Marca UM OU VÁRIOS notebooks como inativos/quebrados. Aceita uma lista de
+    # números separados por vírgula/espaço (além de envio repetido do campo).
+    # Opcionalmente cria um pedido avulso (reserva por quantidade) para repor.
+    escola = obter_escola_ativa(request)
+    if request.method != "POST":
+        return JsonResponse({'sucesso': False, 'erro': 'Método inválido'}, status=405)
+
+
+    numeros_texto = request.POST.get('numeros_notebook', '') or request.POST.get('numero_notebook', '')
+    numeros_brutos = request.POST.getlist('numeros_notebook') or request.POST.getlist('numero_notebook')
+    numeros_notebook = []
+    for valor in [numeros_texto] + numeros_brutos:
+        numeros_notebook.extend(re.findall(r'\d+', valor))
+
+
+    numeros_notebook = list(dict.fromkeys(numeros_notebook))
+
+    equipamento_id = request.POST.get('equipamento_id')
+    carrinho_avulso_id = request.POST.get('carrinho_avulso_id')
+    qtd_avulso = request.POST.get('quantidade_avulso')
+
+    if not numeros_notebook:
+        return JsonResponse({
+            'sucesso': False,
+            'erro': 'Informe pelo menos um número de notebook.'
+        }, status=400)
+
+    try:
+        equip = get_object_or_404(Equipamento,id=equipamento_id,escola=escola)
+
+        faixa = equip.faixa_numeros()
+        if not faixa:
+            return JsonResponse({
+                'sucesso': False,
+                'erro': 'Este carrinho não possui uma faixa de numeração configurada.',
+            }, status=400)
+
+        numeros_int = sorted({int(num) for num in numeros_notebook})
+        fora_da_faixa = [num for num in numeros_int if num not in faixa]
+        if fora_da_faixa:
+            return JsonResponse({
+                'sucesso': False,
+                'erro': f'Número(s) fora da faixa deste carrinho: {fora_da_faixa}.',
+            }, status=400)
+
+        with transaction.atomic():
+            # O lock garante que a baixa do estoque dos notebooks e eventual
+            # pedido de reposição sejam avaliados em uma única transação.
+            equip = Equipamento.objects.select_for_update().get(
+                pk=equip.id,
+                escola=escola,
+            )
+
+            mensagem = f"Notebook(s) {', '.join(map(str, numeros_int))} marcado(s) como quebrado(s)."
+            for num_int in numeros_int:
+                notebook, _ = Notebook.objects.get_or_create(
+                    equipamento=equip, numero=num_int, defaults={'ativo': False}
+                )
+                if notebook.ativo:
+                    notebook.ativo = False
+                    notebook.save(update_fields=['ativo'])
+
+            # Telegram só deve ser enviado depois que a transação efetivamente
+            # confirmar; assim não há alerta de baixa que acabou em rollback.
+            telegram_texto = (
+                f"🔧 <b>Notebook(s) Quebrado(s)</b>\n"
+                f"Carrinho: {equip.nome}\n"
+                f"Notebook(s): {', '.join(map(str, numeros_int))}\n"
+                f"Professor: {request.user.username}"
+            )
+            transaction.on_commit(lambda texto=telegram_texto, escola=escola: enviar_telegram(texto, escola=escola))
+
+            if carrinho_avulso_id and qtd_avulso:
+                try:
+                    qtd = int(qtd_avulso)
+                    if qtd <= 0:
+                        raise ValueError("Quantidade inválida")
+
+                    sala = Sala.objects.get(
+                        id=request.POST.get('sala_id'),
+                        escola=escola,
+                    )
+                    data_uso = datetime.strptime(request.POST.get('data_uso'), '%Y-%m-%d').date()
+                    horario_inicio = datetime.strptime(request.POST.get('horario_inicio'), '%H:%M').time()
+                    horario_fim = datetime.strptime(request.POST.get('horario_fim'), '%H:%M').time()
+                    if horario_fim <= horario_inicio:
+                        raise ValueError("Horário final deve ser posterior ao inicial")
+
+                    equip_avulso = Equipamento.objects.select_for_update().get(
+                        id=carrinho_avulso_id,
+                        escola=escola,
+                    )
+
+                    # Valida disponibilidade real para o pedido de reposição,
+                    # evitando que o endpoint seja uma forma de furar o estoque.
+                    if equip_avulso.pk in _equipamentos_bloqueados(
+                        data_uso, horario_inicio, horario_fim, escola=escola
+                    ):
+                        raise ValueError("O carrinho de reposição está bloqueado neste horário")
+
+                    reservas_base = Reserva.objects.filter(
+                        escola=escola,
+                        equipamento=equip_avulso,
+                        data_uso=data_uso,
+                        status__in=['confirmada', 'pendente'],
+                    ).filter(
+                        horario_inicio__lt=horario_fim,
+                        horario_fim__gt=horario_inicio,
+                    )
+                    carrinho_inteiro_ocupado = reservas_base.filter(
+                        quantidade__isnull=True,
+                        numero_notebook_unico__isnull=True,
+                    ).exists()
+                    if carrinho_inteiro_ocupado:
+                        raise ValueError("O carrinho de reposição já está reservado inteiro neste período")
+
+                    total_reservado = reservas_base.filter(
+                        quantidade__isnull=False
+                    ).aggregate(total=Sum('quantidade'))['total'] or 0
+                    disponivel = equip_avulso.quantidade_ativa() - total_reservado
+                    if qtd > disponivel:
+                        raise ValueError(
+                            f"Há apenas {disponivel} unidade(s) disponível(is) no carrinho de reposição"
+                        )
+
+                    status = (
+                        'pendente'
+                        if _requer_aprovacao_para_reserva(request.user, equip_avulso)
+                        else 'confirmada'
+                    )
+                    Reserva.objects.create(
+                        escola=escola,
+                        professor=request.user,
+                        equipamento=equip_avulso,
+                        sala=sala,
+                        horario_inicio=horario_inicio,
+                        horario_fim=horario_fim,
+                        data_uso=data_uso,
+                        quantidade=qtd,
+                        status=status,
+                    )
+
+                    if status == 'pendente':
+                        mensagem += (
+                            f" Pedido de {qtd} unidade(s) do carrinho '{equip_avulso.nome}' "
+                            "enviado para aprovação."
+                        )
+                    else:
+                        mensagem += (
+                            f" Pedido de {qtd} unidade(s) do carrinho '{equip_avulso.nome}' realizado."
+                        )
+                except (Sala.DoesNotExist, Equipamento.DoesNotExist, ValueError, TypeError):
+                    logger.exception('Falha ao criar pedido avulso para notebook reportado')
+                    return JsonResponse({
+                        'sucesso': False,
+                        'erro': 'Falha ao criar o pedido avulso. Verifique a disponibilidade e os dados informados.',
+                        'notebooks_marcados': numeros_int,
+                    }, status=400)
+
+        return JsonResponse({
+            'sucesso': True,
+            'mensagem': mensagem,
+            'notebooks_marcados': numeros_int,
+        })
+
+    except Exception:
+        logger.exception("Erro ao reportar notebook")
+        return JsonResponse({'sucesso': False, 'erro': 'Não foi possível registrar o problema no equipamento.'}, status=500)
+
+def escolher_carrinho(request):
+    """
+    Não usa @login_required com redirect.
+    Se o usuário não estiver logado, renderiza a MESMA página
+    mostrando o modal de login (via AJAX).
+    Se estiver logado, mostra a lista de equipamentos.
+    """
+    escola = obter_escola_ativa(request)
+    
+    if request.user.is_authenticated:
+        equipamentos = Equipamento.objects.filter(escola=escola).order_by('nome')
+        return render(request, 'escolher_carrinho.html', {
+            'autenticado': True,
+            'equipamentos': equipamentos,
+        })
+    else:
+        return render(request, 'escolher_carrinho.html', {
+            'autenticado': False,
+            'equipamentos': None,
+        })
+
+
+@require_POST
+@csrf_protect
+def login_ajax(request):
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+
+    if not username or not password:
+        return JsonResponse({'success': False, 'error': 'Preencha usuário e senha.'}, status=400)
+
+    user = authenticate(request, username=username, password=password)
+
+    if user is not None:
+        login(request, user)
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse(
+            {'success': False, 'error': 'Usuário ou senha inválidos, ou conta não cadastrada.'},
+            status=401
+        )
+
+
+@login_required
+def view_tablet(request, equipamento_id):
+    # Tela do tablet: no GET busca a reserva ativa, no POST valida e salva a ficha de uso dos alunos
+    agora = timezone.localtime()
+    escola = obter_escola_ativa(request)
+    if request.method == "POST":
+        reserva_id = request.POST.get('reserva_id')
+
+
+        try:
+            if not reserva_id:
+                raise ValueError("Campo reserva_id ausente no POST (formulário sem hidden input).")
+
+            reserva = Reserva.objects.filter(
+                id=reserva_id,
+                escola=escola,
+                equipamento_id=equipamento_id,
+            ).first()
+
+            if not reserva:
+                raise ValueError(f"Nenhuma reserva encontrada com id={reserva_id} para equipamento_id={equipamento_id}.")
+
+            if reserva.status != 'confirmada':
+                raise ValueError(
+                    f"Reserva {reserva.id} encontrada, mas está com status '{reserva.status}' "
+                    f"(esperado 'confirmada'). Provável mudança de status entre a abertura da página e o envio."
+                )
+            if reserva.numeracao_preenchida:
+                raise ValueError(
+                    f"Reserva {reserva.id} já teve a ficha enviada anteriormente. "
+                    f"Provável reenvio/duplo clique ou página recarregada após envio."
+                )
+
+        except ValueError as e:
+            logger.warning(f"Falha ao localizar reserva no envio de ficha: {e}")
+            notificar_erro_telegram(
+                "ERRO NO ENVIO DE FICHA — Reserva não encontrada",
+                str(e),
+                equipamento_id,
+                agora,
+                escola=escola,
+            )
+            messages.error(
+                request,
+                "Não foi possível confirmar sua reserva no momento do envio. "
+                "Isso pode acontecer se a página ficou aberta por muito tempo, "
+                "ou se a ficha já foi enviada antes. "
+                "Recarregue a página e tente novamente. A coordenação já foi avisada."
+            )
+            return redirect('tablet_checkin', equipamento_id=equipamento_id)
+
+        sala = reserva.sala
+        alunos = Aluno.objects.filter(sala=sala)
+        minimo_alunos = MINIMO_ALUNOS_PADRAO
+        carrinho_id = reserva.equipamento.id
+
+        contexto_erro = {
+            'reserva': reserva,
+            'alunos': alunos,
+            'dados_anteriores': request.POST,
+            'minimo_alunos': minimo_alunos,
+        }
+
+        try:
+            numeros_usados = {}
+            erros = False
+            limites = LIMITES_CARRINHO.get(carrinho_id)
+
+            for aluno in alunos:
+                numero_str = request.POST.get(f'aluno_{aluno.id}')
+                if not numero_str:
+                    continue
+
+                if not numero_str.strip().isdigit():
+                    messages.error(request, f"Erro: {aluno.nome} tem um valor inválido ('{numero_str}').")
+                    erros = True
+                    continue
+
+                num = int(numero_str)
+
+                if limites:
+                    minimo, maximo = limites
+                    if num < minimo or num > maximo:
+                        messages.error(
+                            request,
+                            f"Erro: {aluno.nome} colocou {num}, mas só tem notebooks de {minimo} a {maximo}."
+                        )
+                        erros = True
+
+                if num in numeros_usados:
+                    messages.error(
+                        request,
+                        f"Erro: {aluno.nome} e {numeros_usados[num]} colocaram o mesmo número ({num})!"
+                    )
+                    erros = True
+                else:
+                    numeros_usados[num] = aluno.nome
+
+            if erros:
+                return render(request, 'tablet_checkin.html', contexto_erro)
+
+        except Exception as e:
+            logger.exception("Erro inesperado ao processar envio de ficha")
+            notificar_erro_telegram(
+                "ERRO CRÍTICO NO ENVIO DE FICHA",
+                f"{type(e).__name__}: {e}",
+                equipamento_id,
+                agora,
+                extra=f"Professor: {reserva.professor.username if reserva else 'desconhecido'}",
+                escola=reserva.escola if reserva else escola,
+            )
+            messages.error(
+                request,
+                "Ocorreu um erro inesperado ao processar sua ficha. "
+                "A coordenação já foi avisada automaticamente. Tente novamente em instantes."
+            )
+            return render(request, 'tablet_checkin.html', contexto_erro)
+
+        pin_digitado = request.POST.get('pin_envio', '').strip()
+        professor = reserva.professor
+
+        pin_correto = (
+            PerfilAdm.objects.filter(
+                usuario=professor,
+                escola=reserva.escola,
+            ).values_list('pin_envio', flat=True).first()
+        )
+        if not pin_correto:
+            pin_correto = (
+                PerfilAdmEscola.objects.filter(
+                    usuario=professor,
+                    escolas=reserva.escola,
+                ).values_list('pin_envio', flat=True).first()
+            )
+
+        if not pin_correto:
+            messages.error(request, "Professor não possui PIN cadastrado. Crie um PIN no mural primeiro.")
+            return render(request, 'tablet_checkin.html', contexto_erro)
+
+        if not pin_digitado or not check_password(pin_digitado, pin_correto):
+            messages.error(request, "PIN inválido! Digite o PIN de 4 dígitos correto.")
+            return render(request, 'tablet_checkin.html', contexto_erro)
+
+    
+        registros = []
+        for aluno in alunos:
+            numero_str = request.POST.get(f'aluno_{aluno.id}')
+            if numero_str and numero_str.strip().isdigit():
+                registros.append(
+                    RegistroUso(
+                        reserva=reserva,
+                        aluno=aluno,
+                        numero_notebook=int(numero_str)
+                    )
+                )
+
+        RegistroUso.objects.filter(reserva=reserva).delete()
+        RegistroUso.objects.bulk_create(registros)
+
+        reserva.numeracao_preenchida = True
+        reserva.save(update_fields=['numeracao_preenchida'])
+
+        return render(request, 'enviado.html', {
+            'id': equipamento_id,
+            'reserva_id': reserva.id,
+            'professor_id': reserva.professor_id,
+            'carrinho_id': carrinho_id,
+            'sala': sala.id,
+        })
+
+
+    reserva = buscar_reserva_ativa(equipamento_id, agora,escola)
+
+    if not reserva:
+        return render(request, 'tablet_sem_reserva.html', {
+            'equipamento_id': equipamento_id,
+            'agora': agora,
+        })
+
+    sala = reserva.sala
+    alunos = Aluno.objects.filter(sala=sala)
+
+
+    equipamentos_geral = Equipamento.objects.filter(escola=escola)
+
+    return render(request, 'tablet_checkin.html', {
+        'reserva': reserva,
+        'alunos': alunos,
+        'minimo_alunos': MINIMO_ALUNOS_PADRAO,
+        'equipamentos_geral': equipamentos_geral,
+    })
+
+
+@login_required
+def status_tablet(request, equipamento_id):
+    # Endpoint usado pelo polling: informa ao tablet se já existe uma nova reserva diferente da atual
+    agora = timezone.localtime()
+    escola = obter_escola_ativa(request)
+
+    equipamento = get_object_or_404(
+        Equipamento,
+        id=equipamento_id,
+        escola=escola
+    )
+
+    nova_reserva = Reserva.objects.filter(
+        equipamento=equipamento,
+        escola=escola,
+        status__in=['confirmada', 'pendente'],
+        data_uso=agora.date(),
+        horario_inicio__lte=agora.time(),
+        horario_fim__gte=agora.time(),
+        quantidade__isnull=True,
+        numeracao_preenchida=False,
+    ).exclude(
+        id=request.GET.get('reserva_atual')
+    ).exists()
+
+    if not nova_reserva:
+        return render(request, 'tablet_sem_reserva.html', {
+            'equipamento_id': equipamento_id,
+            'agora': agora,
+        })
+
+    return JsonResponse({'nova_reserva': nova_reserva})
+
+# Página do formulário de reserva por quantidade (sem bloquear o carrinho inteiro)
+
+@login_required
+def pagina_unico(request):
+    escola = obter_escola_ativa(request)
+    form = ReservaForm(escola=escola)
+    equipamentos = Equipamento.objects.filter(escola=escola)
+
+    context = {
+        'hoje': timezone.now().date().strftime('%Y-%m-%d'),
+        'equipamentos': equipamentos,
+        'form': form,
+        'horarios':HorarioAula.objects.filter(escola=escola,ativo=True).order_by('periodo', 'numero'),
+        'escola_ativa': escola,
+    }
+
+    return render(request, "unico.html", context)
+
+
+@login_required
+@transaction.atomic
+def reserva_quantidade(request):
+    if request.method != "POST":
+        return redirect('unico')
+
+    agora = timezone.localtime()
+    hoje = agora.date()
+    hora_atual = agora.time()
+    escola = obter_escola_ativa(request)
+
+    data_reserva_str = request.POST.get('data')
+    horario_inicio_str = request.POST.get('horario_inicio')
+    horario_fim_str = request.POST.get('horario_fim')
+    equipamento_id = request.POST.get('equipamento')
+    quantidade_raw = request.POST.get('quantidade', '').strip()
+
+    if not all([data_reserva_str, horario_inicio_str, horario_fim_str]):
+        messages.error(request, "Por favor, preencha a data e selecione um horário!")
+        return redirect('unico')
+
+    try:
+        data_reservae = datetime.strptime(data_reserva_str, '%Y-%m-%d').date()
+        horario_inicio_obj = datetime.strptime(horario_inicio_str, '%H:%M').time()
+        horario_fim_obj = datetime.strptime(horario_fim_str, '%H:%M').time()
+    except (ValueError, TypeError) as e:
+        logger.warning(f"Erro de conversão em reserva_quantidade: {e}")
+        messages.error(request, f"Formato de data ou hora inválido! Recebido: {data_reserva_str}, {horario_inicio_str}")
+        return redirect('unico')
+
+    if not quantidade_raw.isdigit() or int(quantidade_raw) <= 0:
+        messages.error(request, "Quantidade inválida!")
+        return redirect(f"/Logar/?data={data_reserva_str}")
+
+    quantidade_solicitada = int(quantidade_raw)
+
+    try:
+        sala_obj = get_object_or_404(Sala,id=request.POST.get('sala'),escola=escola)
+    except Sala.DoesNotExist:
+        messages.error(request, "Sala não encontrada!")
+        return redirect('unico')
+
+    professor_reserva = request.user
+    professor_id = request.user.id
+
+    if data_reservae < hoje:
+        messages.error(
+            request,
+            f"⚠️ Não é possível reservar para o dia {data_reservae.strftime('%d/%m/%Y')}, "
+            f"pois hoje é {hoje.strftime('%d/%m/%Y')}. Selecione uma data a partir de hoje."
+        )
+        return redirect('unico')
+
+    if data_reservae == hoje and horario_fim_obj < hora_atual:
+        messages.error(request, "Este horário já passou e não pode ser reservado!")
+        return redirect(f"/Logar/?data={data_reserva_str}")
+
+    if usuario_eh_admin(request.user) and request.POST.get('professor'):
+        professor_id = request.POST.get('professor')
+        professor_reserva = (
+            User.objects.filter(id=professor_id).filter(
+                Q(perfil_professor__escola=escola) |
+                Q(perfil_escola__escolas=escola)
+            ).distinct().first()
+        )
+        if not professor_reserva:
+            messages.error(request, "Erro: Professor não encontrado!")
+            return redirect('unico')
+
+    try:
+        equip_obj = get_object_or_404(
+            Equipamento.objects.select_for_update(),
+            id=equipamento_id,
+            escola=escola,
+        )
+    except Equipamento.DoesNotExist:
+        messages.error(request, "Equipamento não encontrado!")
+        return redirect('unico')
+
+    # Bloqueia só se o carrinho JÁ estiver reservado inteiro (reserva antiga, quantidade=None)
+    carrinho_inteiro_ocupado = Reserva.objects.filter(
+        escola=escola,
+        equipamento=equip_obj,
+        data_uso=data_reservae,
+        horario_inicio=horario_inicio_obj,
+        horario_fim=horario_fim_obj,
+        status__in=['confirmada', 'pendente'],
+        quantidade__isnull=True,
+    ).exists()
+
+    if carrinho_inteiro_ocupado:
+        messages.error(request, f"O carrinho '{equip_obj.nome}' já está reservado inteiro para este horário!")
+        return redirect(f"/Logar/?data={data_reserva_str}")
+
+    total_reservado = Reserva.objects.filter(
+        escola=escola,
+        equipamento=equip_obj,
+        data_uso=data_reservae,
+        horario_inicio=horario_inicio_obj,
+        horario_fim=horario_fim_obj,
+        status__in=['confirmada', 'pendente'],
+        quantidade__isnull=False,
+    ).aggregate(total=Sum('quantidade'))['total'] or 0
+
+    disponivel = equip_obj.quantidade_ativa() - total_reservado
+
+    if quantidade_solicitada > disponivel:
+        messages.error(
+            request,
+            f"Só há {disponivel} unidade(s) disponível(is) de '{equip_obj.nome}' nesse horário!"
+        )
+        return redirect("unico")
+    tem_numeracao = equip_obj.numero_inicial is not None and equip_obj.numero_final is not None
+    numeros_escolhidos = []
+
+    if tem_numeracao:
+        numeros_raw = [n.strip() for n in request.POST.getlist('numero') if n.strip()]
+
+        if len(numeros_raw) != quantidade_solicitada:
+            messages.error(
+                request,
+                f"Você pediu {quantidade_solicitada} unidade(s), mas informou {len(numeros_raw)} número(s) de notebook."
+            )
+            return redirect('unico')
+
+        try:
+            numeros_escolhidos = [int(n) for n in numeros_raw]
+        except ValueError:
+            messages.error(request, "Todos os números de notebook precisam ser válidos.")
+            return redirect('unico')
+
+        if len(set(numeros_escolhidos)) != len(numeros_escolhidos):
+            messages.error(request, "Você selecionou números de notebook repetidos.")
+            return redirect('unico')
+
+        faixa = equip_obj.faixa_numeros()
+        fora_da_faixa = [n for n in numeros_escolhidos if n not in faixa]
+        if fora_da_faixa:
+            messages.error(request, f"Os números {fora_da_faixa} não pertencem ao carrinho '{equip_obj.nome}'.")
+            return redirect('unico')
+
+        inativos = set(
+            Notebook.objects.filter(equipamento=equip_obj, numero__in=numeros_escolhidos, ativo=False)
+            .values_list('numero', flat=True)
+        )
+        if inativos:
+            messages.error(request, f"Os notebooks {sorted(inativos)} estão marcados como quebrados.")
+            return redirect('unico')
+
+        ja_usados = set(
+            NumeroReservaQuantidade.objects.filter(
+                reserva__escola=escola,
+                reserva__equipamento=equip_obj,
+                reserva__data_uso=data_reservae,
+                reserva__horario_inicio=horario_inicio_obj,
+                reserva__horario_fim=horario_fim_obj,
+                reserva__status__in=['confirmada', 'pendente'],
+                numero__in=numeros_escolhidos,
+            ).values_list('numero', flat=True)
+        )
+        if ja_usados:
+            messages.error(
+                request,
+                f"Os notebooks {sorted(ja_usados)} já foram informados em outra reserva deste horário."
+            )
+            return redirect('unico')
+
+    status_reserva = 'confirmada'
+    if _professor_requer_aprovacao(professor_reserva, escola=escola):
+        status_reserva = 'pendente'
+
+    nova_reserva = Reserva.objects.create(
+        escola=escola,
+        professor=professor_reserva,
+        equipamento=equip_obj,
+        sala=sala_obj,
+        horario_inicio=horario_inicio_obj,
+        horario_fim=horario_fim_obj,
+        data_uso=data_reservae,
+        status=status_reserva,
+        quantidade=quantidade_solicitada,
+    )
+
+    if numeros_escolhidos:
+        NumeroReservaQuantidade.objects.bulk_create([
+            NumeroReservaQuantidade(reserva=nova_reserva, numero=n) for n in numeros_escolhidos
+        ])
+        nova_reserva.numeracao_preenchida = True
+        nova_reserva.save(update_fields=['numeracao_preenchida'])
+
+    if status_reserva == 'pendente':
+        messages.warning(
+            request,
+            f"Reserva de {quantidade_solicitada} unidade(s) enviada! Aguardando aprovação de um administrador."
+        )
+        enviar_telegram(
+            f"📥 <b>Nova reserva pendente</b>\n"
+            f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
+            f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
+            f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
+            f"Equipamento: {equip_obj.nome}\n"
+            f"Sala: {sala_obj.nome}\n"
+            f"Quantidade: {quantidade_solicitada} unidade(s)"
+            + (f"\nNúmeros: {', '.join(map(str, numeros_escolhidos))}" if numeros_escolhidos else "")
+            , escola=escola
+        )
+    else:
+        messages.success(
+            request,
+            f"Reserva de {quantidade_solicitada} unidade(s) realizada com sucesso para {professor_reserva.username}!"
+        )
+        enviar_telegram(
+            f"📥 <b>RESERVA UNICA</b>\n"
+            f"Professor: {professor_reserva.get_full_name() or professor_reserva.username}\n"
+            f"Data: {data_reservae.strftime('%d/%m/%Y')}\n"
+            f"Horário: {horario_inicio_obj.strftime('%H:%M')} - {horario_fim_obj.strftime('%H:%M')}\n"
+            f"Equipamento: {equip_obj.nome}\n"
+            f"Sala: {sala_obj.nome}\n"
+            f"Quantidade: {quantidade_solicitada} unidade(s)"
+            + (f"\nNúmeros: {', '.join(map(str, numeros_escolhidos))}" if numeros_escolhidos else "")
+            , escola=escola
+        )
+
+    if tem_numeracao:
+        return redirect(f"/Logar/?data={data_reserva_str}")
+    else:
+        return redirect('preencher_numeracao_quantidade', reserva_id=nova_reserva.id)
+
+@login_required
+@transaction.atomic
+def preencher_numeracao_quantidade(request, reserva_id):
+    # Após reservar por quantidade, professor informa quais números de notebook específicos usará
+    escola = obter_escola_ativa(request)
+    reserva = get_object_or_404(Reserva, id=reserva_id, escola=escola)
+
+    if request.user != reserva.professor and not usuario_eh_admin(request.user):
+        messages.error(request, "Você não tem permissão para preencher esta numeração.")
+        return redirect('mural')
+
+    if reserva.quantidade is None:
+        messages.error(request, "Esta reserva não é do tipo quantidade específica.")
+        return redirect('mural')
+
+    equip = reserva.equipamento
+    if request.method == "POST":
+        equip = Equipamento.objects.select_for_update().get(pk=reserva.equipamento_id)
+        numeros_raw = [n.strip() for n in request.POST.getlist('numero') if n.strip()]
+
+        if len(numeros_raw) != reserva.quantidade:
+            messages.error(
+                request,
+                f"Você reservou {reserva.quantidade} unidade(s). Preencha exatamente {reserva.quantidade} número(s)."
+            )
+            return redirect('preencher_numeracao_quantidade', reserva_id=reserva.id)
+
+        try:
+            numeros = [int(n) for n in numeros_raw]
+        except ValueError:
+            messages.error(request, "Todos os números precisam ser válidos.")
+            return redirect('preencher_numeracao_quantidade', reserva_id=reserva.id)
+
+        if len(set(numeros)) != len(numeros):
+            messages.error(request, "Você digitou números repetidos.")
+            return redirect('preencher_numeracao_quantidade', reserva_id=reserva.id)
+
+        faixa = equip.faixa_numeros()
+        fora_da_faixa = [n for n in numeros if n not in faixa]
+        if fora_da_faixa:
+            messages.error(request, f"Os números {fora_da_faixa} não pertencem ao carrinho '{equip.nome}'.")
+            return redirect('preencher_numeracao_quantidade', reserva_id=reserva.id)
+
+        inativos = set(
+            Notebook.objects.filter(equipamento=equip, numero__in=numeros, ativo=False)
+            .values_list('numero', flat=True)
+        )
+        if inativos:
+            messages.error(request, f"Os notebooks {sorted(inativos)} estão marcados como quebrados.")
+            return redirect('preencher_numeracao_quantidade', reserva_id=reserva.id)
+
+        ja_usados = set(
+            NumeroReservaQuantidade.objects.filter(
+                reserva__escola=escola,
+                reserva__equipamento=equip,
+                reserva__data_uso=reserva.data_uso,
+                reserva__horario_inicio=reserva.horario_inicio,
+                reserva__horario_fim=reserva.horario_fim,
+                reserva__status__in=['confirmada', 'pendente'],
+                numero__in=numeros,
+            ).exclude(reserva=reserva).values_list('numero', flat=True)
+        )
+        if ja_usados:
+            messages.error(
+                request,
+                f"Os notebooks {sorted(ja_usados)} já foram informados em outra reserva deste horário."
+            )
+            return redirect('preencher_numeracao_quantidade', reserva_id=reserva.id)
+
+        NumeroReservaQuantidade.objects.filter(reserva=reserva).delete()
+        NumeroReservaQuantidade.objects.bulk_create([
+            NumeroReservaQuantidade(reserva=reserva, numero=n) for n in numeros
+        ])
+        reserva.numeracao_preenchida = True
+        reserva.save(update_fields=['numeracao_preenchida'])
+
+        messages.success(request, "Numeração salva com sucesso!")
+        return redirect(f"/Logar/?data={reserva.data_uso.strftime('%Y-%m-%d')}")
+
+    numeros_atuais = list(reserva.numeros_quantidade.values_list('numero', flat=True))
+
+    return render(request, 'preencher_numeracao.html', {
+        'reserva': reserva,
+        'numeros_atuais': numeros_atuais,
+        'range_quantidade': range(reserva.quantidade),
+    })

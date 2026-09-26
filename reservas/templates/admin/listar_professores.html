@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/superadmin.css' %}">
+    <title>PROATI 2026 - Professores</title>
+</head>
+<body>
+    <header class="topo-superadmin">
+        <div><h1>PROATI 2026</h1></div>
+        <div class="usuario-superadmin">
+            <span>{{ request.user.username }}</span>
+            <a href="{% url 'superadmin' %}">Voltar ao painel</a>
+            <form method="post" action="{% url \'sair\' %}" class="form-logout">{% csrf_token %}<button type="submit" >Sair</button></form>
+        </div>
+    </header>
+
+    <main class="superadmin-container">
+        <section class="cabecalho-pagina">
+            <div>
+                <h2>Professores</h2>
+                <p>Professores de escola única e de múltiplas escolas.</p>
+            </div>
+        </section>
+
+        <section class="painel">
+            <div class="painel-cabecalho">
+                <div><h2>{{ professores_unicos.count }} de escola única</h2></div>
+            </div>
+            <div class="tabela-wrapper">
+                <table class="tabela-escolas">
+                    <thead>
+                        <tr>
+                            <th>Professor</th>
+                            <th>E-mail</th>
+                            <th>Escola</th>
+                            <th>WhatsApp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prof in professores_unicos %}
+                        <tr>
+                            <td><strong>{{ prof.usuario.username }}</strong></td>
+                            <td>{{ prof.usuario.email|default:"-" }}</td>
+                            <td>{{ prof.escola.nome }}</td>
+                            <td>{{ prof.whatsapp|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="sem-registros">Nenhum professor de escola única.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="painel">
+            <div class="painel-cabecalho">
+                <div><h2>{{ professores_multiplos.count }} de múltiplas escolas</h2></div>
+            </div>
+            <div class="tabela-wrapper">
+                <table class="tabela-escolas">
+                    <thead>
+                        <tr>
+                            <th>Professor</th>
+                            <th>E-mail</th>
+                            <th>Escolas</th>
+                            <th>Escola ativa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for perfil in professores_multiplos %}
+                        <tr>
+                            <td><strong>{{ perfil.usuario.username }}</strong></td>
+                            <td>{{ perfil.usuario.email|default:"-" }}</td>
+                            <td>{% for e in perfil.escolas.all %}{{ e.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                            <td>{{ perfil.escola_ativa.nome|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="sem-registros">Nenhum professor multi-escola.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

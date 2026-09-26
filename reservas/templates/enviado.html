@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário Enviado</title>
+    <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+    <link rel="stylesheet" href="{% static 'css/enviado.css' %}">
+</head>
+<body>
+
+    <div class="monstro">
+        <img class="corpo" src="{% static 'img/corpo(2).png' %}">
+        <div class="ombro-esquerdo">
+            <img class="braco-esquerdo1" src="{% static 'img/braco-esquerdo1.png' %}">
+        </div>
+        <div class="ombro-direito">
+            <img class="braco-direito" src="{% static 'img/braco-direito.png' %}">
+        </div>
+    </div>
+
+    <div class="principal">
+        <div class="ok">✔</div>
+        <h1>Formulário enviado com sucesso!</h1>
+        <p>Suas informações foram registradas corretamente.</p>
+        <h2>Aguarde, a página vai atualizar sozinha em <span id="contador">30</span>s...</h2>
+    </div>
+
+<script>
+    const equipamentoId = "{{ id }}";
+    const reservaAtualId = "{{ reserva_id }}";
+    const URL_CARRINHO = "/tablet/" + equipamentoId + "/";
+
+    let jaRedirecionou = false;
+
+    function irParaCarrinho() {
+        if (jaRedirecionou) return;
+        jaRedirecionou = true;
+        window.location.href = URL_CARRINHO;
+    }
+
+    // 1) Verificação "inteligente": pergunta ao servidor se já mudou a reserva.
+    //    Se mudou, redireciona na hora (não precisa esperar os 30s todos).
+    function verificarProximaReserva() {
+        fetch(`/tablet/${equipamentoId}/status/?reserva_atual=${reservaAtualId}`)
+            .then(resposta => resposta.json())
+            .then(dados => {
+                if (dados.nova_reserva) {
+                    irParaCarrinho();
+                }
+            })
+            .catch(erro => console.error("Erro ao verificar próxima reserva:", erro));
+    }
+
+    const intervaloChecagem = setInterval(verificarProximaReserva, 15000);
+    
+    let segundosRestantes = 30;
+    const contadorEl = document.getElementById('contador');
+
+    const intervaloContador = setInterval(() => {
+        segundosRestantes--;
+        if (contadorEl) contadorEl.textContent = segundosRestantes;
+
+        if (segundosRestantes <= 0) {
+            clearInterval(intervaloContador);
+            clearInterval(intervaloChecagem);
+            irParaCarrinho();
+        }
+    }, 1000);
+</script>
+</body>
+</html>

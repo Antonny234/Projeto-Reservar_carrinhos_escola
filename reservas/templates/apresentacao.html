@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GTREP — reservas, inventário, fichas e notificações para equipamentos escolares.">
+  <title>GTREP — Reserva de equipamentos escolares</title>
+  <style>
+    :root {
+      --navy:#102a43; --navy-2:#173f67; --blue:#2563eb; --cyan:#0ea5e9;
+      --green:#16a34a; --bg:#f6f8fb; --card:#fff; --text:#1e293b; --muted:#64748b; --line:#e2e8f0;
+      --shadow:0 20px 55px rgba(15,23,42,.10); --radius:22px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg);line-height:1.55}
+    a{color:inherit}.wrap{width:min(1160px,92%);margin:auto}
+    .nav{position:sticky;top:0;z-index:20;background:rgba(16,42,67,.94);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)}
+    .nav-inner{height:68px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+    .brand{display:flex;align-items:center;gap:11px;color:white;text-decoration:none;font-weight:850;letter-spacing:.02em}
+    .brand-mark{width:36px;height:36px;border-radius:11px;background:#fff;color:var(--navy);display:grid;place-items:center;font-weight:900}
+    .nav-links{display:flex;gap:22px;list-style:none}.nav-links a{color:#dce9f5;text-decoration:none;font-size:14px;font-weight:650}.nav-links a:hover{color:white}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:800;border:1px solid transparent;cursor:pointer;transition:.2s ease}
+    .btn-primary{background:var(--green);color:#fff}.btn-primary:hover{filter:brightness(.94);transform:translateY(-1px)}
+    .btn-light{background:#fff;color:var(--navy)}.btn-light:hover{background:#edf2f7}
+    .btn-outline{background:transparent;color:white;border-color:rgba(255,255,255,.34)}.btn-outline:hover{background:rgba(255,255,255,.08)}
+    .hero{color:white;background:radial-gradient(circle at 80% 20%,rgba(14,165,233,.25),transparent 35%),linear-gradient(145deg,var(--navy),var(--navy-2));padding:88px 0 76px;overflow:hidden}
+    .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:42px;align-items:center}.pill{display:inline-flex;padding:7px 11px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.04em;margin-bottom:18px}
+    .hero h1{font-size:clamp(36px,5vw,63px);line-height:1.02;letter-spacing:-.045em;max-width:720px}.hero p{font-size:18px;color:#d9e6f3;max-width:650px;margin:20px 0 28px}.hero-actions{display:flex;flex-wrap:wrap;gap:11px}
+    .hero-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:24px;padding:22px;box-shadow:0 20px 65px rgba(0,0,0,.18)}
+    .hero-card h3{margin-bottom:14px;font-size:17px}.check-row{display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.1)}.check-row:last-child{border-bottom:0}.check{width:25px;height:25px;display:grid;place-items:center;border-radius:8px;background:rgba(22,163,74,.2);color:#86efac;flex:none}
+    .section{padding:72px 0}.section-white{background:#fff}.section-title{text-align:center;max-width:700px;margin:0 auto 38px}.section-title h2{color:var(--navy);font-size:clamp(28px,4vw,40px);letter-spacing:-.035em;margin-bottom:10px}.section-title p{color:var(--muted)}
+    .role-grid,.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.role-card,.feature-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:0 10px 28px rgba(15,23,42,.05)}
+    .role-icon,.feature-icon{width:46px;height:46px;border-radius:14px;background:#eef4ff;display:grid;place-items:center;font-size:21px;margin-bottom:16px}.role-card h3,.feature-card h3{color:var(--navy);margin-bottom:7px}.role-card p,.feature-card p{color:var(--muted);font-size:14px}
+    .mural-shell{display:grid;grid-template-columns:.8fr 1.2fr;gap:22px;align-items:start}.mural-copy{background:linear-gradient(145deg,#0f2b46,#173f67);color:white;border-radius:24px;padding:28px}.mural-copy h2{font-size:34px;line-height:1.08;margin-bottom:11px}.mural-copy p{color:#d7e3ee;margin-bottom:20px}
+    .search-box{background:white;border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:var(--shadow)}.search-box label{display:block;font-size:13px;font-weight:800;color:#334155;margin-bottom:7px}.search-input{width:100%;height:48px;border:1px solid #cbd5e1;border-radius:12px;padding:0 14px;font:inherit;outline:none}.search-input:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(37,99,235,.10)}.school-list{margin-top:12px;display:grid;gap:8px;max-height:330px;overflow:auto}.school-link{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;text-decoration:none;background:#fff}.school-link:hover{border-color:#bfdbfe;background:#f8fbff}.school-name{font-weight:800;color:#1e293b}.school-city{display:block;font-size:12px;color:var(--muted);margin-top:2px}.empty{padding:20px;text-align:center;color:var(--muted);background:#f8fafc;border-radius:12px}
+    .cta{padding:70px 0}.cta-box{border-radius:26px;padding:40px;background:linear-gradient(135deg,#0f2b46,#1c4d7f);color:white;display:flex;justify-content:space-between;align-items:center;gap:24px;box-shadow:var(--shadow)}.cta-box h2{font-size:clamp(25px,4vw,37px);letter-spacing:-.03em}.cta-box p{color:#d6e3ef;margin-top:6px}
+    footer{background:#0b2035;color:#9eb0c2;padding:26px 0;text-align:center;font-size:13px}.footer-links{display:flex;justify-content:center;gap:18px;margin-top:7px}.footer-links a{color:#dbe7f1;text-decoration:none}
+    @media(max-width:860px){.hero-grid,.mural-shell{grid-template-columns:1fr}.role-grid,.feature-grid{grid-template-columns:1fr 1fr}.nav-links{display:none}.hero{padding-top:66px}.cta-box{flex-direction:column;align-items:flex-start}}
+    @media(max-width:560px){.wrap{width:min(94%,1160px)}.role-grid,.feature-grid{grid-template-columns:1fr}.section{padding:54px 0}.hero h1{font-size:41px}.hero p{font-size:16px}.nav-inner{height:62px}.btn{width:100%}.hero-actions{display:grid;grid-template-columns:1fr}.cta-box{padding:28px}}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="{% url 'home' %}"><span class="brand-mark">G</span><span>GTREP</span></a>
+      <ul class="nav-links" aria-label="Navegação principal">
+        <li><a href="#para-quem">Para quem</a></li>
+        <li><a href="#recursos">Recursos</a></li>
+        <li><a href="#mural-publico">Mural público</a></li>
+      </ul>
+      <a class="btn btn-primary" href="{% url 'longa' %}">Entrar no sistema</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="pill">GESTÃO ESCOLAR DE EQUIPAMENTOS</span>
+        <h1>Menos planilha. Mais controle sobre os carrinhos.</h1>
+        <p>Reserve carrinhos de tablets e notebooks, acompanhe disponibilidade, registre fichas, cuide do inventário e receba alertas da sua escola no Telegram.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#mural-publico">Consultar mural público</a>
+          <a class="btn btn-outline" href="{% url 'index' %}">Criar conta</a>
+        </div>
+      </div>
+      <div class="hero-card" aria-label="Resumo das funções">
+        <h3>O fluxo que a equipe usa no dia a dia</h3>
+        <div class="check-row"><span class="check">✓</span><div><strong>Professor reserva</strong><div>Data, horário, sala e equipamento.</div></div></div>
+        <div class="check-row"><span class="check">✓</span><div><strong>Admin acompanha</strong><div>Aprovação, disponibilidade e problemas.</div></div></div>
+        <div class="check-row"><span class="check">✓</span><div><strong>Equipe recebe alertas</strong><div>Reservas e ocorrências podem chegar no Telegram da escola.</div></div></div>
+        <div class="check-row"><span class="check">✓</span><div><strong>Uso fica registrado</strong><div>Fichas e numeração ajudam no controle do patrimônio.</div></div></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="section" id="para-quem">
+    <div class="wrap">
+      <div class="section-title"><h2>Uma experiência para cada papel</h2><p>O sistema separa o que cada pessoa precisa ver, sem complicar o trabalho da escola.</p></div>
+      <div class="role-grid">
+        <article class="role-card"><div class="role-icon">👩‍🏫</div><h3>Professor</h3><p>Encontre horários livres, reserve equipamentos e acompanhe suas reservas sem depender de planilhas compartilhadas.</p></article>
+        <article class="role-card"><div class="role-icon">🛠️</div><h3>Admin da escola</h3><p>Gerencie inventário, aprovação, notebooks quebrados, fichas, horários, reservas fixas e notificações.</p></article>
+        <article class="role-card"><div class="role-icon">🏫</div><h3>Gestão</h3><p>Tenha visibilidade sobre uso, demandas e ocorrências da escola com painéis e exportações.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-white" id="recursos">
+    <div class="wrap">
+      <div class="section-title"><h2>Recursos que trabalham juntos</h2><p>O GTREP cobre o ciclo inteiro: reserva, operação, conferência e acompanhamento.</p></div>
+      <div class="feature-grid">
+        <article class="feature-card"><div class="feature-icon">📅</div><h3>Reservas sem conflito</h3><p>Horários, salas, carrinhos e regras de disponibilidade organizados em um fluxo único.</p></article>
+        <article class="feature-card"><div class="feature-icon">📋</div><h3>Mural público</h3><p>Consulta rápida por escola para reduzir dúvidas sobre uso e agenda.</p></article>
+        <article class="feature-card"><div class="feature-icon">📦</div><h3>Inventário</h3><p>Grupos, equipamentos, numeração, transferências e status organizados.</p></article>
+        <article class="feature-card"><div class="feature-icon">🔧</div><h3>Ocorrências</h3><p>Registre notebooks quebrados e divergências de carrinho com rastreabilidade.</p></article>
+        <article class="feature-card"><div class="feature-icon">✅</div><h3>Aprovação</h3><p>Defina quando reservas entram direto ou precisam de análise do administrador.</p></article>
+        <article class="feature-card"><div class="feature-icon">📲</div><h3>Telegram por escola</h3><p>Cada escola pode conectar seu próprio bot e vários chats para receber alertas.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="mural-publico">
+    <div class="wrap mural-shell">
+      <div class="mural-copy">
+        <h2>Consulte o mural da sua escola</h2>
+        <p>Escolha uma escola para consultar as reservas públicas. Não é necessário entrar no sistema.</p>
+        <a class="btn btn-light" href="{% url 'longa' %}">Sou professor ou administrador</a>
+      </div>
+      <div class="search-box">
+        <label for="busca-escola">Pesquisar escola</label>
+        <input id="busca-escola" class="search-input" type="search" placeholder="Digite o nome ou a cidade" autocomplete="off">
+        <div id="school-list" class="school-list">
+          {% for escola in escolas %}
+            <a class="school-link" href="{% url 'mural_consulta' escola.id %}" data-search="{{ escola.nome|lower }} {% if escola.cidade %}{{ escola.cidade|lower }}{% endif %}">
+              <div><span class="school-name">{{ escola.nome }}</span>{% if escola.cidade %}<span class="school-city">{{ escola.cidade }}</span>{% endif %}</div><span aria-hidden="true">→</span>
+            </a>
+          {% empty %}
+            <div class="empty">Nenhuma escola cadastrada no momento.</div>
+          {% endfor %}
+        </div>
+        <div id="school-empty" class="empty" hidden>Nenhuma escola encontrada para essa busca.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap cta">
+    <div class="cta-box">
+      <div><h2>Pronto para usar?</h2><p>Entre no sistema para reservar ou administrar os equipamentos da sua escola.</p></div>
+      <a class="btn btn-primary" href="{% url 'longa' %}">Entrar agora →</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap"><strong>GTREP</strong> — Reserva e gestão de equipamentos escolares<div class="footer-links"><a href="{% url 'longa' %}">Entrar</a><a href="{% url 'index' %}">Criar conta</a></div></div>
+  </footer>
+
+  <script>
+    const input = document.getElementById('busca-escola');
+    const items = [...document.querySelectorAll('.school-link')];
+    const empty = document.getElementById('school-empty');
+    const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    input?.addEventListener('input', () => {
+      const term = normalize(input.value.trim());
+      let visible = 0;
+      items.forEach(item => {
+        const show = !term || normalize(item.dataset.search || '').includes(term);
+        item.hidden = !show;
+        if (show) visible++;
+      });
+      empty.hidden = visible !== 0 || !items.length;
+    });
+  </script>
+</body>
+</html>
