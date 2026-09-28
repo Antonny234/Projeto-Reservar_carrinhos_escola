@@ -18,6 +18,7 @@ from ..models import (
     HorarioAula,BloqueioEquipamento,Escola
 )
 from ..forms import ReservaForm
+from ..login_security import estado_bloqueio
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.password_validation import validate_password
@@ -171,14 +172,27 @@ def CriarConta(request):
 def Entrar(request):
     # Login: valida credenciais e redireciona pendências de confirmação de cadastro
     if request.method == "POST":
-        usuario_digitado = request.POST.get('usuario').strip()
+        usuario_digitado = request.POST.get('usuario', '').strip()
         senha_digitada = request.POST.get('senha', "")
+
+        if not usuario_digitado or not senha_digitada:
+            messages.error(request, "Informe usuário e senha.")
+            return render(request, 'longa.html', {'escolas': Escola.objects.order_by('nome')})
 
         user_obj = User.objects.filter(username=usuario_digitado).first()
 
         if not user_obj:
-            messages.error(request, "Usuário não encontrado!")
+            messages.error(request, "Usuário ou senha inválidos.")
             return render(request, 'longa.html', {'escolas': Escola.objects.order_by('nome')})
+
+        bloqueio = estado_bloqueio(user_obj)
+        if bloqueio and bloqueio.bloqueada:
+            messages.error(request, "Conta bloqueada. Redefina sua senha para desbloquear o acesso.")
+            return render(request, 'longa.html', {
+                'escolas': Escola.objects.order_by('nome'),
+                'conta_bloqueada': True,
+                'email_bloqueio_enviado_em': bloqueio.email_bloqueio_enviado_em,
+            })
 
         if not user_obj.is_active:
             messages.error(request, "Você ainda não confirmou seu cadastro pelo e-mail.")
@@ -188,9 +202,24 @@ def Entrar(request):
         user = authenticate(request, username=usuario_digitado, password=senha_digitada)
 
         if user is None:
-            messages.error(request, "Senha incorreta!")
-            return render(request, 'longa.html', {'escolas': Escola.objects.order_by('nome')})
+            contexto = {'escolas': Escola.objects.order_by('nome')}
+            bloqueio = estado_bloqueio(user_obj)
+            if bloqueio and bloqueio.bloqueada:
+                if getattr(request, 'login_lock_email_sent_at', None):
+                    messages.error(request, "Conta bloqueada após 5 tentativas consecutivas. Enviamos o link de recuperação por e-mail.")
+                    contexto['email_bloqueio_enviado_em'] = request.login_lock_email_sent_at
+                elif getattr(request, 'login_lock_email_failed', False):
+                    messages.error(request, "Conta bloqueada após 5 tentativas consecutivas. Não foi possível enviar o e-mail; use o botão para solicitar a redefinição.")
+                    contexto['email_bloqueio_enviado_em'] = bloqueio.email_bloqueio_enviado_em
+                else:
+                    messages.error(request, "Conta bloqueada. Redefina sua senha para desbloquear o acesso.")
+                    contexto['email_bloqueio_enviado_em'] = bloqueio.email_bloqueio_enviado_em
+                contexto['conta_bloqueada'] = True
+            else:
+                messages.error(request, "Usuário ou senha inválidos.")
+            return render(request, 'longa.html', contexto)
 
+        zerar_falhas_login(user)
         login(request, user)
         # Superadmin vai para o painel exclusivo do sistema
         if user.is_superuser:
@@ -1244,14 +1273,35 @@ def login_ajax(request):
     if not username or not password:
         return JsonResponse({'success': False, 'error': 'Preencha usuário e senha.'}, status=400)
 
+    usuario = User.objects.filter(username=username).first()
+    if usuario:
+        bloqueio = estado_bloqueio(usuario)
+        if bloqueio and bloqueio.bloqueada:
+            return JsonResponse({
+                'success': False,
+                'locked': True,
+                'error': 'Conta bloqueada. Redefina sua senha para desbloquear o acesso.',
+                'reset_url': reverse('redefinir_senha_usuario'),
+                'email_sent_at': timezone.localtime(bloqueio.email_bloqueio_enviado_em).isoformat() if bloqueio.email_bloqueio_enviado_em else None,
+            }, status=423)
+
     user = authenticate(request, username=username, password=password)
 
     if user is not None:
         login(request, user)
         return JsonResponse({'success': True})
     else:
+        if getattr(request, 'login_account_locked', False):
+            horario = getattr(request, 'login_lock_email_sent_at', None)
+            return JsonResponse({
+                'success': False,
+                'locked': True,
+                'error': 'Conta bloqueada após 5 tentativas consecutivas. Redefina sua senha para desbloquear o acesso.',
+                'reset_url': reverse('redefinir_senha_usuario'),
+                'email_sent_at': horario.isoformat() if horario else None,
+            }, status=423)
         return JsonResponse(
-            {'success': False, 'error': 'Usuário ou senha inválidos, ou conta não cadastrada.'},
+            {'success': False, 'error': 'Usuário ou senha inválidos.'},
             status=401
         )
 

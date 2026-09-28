@@ -6,8 +6,12 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 from ..whatsapp_utils import enviar_link_redefinicao, EmailError
+from ..models import BloqueioLogin
+from ..login_security import enviar_email_bloqueio
 
 def redefinir_senha_usuario(request):
     """Etapa 1 — digita o usuário e envia o link por e-mail."""
@@ -28,12 +32,14 @@ def redefinir_senha_usuario(request):
             messages.error(request, "Esta conta não possui e-mail cadastrado.")
             return render(request, 'redefinir_senha_usuario.html')
 
+        bloqueio = BloqueioLogin.objects.filter(usuario=user, bloqueada=True).first()
         try:
-            enviar_link_redefinicao(request, user)
-            messages.success(
-                request,
-                "Enviamos um link de redefinição para o e-mail cadastrado. Verifique sua caixa de entrada."
-            )
+            if bloqueio:
+                horario = enviar_email_bloqueio(request, user)
+                messages.success(request, f"Conta bloqueada. Enviamos o e-mail de recuperação às {horario.strftime('%H:%M')}.")
+            else:
+                enviar_link_redefinicao(request, user)
+                messages.success(request, "Enviamos um link de redefinição para o e-mail cadastrado. Verifique sua caixa de entrada.")
         except EmailError as e:
             messages.error(request, str(e))
             return render(request, 'redefinir_senha_usuario.html')
@@ -67,12 +73,19 @@ def redefinir_senha_confirmar(request, uidb64, token):
             messages.error(request, "As senhas não coincidem!")
             return render(request, 'redefinir_senha_nova.html', {'uidb64': uidb64, 'token': token})
 
-        if len(senha) < 8:
-            messages.error(request, "A senha deve ter pelo menos 8 caracteres.")
+        try:
+            validate_password(senha, user)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
             return render(request, 'redefinir_senha_nova.html', {'uidb64': uidb64, 'token': token})
 
         user.set_password(senha)
         user.save()
+        BloqueioLogin.objects.filter(usuario=user).update(
+            tentativas_consecutivas=0,
+            bloqueada=False,
+            email_bloqueio_enviado_em=None,
+        )
 
         messages.success(request, "Senha redefinida com sucesso! Faça login.")
         return redirect('longa')

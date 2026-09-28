@@ -25,9 +25,16 @@
         </div>
 
         <button type="submit" class="login-btn">Entrar</button>
+        {% if conta_bloqueada %}
+        <p role="alert" style="text-align:center;color:#b42318;font-weight:bold;">
+            Conta bloqueada. É necessário redefinir sua senha para desbloquear o acesso.
+            {% if email_bloqueio_enviado_em %}<br>E-mail enviado às {{ email_bloqueio_enviado_em|date:'H:i' }}.{% endif %}
+        </p>
+        <a class="login-btn" style="display:block;text-align:center;text-decoration:none;" href="{% url 'redefinir_senha_usuario' %}">Desbloquear alterando minha senha</a>
+        {% endif %}
         
         <div class="footer">
-            <p><a href="{% url 'redefinir_senha_usuario' %}">Esqueci minha senha</a></p>
+            <p><a href="{% url 'redefinir_senha_usuario' %}">{% if conta_bloqueada %}Solicitar novo e-mail de desbloqueio{% else %}Esqueci minha senha{% endif %}</a></p>
             <p>Não tem conta? <a href="{% url 'index' %}">Criar conta</a></p>
             <a href="{% url 'escolher_carrinho' %}" class="btn-pin" style="text-decoration:none;">Fichas dos Carrinhos</a>
         </div>

@@ -29,7 +29,8 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 copy .env.example .env  # Windows
 # cp .env.example .env  # Linux/macOS
-# Para desenvolvimento local, use DJANGO_DEBUG=True no .env.
+# Para desenvolvimento local, use DJANGO_DEBUG=True no .env; sem configuração,
+# o projeto assume modo seguro (DEBUG=False).
 python manage.py migrate
 python manage.py check
 python manage.py runserver

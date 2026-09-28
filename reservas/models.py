@@ -588,6 +588,20 @@ class TelegramDestino(models.Model):
         return f'{self.nome or self.chat_id} — {self.bot.escola.nome}'
 
 
+class BloqueioLogin(models.Model):
+    """Contagem de falhas consecutivas e bloqueio por conta de usuário."""
+    usuario = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name='bloqueio_login'
+    )
+    tentativas_consecutivas = models.PositiveSmallIntegerField(default=0)
+    bloqueada = models.BooleanField(default=False)
+    email_bloqueio_enviado_em = models.DateTimeField(null=True, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.usuario.username} — bloqueada: {self.bloqueada}'
+
+
 class TelegramPareamento(models.Model):
     """Código temporário usado para vincular um chat ao bot da escola."""
     bot = models.ForeignKey(
