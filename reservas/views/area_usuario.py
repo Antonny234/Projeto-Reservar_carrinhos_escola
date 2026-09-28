@@ -615,13 +615,15 @@ def mural(request):
             'equipamento'
         ).order_by('data_criacao')
 
-    tem_pin = bool(PerfilAdm.objects.filter(usuario=request.user, escola=escola).exclude(pin_envio__isnull=True).exclude(pin_envio='').exists())
+    tem_pin = bool(PerfilProfessor.objects.filter(usuario=request.user, escola=escola).exclude(pin_envio__isnull=True).exclude(pin_envio='').exists())
+    if not tem_pin:
+        tem_pin = bool(PerfilProfessorEscola.objects.filter(usuario=request.user, escolas=escola).exclude(pin_envio__isnull=True).exclude(pin_envio='').exists())
     if not tem_pin:
         tem_pin = bool(
-            PerfilAdmEscola.objects.filter(usuario=request.user, escolas=escola)
-            .exclude(pin_envio__isnull=True)
-            .exclude(pin_envio='')
-            .exists()
+            PerfilAdm.objects.filter(usuario=request.user, escola=escola)
+            .exclude(pin_envio__isnull=True).exclude(pin_envio='').exists()
+            or PerfilAdmEscola.objects.filter(usuario=request.user, escolas=escola)
+            .exclude(pin_envio__isnull=True).exclude(pin_envio='').exists()
         )
 
     return render(request, 'mural.html', {
@@ -968,7 +970,7 @@ def criar_pin(request):
             messages.error(request, "O PIN deve ter exatamente 4 dígitos numéricos.")
             return redirect('mural')
 
-        perfil = PerfilAdm.objects.filter(
+        perfil = PerfilProfessor.objects.filter(
             usuario=request.user,
             escola=escola
         ).first()
@@ -977,14 +979,14 @@ def criar_pin(request):
             perfil.pin_envio = make_password(pin)
             perfil.save(update_fields=['pin_envio'])
         else:
-            perfil_multi = PerfilAdmEscola.objects.filter(
+            perfil_multi = PerfilProfessorEscola.objects.filter(
                 usuario=request.user,
                 escolas=escola,
             ).first()
             if perfil_multi is None:
                 messages.error(
                     request,
-                    "Não existe perfil de administrador para esta escola."
+                    "Não existe perfil de professor vinculado a esta escola."
                 )
                 return redirect('mural')
             perfil_multi.pin_envio = make_password(pin)
@@ -1376,18 +1378,22 @@ def view_tablet(request, equipamento_id):
         professor = reserva.professor
 
         pin_correto = (
-            PerfilAdm.objects.filter(
+            PerfilProfessor.objects.filter(
                 usuario=professor,
                 escola=reserva.escola,
             ).values_list('pin_envio', flat=True).first()
         )
         if not pin_correto:
             pin_correto = (
-                PerfilAdmEscola.objects.filter(
+                PerfilProfessorEscola.objects.filter(
                     usuario=professor,
                     escolas=reserva.escola,
                 ).values_list('pin_envio', flat=True).first()
             )
+        if not pin_correto:
+            pin_correto = PerfilAdm.objects.filter(usuario=professor, escola=reserva.escola).values_list('pin_envio', flat=True).first()
+        if not pin_correto:
+            pin_correto = PerfilAdmEscola.objects.filter(usuario=professor, escolas=reserva.escola).values_list('pin_envio', flat=True).first()
 
         if not pin_correto:
             messages.error(request, "Professor não possui PIN cadastrado. Crie um PIN no mural primeiro.")

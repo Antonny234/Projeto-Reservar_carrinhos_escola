@@ -266,8 +266,10 @@ class CadastroLoteEquipamentosForm(forms.Form):
                 )
             registro = {}
             for campo, valor in zip(self.campos_configurados, valores):
-                if not valor:
+                if not valor and campo['tipo'] != 'numero':
                     raise forms.ValidationError(f'Linha {numero_linha}: "{campo["nome"]}" é obrigatório.')
+                if not valor and campo['tipo'] == 'numero':
+                    valor = '0'
                 if campo['tipo'] == 'numero' and not valor.isdigit():
                     raise forms.ValidationError(f'Linha {numero_linha}: "{campo["nome"]}" aceita somente números.')
                 if campo['tipo'] == 'texto' and any(caractere.isdigit() for caractere in valor):
@@ -334,13 +336,15 @@ def dados_para_campos_nativos(dados, padroes=None):
     padroes = padroes or {}
     valores = {
         'identificador': padroes.get('identificador', ''),
-        'numero_patrimonio': padroes.get('numero_patrimonio', f'item-{uuid.uuid4().hex}'),
-        'numero_serie': padroes.get('numero_serie', f'item-{uuid.uuid4().hex}'),
+        'numero_patrimonio': padroes.get('numero_patrimonio') or f'item-{uuid.uuid4().hex}',
+        'numero_serie': padroes.get('numero_serie') or f'item-{uuid.uuid4().hex}',
         'localizacao_atual': padroes.get('localizacao_atual', ''),
     }
     for nome, valor in dados.items():
         campo = campo_nativo_do_inventario(nome)
         if campo:
+            if campo in {'numero_patrimonio', 'numero_serie'} and str(valor).strip() == '0':
+                continue
             valores[campo] = valor
     return valores
 

@@ -30,6 +30,7 @@ class PerfilProfessor(models.Model):
         help_text="Formato: DDD + número, ex: 11999998888"
     )
     cargo = models.CharField('Função', max_length=100, default='Professor')
+    pin_envio = models.CharField("PIN de envio", max_length=128, blank=True, null=True)
 
     def __str__(self):
         return f"{self.usuario.username} - {self.whatsapp} ({self.escola.nome})"
@@ -56,6 +57,7 @@ class PerfilProfessorEscola(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     cargo = models.CharField('Função', max_length=100, default='Professor')
+    pin_envio = models.CharField("PIN de envio", max_length=128, blank=True, null=True)
 
     class Meta:
         verbose_name = 'Perfil Escola do Professor'
