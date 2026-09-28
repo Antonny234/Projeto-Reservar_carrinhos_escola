@@ -15,6 +15,10 @@ class EscolaMiddleware(MiddlewareMixin):
         if not request.user.is_authenticated:
             return
 
+        if request.user.is_superuser:
+            request.escola_ativa = Escola.objects.first()
+            return
+
         # ==========================================================
         # 1. ADMINISTRADOR DE UMA ESCOLA ESPECÍFICA
         # ==========================================================
@@ -33,12 +37,15 @@ class EscolaMiddleware(MiddlewareMixin):
         # ==========================================================
         if hasattr(request.user, 'perfil_adm_escola'):
             perfil = request.user.perfil_adm_escola
-            request.perfil = perfil
-            if not perfil.escola_ativa_id:
-                perfil.escola_ativa = perfil.escolas.first()
-                perfil.save(update_fields=['escola_ativa'])
-            request.escola_ativa = perfil.escola_ativa
-            return
+            escola_ativa = perfil.escolas.filter(pk=perfil.escola_ativa_id).first() if perfil.escola_ativa_id else None
+            escola_ativa = escola_ativa or perfil.escolas.first()
+            if escola_ativa:
+                request.perfil = perfil
+                if perfil.escola_ativa_id != escola_ativa.id:
+                    perfil.escola_ativa = escola_ativa
+                    perfil.save(update_fields=['escola_ativa'])
+                request.escola_ativa = escola_ativa
+                return
 
         if hasattr(request.user, 'perfil_escola'):
 
@@ -46,7 +53,7 @@ class EscolaMiddleware(MiddlewareMixin):
             request.perfil = perfil
 
             # Já existe uma escola ativa
-            if perfil.escola_ativa:
+            if perfil.escola_ativa_id and perfil.escolas.filter(pk=perfil.escola_ativa_id).exists():
 
                 request.escola_ativa = perfil.escola_ativa
 

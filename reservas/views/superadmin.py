@@ -214,11 +214,14 @@ def gerenciar_escola(request, escola_id):
     if request.method == 'POST' and request.POST.get('acao') == 'remover_professor_multiplo':
         perfil_id = request.POST.get('perfil_id')
         perfil = get_object_or_404(PerfilProfessorEscola, id=perfil_id)
+        nome_usuario = perfil.usuario.username
         perfil.escolas.remove(escola)
         if perfil.escola_ativa_id == escola.id:
             perfil.escola_ativa = perfil.escolas.first()
             perfil.save(update_fields=['escola_ativa'])
-        messages.success(request, f"✓ '{perfil.usuario.username}' desvinculado desta escola.")
+        if not perfil.escolas.exists():
+            perfil.delete()
+        messages.success(request, f"✓ '{nome_usuario}' desvinculado desta escola.")
         return redirect('gerenciar_escola', escola_id=escola.id)
 
     administradores = escola.administradores.select_related('usuario').all()

@@ -406,7 +406,14 @@ def mural(request):
     agora = timezone.localtime(timezone.now())
     hoje = agora.date()
     hora_atual = agora.time()
-    escola = obter_escola_ativa(request)
+    if not getattr(request, 'escola_ativa', None):
+        logout(request)
+        messages.error(
+            request,
+            "Sua conta não está vinculada a uma escola ativa. Peça ao administrador para revisar seu vínculo e tente entrar novamente."
+        )
+        return redirect('longa')
+    escola = request.escola_ativa
 
     data_param = request.GET.get('data')
     data_selecionada = data_param if data_param else hoje.strftime('%Y-%m-%d')
