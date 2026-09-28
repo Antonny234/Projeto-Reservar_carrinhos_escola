@@ -216,10 +216,15 @@ def Entrar(request):
                     contexto['email_bloqueio_enviado_em'] = bloqueio.email_bloqueio_enviado_em
                 contexto['conta_bloqueada'] = True
             else:
-                messages.error(request, "Usuário ou senha inválidos.")
+                tentativas_restantes = max(
+                    0, 5 - (bloqueio.tentativas_consecutivas if bloqueio else 0)
+                )
+                messages.error(
+                    request,
+                    f"Senha incorreta. Você tem {tentativas_restantes} de 5 tentativas restantes antes do bloqueio."
+                )
             return render(request, 'longa.html', contexto)
 
-        zerar_falhas_login(user)
         login(request, user)
         # Superadmin vai para o painel exclusivo do sistema
         if user.is_superuser:
@@ -1300,6 +1305,14 @@ def login_ajax(request):
                 'reset_url': reverse('redefinir_senha_usuario'),
                 'email_sent_at': horario.isoformat() if horario else None,
             }, status=423)
+        if usuario:
+            bloqueio = estado_bloqueio(usuario)
+            restantes = max(0, 5 - (bloqueio.tentativas_consecutivas if bloqueio else 0))
+            return JsonResponse({
+                'success': False,
+                'error': f'Senha incorreta. Você tem {restantes} de 5 tentativas restantes antes do bloqueio.',
+                'remaining_attempts': restantes,
+            }, status=401)
         return JsonResponse(
             {'success': False, 'error': 'Usuário ou senha inválidos.'},
             status=401
