@@ -21,8 +21,8 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
     return values or list(default or [])
 
 
-DEBUG = env_bool("DJANGO_DEBUG", False)
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+DEBUG = env_bool("DJANGO_DEBUG", env_bool("DEBUG", True))
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     if DEBUG:
         SECRET_KEY = get_random_secret_key()
@@ -41,6 +41,8 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", DEFAULT_ALLOWED_HOSTS)
 
 # Integração Telegram multi-escola. Cada escola armazena seu token cifrado no banco.
 TELEGRAM_ENCRYPTION_KEY = os.environ.get("TELEGRAM_ENCRYPTION_KEY", "")
+# URL pública canônica da aplicação, útil quando o proxy altera host ou protocolo.
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "verificacao@gtrep.com.br")
 
 INSTALLED_APPS = [

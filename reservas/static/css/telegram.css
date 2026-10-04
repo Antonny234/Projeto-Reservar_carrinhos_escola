@@ -33,6 +33,7 @@
 .help, .mini-note, .info-box p { font-size:12px; }
 .btn-primary, .btn-secondary, .btn-telegram, .btn-danger { border:0; border-radius:10px; padding:11px 16px; font:inherit; font-weight:800; cursor:pointer; text-decoration:none; display:inline-flex; justify-content:center; align-items:center; }
 .btn-primary { background:var(--tg-blue); color:#fff; } .btn-secondary { background:#fff; color:var(--tg-navy); border:1px solid #cbd5e1; }
+.btn-primary:disabled { opacity:.55; cursor:not-allowed; }
 .btn-telegram { background:#229ed9; color:#fff; } .btn-danger { background:#fff; color:var(--tg-red); border:1px solid #f1b4ae; }
 .info-box { background:#f8fbff; border:1px solid #dbeafe; border-radius:13px; padding:16px; margin-top:18px; font-size:13px; }
 .info-box ol { margin:8px 0 8px 18px; color:#475569; } .info-box a { color:var(--tg-blue); font-weight:700; }

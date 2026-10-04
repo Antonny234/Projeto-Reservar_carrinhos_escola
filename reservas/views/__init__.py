@@ -20,6 +20,7 @@ from .are_admin import (
     pendentes_numeracao, painel_reservas_quantidade, menu_ajax, aprovar_reserva,
     recusar_reserva, reserva_fixas_web, lista_reservas_fixas, excluir_reserva_fixa,
     analise_sistema,
+    buscar_uso_equipamento,
 )
 from .inventario import (
     inventario_lista, configurar_campos_inventario, grupo_equipamentos,

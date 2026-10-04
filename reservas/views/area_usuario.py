@@ -87,7 +87,7 @@ def _horario_existe(horario_inicio, horario_fim, escola):
 
 def home(request):
     escolas = Escola.objects.only('id', 'nome', 'cidade').order_by('nome')
-    return render(request, 'apresentacao.html', {'escolas': escolas})
+    return render(request, 'home.html', {'escolas': escolas})
 
 def CriarConta(request):
     """Cadastro de professor: valida e-mail, cria usuário e permite múltiplas escolas.

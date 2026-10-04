@@ -43,6 +43,7 @@ urlpatterns = [
     path('verificar-carrinho/atualizar-faixa/', views.atualizar_faixa_numeracao, name='atualizar_faixa_numeracao'),
     #painel de reservas
     path('painel-reservas/', views.painel_reservas_dia, name='painel_reservas_dia'),
+    path('painel/equipamentos/uso/', views.buscar_uso_equipamento, name='buscar_uso_equipamento'),
     #numeração dos notebooks
     path('ajax/numeros-disponiveis/', views.numeros_disponiveis, name='numeros_disponiveis'),
     path('unico/', views.pagina_unico, name='unico'),

@@ -3,6 +3,12 @@
     {% include 'partials/selector_escola.html' %}
 </div>
 <nav class="sidebar-nav">
+        <div class="sidebar-section">Consulta</div>
+        <form class="equipment-search" action="{% url 'buscar_uso_equipamento' %}" method="get">
+            <label for="menu-equipment-number">Uso do equipamento</label>
+            <input id="menu-equipment-number" name="numero" type="number" min="1" inputmode="numeric" placeholder="Nº do notebook" required>
+            <button type="submit">Pesquisar</button>
+        </form>
         <div class="sidebar-section">Visualização</div>
         <a href="{% url 'mural' %}" class="sidebar-link {% if request.resolver_match.url_name == 'mural' %}ativo{% endif %}">
             <span class="icone"></span> Mural

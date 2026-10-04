@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -12,7 +12,7 @@ import re
 from collections import defaultdict
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.db.models.functions import ExtractWeekDay
 from ..decorators import admin_escola_required
 from ..utils import obter_escola_ativa
@@ -43,6 +43,95 @@ def _adicionar_numero_horario(reservas, escola):
             (reserva.horario_inicio, reserva.horario_fim)
         )
     return reservas
+
+
+@login_required
+@admin_escola_required
+@require_GET
+def buscar_uso_equipamento(request):
+    """Consulta reservas e fichas de um notebook dentro da escola ativa."""
+    escola = obter_escola_ativa(request)
+    numero_texto = request.GET.get('numero', '').strip()
+    data_texto = request.GET.get('data', '').strip()
+    data_busca = timezone.localdate()
+    mensagem = ''
+    equipamentos = []
+    reservas = []
+
+    if data_texto:
+        try:
+            data_busca = date.fromisoformat(data_texto)
+        except ValueError:
+            mensagem = 'Informe uma data válida.'
+
+    numero = None
+    if numero_texto:
+        if not numero_texto.isdecimal() or len(numero_texto) > 9:
+            mensagem = 'Informe um número de notebook válido.'
+        else:
+            numero = int(numero_texto)
+            if numero < 1:
+                mensagem = 'O número do notebook deve ser maior que zero.'
+
+    if numero and not mensagem:
+        equipamentos = list(
+            Equipamento.objects.filter(escola=escola)
+            .filter(
+                Q(numero_inicial__lte=numero, numero_final__gte=numero)
+                | Q(notebooks__numero=numero)
+            )
+            .distinct()
+            .order_by('nome')
+        )
+        if not equipamentos:
+            mensagem = f'Nenhum equipamento com o número {numero} foi encontrado nesta escola.'
+        else:
+            fichas_relevantes = RegistroUso.objects.filter(
+                Q(numero_notebook=numero) | Q(numero_notebook__isnull=True),
+                aluno__sala__escola=escola,
+            ).select_related('aluno')
+            reservas = list(
+                Reserva.objects.filter(
+                    escola=escola,
+                    equipamento__in=equipamentos,
+                    equipamento__escola=escola,
+                    sala__escola=escola,
+                    data_uso=data_busca,
+                    status='confirmada',
+                )
+                .filter(
+                    Q(numero_notebook_unico=numero)
+                    | Q(numero_notebook_unico__isnull=True, quantidade__isnull=True)
+                    | Q(numeros_quantidade__numero=numero)
+                )
+                .select_related('professor', 'sala', 'equipamento')
+                .prefetch_related(
+                    Prefetch('registrouso_set', queryset=fichas_relevantes, to_attr='fichas_do_equipamento')
+                )
+                .distinct()
+                .order_by('horario_inicio', 'equipamento__nome')
+            )
+            for reserva in reservas:
+                reserva.alunos_do_equipamento = [
+                    ficha.aluno
+                    for ficha in reserva.fichas_do_equipamento
+                    if ficha.numero_notebook == numero
+                ]
+                reserva.alunos_sem_numero = [
+                    ficha.aluno
+                    for ficha in reserva.fichas_do_equipamento
+                    if ficha.numero_notebook is None
+                ]
+
+    return render(request, 'buscar_uso_equipamento.html', {
+        'escola_ativa': escola,
+        'numero': numero_texto,
+        'data_busca': data_busca,
+        'equipamentos': equipamentos,
+        'reservas': reservas,
+        'mensagem': mensagem,
+        'busca_realizada': bool(numero and not mensagem),
+    })
 
 @login_required
 @admin_escola_required

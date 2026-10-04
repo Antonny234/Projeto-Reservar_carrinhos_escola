@@ -4,6 +4,7 @@ import secrets
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
@@ -156,6 +157,8 @@ def telegram_painel(request):
                 bot.save(update_fields=['ultimo_erro', 'atualizado_em'])
             messages.error(request, f'Não foi possível concluir a operação: {exc}')
 
+        if request.user.is_superuser:
+            return redirect(f"/painel/telegram/?escola_id={escola.pk}")
         return redirect('telegram_painel')
 
     pareamento = request.session.pop('telegram_pairing', None)
@@ -165,6 +168,8 @@ def telegram_painel(request):
         'bot': bot,
         'destinos': destinos,
         'pareamento': pareamento,
+        'encryption_configurada': bool(settings.TELEGRAM_ENCRYPTION_KEY),
+        'public_base_url_configurada': bool(settings.PUBLIC_BASE_URL),
     })
 
 

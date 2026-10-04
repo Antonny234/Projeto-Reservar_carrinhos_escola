@@ -1,0 +1,61 @@
+.equipment-search-page {
+  min-height: 100vh;
+  background: #f3f6fa;
+  color: #182230;
+}
+
+.equipment-search-content {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: 82px 28px 64px;
+}
+
+.search-page-heading { margin-bottom: 24px; }
+.search-page-heading h1 { margin: 4px 0 8px; color: #19395f; font-size: clamp(1.6rem, 3vw, 2.25rem); }
+.search-page-heading p:last-child { color: #526174; line-height: 1.55; }
+.eyebrow { margin: 0; color: #2563a6; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+
+.equipment-search-form {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(160px, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #dbe3ed;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgb(15 23 42 / 5%);
+}
+
+.equipment-search-form label { display: block; margin-bottom: 6px; color: #334155; font-size: .9rem; font-weight: 700; }
+.equipment-search-form input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #aebdce; border-radius: 8px; background: #fff; color: #182230; font: inherit; }
+.equipment-search-form input:focus-visible,
+.equipment-search-form button:focus-visible,
+.equipment-search-page a:focus-visible,
+.equipment-search-page button:focus-visible { outline: 3px solid #75a9e8; outline-offset: 2px; }
+.equipment-search-form button { min-height: 46px; padding: 10px 18px; border: 0; border-radius: 8px; background: #1d5f9f; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.equipment-search-form button:hover { background: #164d82; }
+.results-summary { margin: 24px 0 12px; color: #334155; font-weight: 700; }
+.usage-results { display: grid; gap: 16px; }
+.usage-card { padding: 22px; border: 1px solid #dbe3ed; border-radius: 14px; background: #fff; box-shadow: 0 4px 18px rgb(15 23 42 / 5%); }
+.usage-card-heading { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid #e5eaf0; }
+.usage-card-heading h2 { margin: 4px 0 0; color: #19395f; font-size: 1.25rem; }
+.equipment-number { padding: 7px 10px; border-radius: 999px; background: #eaf1f8; color: #244b70; font-size: .9rem; font-weight: 700; white-space: nowrap; }
+.reservation-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.reservation-details div { min-width: 0; }
+.reservation-details dt { margin-bottom: 4px; color: #5b6878; font-size: .82rem; }
+.reservation-details dd { margin: 0; color: #182230; font-weight: 700; overflow-wrap: anywhere; }
+.student-records { padding: 14px 16px; border-radius: 10px; background: #edf7f1; color: #173d2a; }
+.student-records h3 { margin: 0 0 8px; font-size: 1rem; }
+.student-records p { margin: 0 0 8px; line-height: 1.5; }
+.student-records ul { margin: 0; padding-left: 20px; }
+.student-records-note { background: #fff7e8; color: #593b08; }
+.search-message { margin-top: 20px; padding: 16px 18px; border: 1px solid #e9d59e; border-radius: 10px; background: #fff8e8; color: #573d12; line-height: 1.55; }
+
+@media (max-width: 760px) {
+  .equipment-search-content { width: 100%; padding: 78px 16px 36px; }
+  .equipment-search-form { grid-template-columns: 1fr; }
+  .equipment-search-form button { width: 100%; }
+  .reservation-details { grid-template-columns: 1fr; gap: 10px; }
+  .usage-card { padding: 17px; }
+}

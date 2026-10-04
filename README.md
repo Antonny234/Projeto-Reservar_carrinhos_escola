@@ -73,10 +73,11 @@ Cada escola pode ter seu próprio bot Telegram e vários chats de destino. O tok
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-2. Cadastre `TELEGRAM_ENCRYPTION_KEY` no ambiente da aplicação.
-3. No painel da escola, abra **Notificações Telegram**.
-4. Crie o bot pelo `@BotFather`, cole o token e salve.
-5. Gere o link de conexão e abra-o no Telegram.
-6. Use o botão de teste para conferir o recebimento.
+2. Cadastre `TELEGRAM_ENCRYPTION_KEY` no ambiente da aplicação. Use uma chave Fernet persistente e mantenha cópia segura: sem ela não é possível recuperar tokens já cadastrados.
+3. Cadastre `PUBLIC_BASE_URL` como a URL HTTPS pública da aplicação (por exemplo, `https://gtrep.com.br`), sem barra no final. Isso garante que o Telegram receba o endereço correto atrás do proxy de produção.
+4. No painel da escola, abra **Notificações Telegram**.
+5. Cada escola cria seu próprio bot pelo `@BotFather`, cola o token e salva. O painel valida o token e configura o webhook automaticamente.
+6. Gere o link de conexão e abra-o no Telegram. Para grupos, adicione o bot ao grupo antes de abrir o link.
+7. Use o botão de teste para conferir o recebimento.
 
 Em produção, o webhook precisa estar publicado em HTTPS. O projeto usa `setWebhook` e `secret_token` para autenticar os callbacks recebidos do Telegram.

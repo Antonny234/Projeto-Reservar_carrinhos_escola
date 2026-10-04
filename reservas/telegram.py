@@ -80,9 +80,9 @@ def validar_bot_token(token: str) -> dict:
 
 def configurar_webhook(bot: TelegramBotEscola, request) -> None:
     token = decifrar_token(bot)
-    webhook_url = request.build_absolute_uri(
-        reverse('telegram_webhook', kwargs={'webhook_slug': bot.webhook_slug})
-    )
+    webhook_path = reverse('telegram_webhook', kwargs={'webhook_slug': bot.webhook_slug})
+    base_url = getattr(settings, 'PUBLIC_BASE_URL', '')
+    webhook_url = f'{base_url}{webhook_path}' if base_url else request.build_absolute_uri(webhook_path)
     if not webhook_url.startswith('https://'):
         raise RuntimeError('O webhook do Telegram exige HTTPS. Configure o domínio HTTPS antes de ativar o bot.')
 
@@ -99,6 +99,7 @@ def configurar_webhook(bot: TelegramBotEscola, request) -> None:
     bot.webhook_configurado = True
     bot.ultimo_erro = ''
     bot.ultima_verificacao = timezone.now()
+    bot.save(update_fields=['webhook_configurado', 'ultimo_erro', 'ultima_verificacao', 'atualizado_em'])
     _api_request(
         token,
         'setMyCommands',
@@ -107,7 +108,6 @@ def configurar_webhook(bot: TelegramBotEscola, request) -> None:
             {'command': 'ajuda', 'description': 'Mostra os comandos disponíveis'},
         ]},
     )
-    bot.save(update_fields=['webhook_configurado', 'ultimo_erro', 'ultima_verificacao', 'atualizado_em'])
 
 
 def remover_webhook(bot: TelegramBotEscola) -> None:
@@ -225,7 +225,7 @@ def processar_webhook(bot: TelegramBotEscola, payload: dict) -> None:
                 {
                     'chat_id': chat_id,
                     'text': (
-                        '✅ <b>Telegram conectado</b>\n'
+                        '<b>Telegram conectado</b>\n'
                         f'Escola: {bot.escola.nome}\n'
                         'Este chat passará a receber as notificações do sistema.'
                     ),
@@ -241,7 +241,7 @@ def processar_webhook(bot: TelegramBotEscola, payload: dict) -> None:
                 'sendMessage',
                 {
                     'chat_id': chat_id,
-                    'text': '✅ Este chat já está conectado às notificações desta escola.\nUse /ajuda para ver os comandos.',
+                    'text': 'Este chat já está conectado às notificações desta escola.\nUse /ajuda para ver os comandos.',
                 },
             )
         else:

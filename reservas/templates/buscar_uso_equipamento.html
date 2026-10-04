@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Uso do equipamento | {{ escola_ativa.nome|default:'Escola' }}</title>
+  <link rel="stylesheet" href="{% static 'css/estiloMural.css' %}">
+  <link rel="stylesheet" href="{% static 'css/busca_equipamento.css' %}">
+</head>
+<body class="tem-sidebar equipment-search-page">
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">Menu</button>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    {% include 'partials/menu.html' %}
+  </aside>
+
+  <main class="equipment-search-content">
+    <header class="search-page-heading">
+      <p class="eyebrow">{{ escola_ativa.nome|default:'Escola' }}</p>
+      <h1>Consulta de uso do equipamento</h1>
+      <p>Pesquise o número do notebook para consultar as fichas e reservas confirmadas do carrinho.</p>
+    </header>
+
+    <form class="equipment-search-form" method="get" action="{% url 'buscar_uso_equipamento' %}">
+      <div>
+        <label for="equipment-number">Número do notebook</label>
+        <input id="equipment-number" name="numero" type="number" min="1" max="999999999" inputmode="numeric" value="{{ numero }}" required>
+      </div>
+      <div>
+        <label for="usage-date">Data</label>
+        <input id="usage-date" name="data" type="date" value="{{ data_busca|date:'Y-m-d' }}" required>
+      </div>
+      <button type="submit">Pesquisar</button>
+    </form>
+
+    {% if mensagem %}
+      <div class="search-message" role="status">{{ mensagem }}</div>
+    {% elif busca_realizada %}
+      {% if reservas %}
+        <p class="results-summary">{{ reservas|length }} reserva{{ reservas|length|pluralize }} confirmada{{ reservas|length|pluralize }} em {{ data_busca|date:'d/m/Y' }}.</p>
+        <section class="usage-results" aria-label="Reservas e fichas encontradas">
+          {% for reserva in reservas %}
+            <article class="usage-card">
+              <div class="usage-card-heading">
+                <div>
+                  <p class="eyebrow">Carrinho</p>
+                  <h2>{{ reserva.equipamento.nome }}</h2>
+                </div>
+                <span class="equipment-number">Notebook {{ numero }}</span>
+              </div>
+              <dl class="reservation-details">
+                <div><dt>Professor</dt><dd>{{ reserva.professor.get_full_name|default:reserva.professor.username }}</dd></div>
+                <div><dt>Horário</dt><dd>{{ reserva.horario_inicio|time:'H:i' }}–{{ reserva.horario_fim|time:'H:i' }}</dd></div>
+                <div><dt>Sala</dt><dd>{{ reserva.sala.nome }}</dd></div>
+              </dl>
+
+              {% if reserva.alunos_do_equipamento %}
+                <div class="student-records">
+                  <h3>Aluno registrado para este notebook</h3>
+                  <ul>{% for aluno in reserva.alunos_do_equipamento %}<li>{{ aluno.nome }}</li>{% endfor %}</ul>
+                </div>
+              {% elif reserva.alunos_sem_numero %}
+                <div class="student-records student-records-note">
+                  <h3>A ficha não vinculou um número ao aluno</h3>
+                  <p>Estes alunos aparecem na ficha do carrinho, mas sem associação confirmada ao notebook {{ numero }}:</p>
+                  <ul>{% for aluno in reserva.alunos_sem_numero %}<li>{{ aluno.nome }}</li>{% endfor %}</ul>
+                </div>
+              {% else %}
+                <div class="student-records student-records-note">
+                  <h3>Nenhum aluno identificado para este notebook</h3>
+                  <p>Há uma reserva confirmada do carrinho neste horário, mas a ficha não associou um aluno ao notebook {{ numero }}.</p>
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </section>
+      {% else %}
+        <div class="search-message" role="status">O notebook {{ numero }} pertence a {{ equipamentos|length }} carrinho{{ equipamentos|length|pluralize }}, mas não há reserva confirmada correspondente nesta data.</div>
+      {% endif %}
+    {% endif %}
+  </main>
+
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    const overlay = document.getElementById('sidebarOverlay');
+    function closeSidebar() {
+      sidebar.classList.remove('aberta');
+      overlay.classList.remove('ativo');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+    toggle.addEventListener('click', function () {
+      const open = sidebar.classList.toggle('aberta');
+      overlay.classList.toggle('ativo', open);
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    overlay.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeSidebar();
+    });
+  </script>
+</body>
+</html>

@@ -27,6 +27,13 @@
       </div>
     {% endif %}
 
+    {% if not encryption_configurada %}
+      <div class="message message-error" role="alert"><strong>Configuração pendente no servidor:</strong> o administrador da plataforma precisa definir <code>TELEGRAM_ENCRYPTION_KEY</code> nas variáveis de produção antes de conectar bots. Gere uma chave Fernet e mantenha o mesmo valor em todos os deploys; trocá-la impede a leitura dos tokens já salvos.</div>
+    {% endif %}
+    {% if not public_base_url_configurada %}
+      <div class="message message-warning"><strong>Verifique o domínio público:</strong> se o webhook não ativar, defina <code>PUBLIC_BASE_URL</code> com a URL HTTPS pública desta instalação, sem barra no final.</div>
+    {% endif %}
+
     <section class="grid-main">
       <article class="card card-main">
         <div class="card-title-row">
@@ -61,7 +68,7 @@
           <label for="bot_token">Token do bot</label>
           <input id="bot_token" name="bot_token" type="password" autocomplete="new-password" placeholder="Cole aqui o token recebido no @BotFather">
           <p class="help">{% if bot %}Deixe em branco para manter o token atual.{% else %}O token é usado somente pelo servidor para conversar com a API oficial do Telegram.{% endif %}</p>
-          <button class="btn-primary" type="submit">{% if bot %}Salvar e verificar bot{% else %}Conectar bot{% endif %}</button>
+          <button class="btn-primary" type="submit" {% if not encryption_configurada %}disabled{% endif %}>{% if bot %}Salvar e verificar bot{% else %}Conectar bot{% endif %}</button>
         </form>
 
         {% if bot and bot.ultimo_erro %}
@@ -73,7 +80,8 @@
           <ol>
             <li>Abra o <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer">@BotFather</a> no Telegram.</li>
             <li>Use <code>/newbot</code> e crie o bot com o nome da escola.</li>
-            <li>Copie o token gerado e cole acima.</li>
+            <li>Copie o token gerado e cole acima. O token é uma senha: não o envie a outras pessoas.</li>
+            <li>Depois de conectar, gere o link abaixo e pressione <strong>Start</strong> para vincular sua conta. Para grupos, siga a instrução exibida junto ao código.</li>
           </ol>
           <p>O webhook usa HTTPS e um segredo exclusivo do bot para aceitar somente chamadas autenticadas do Telegram.</p>
         </div>
@@ -102,7 +110,7 @@
             <div class="pairing-result">
               <div class="pairing-code">{{ pareamento.codigo }}</div>
               <a class="btn-primary" target="_blank" rel="noopener noreferrer" href="{{ pareamento.link }}">Abrir no Telegram</a>
-              <p>O administrador pode abrir este link no grupo ou conta que deve receber as notificações e tocar em <strong>Start</strong>.</p>
+              <p>Para conectar sua conta, abra o link e toque em <strong>Start</strong>. Para conectar um grupo, adicione o bot ao grupo e envie nele <code>/start {{ pareamento.codigo }}</code>.</p>
             </div>
           {% endif %}
 

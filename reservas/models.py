@@ -395,6 +395,8 @@ class NotificacaoFichaAusente(models.Model):
         unique_together = ('reserva',)
 
 
+
+
 class EquipamentoLiberado(models.Model):
     """Professor com passe livre para reservar este equipamento sem aprovação.
     Se o equipamento não tiver nenhum registro aqui, qualquer professor reserva
