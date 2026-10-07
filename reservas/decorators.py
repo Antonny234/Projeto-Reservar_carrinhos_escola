@@ -2,6 +2,22 @@ from functools import wraps
 
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
+from django.shortcuts import render
+
+
+def login_required_com_erro(view_func):
+    """Mostra a página da aplicação quando uma área exige login."""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return render(request, 'erro_aplicacao.html', {
+                'titulo': 'Ação proibida',
+                'mensagem': 'Você precisa fazer login antes de acessar as fichas.',
+                'botao_texto': 'Fazer login',
+                'botao_url': '/entrar/',
+            }, status=403)
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
 
 def admin_escola_required(view_func):

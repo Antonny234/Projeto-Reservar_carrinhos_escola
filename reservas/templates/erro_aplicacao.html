@@ -1,0 +1,28 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#1e3a5f">
+    <title>{{ titulo }} | GTREP</title>
+    <link rel="stylesheet" href="{% static 'css/erro_aplicacao.css' %}">
+</head>
+<body>
+    <main class="pagina-erro" aria-labelledby="titulo-erro">
+        <div class="monstro" aria-hidden="true">
+            <img class="corpo" src="{% static 'img/corpo(2).png' %}" alt="">
+            <div class="ombro-esquerdo"><img class="braco-esquerdo" src="{% static 'img/braco-esquerdo1.png' %}" alt=""></div>
+            <div class="ombro-direito"><img class="braco-direito" src="{% static 'img/braco-direito.png' %}" alt=""></div>
+        </div>
+        <section class="cartao-erro">
+            <span class="etiqueta">GTREP · SISTEMA DE RESERVAS</span>
+            <div class="icone-erro" aria-hidden="true">!</div>
+            <h1 id="titulo-erro">{{ titulo }}</h1>
+            <p>{{ mensagem }}</p>
+            <a class="botao-erro" href="{{ botao_url }}">{{ botao_texto }}</a>
+            <a class="link-inicio" href="/">Voltar para o início</a>
+        </section>
+    </main>
+</body>
+</html>

@@ -3,6 +3,7 @@ from django.views.decorators.http import require_GET, require_POST
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from ..decorators import login_required_com_erro
 from django.http import HttpResponse, JsonResponse,HttpResponseForbidden
 from datetime import datetime, date, timedelta
 from django.utils import timezone
@@ -133,7 +134,7 @@ def buscar_uso_equipamento(request):
         'busca_realizada': bool(numero and not mensagem),
     })
 
-@login_required
+@login_required_com_erro
 @admin_escola_required
 def exportar_todas_fichas(request):
     reservas = Reserva.objects.filter(
@@ -177,7 +178,7 @@ def exportar_todas_fichas(request):
 
     return response
 
-@login_required
+@login_required_com_erro
 @admin_escola_required
 def exportar_ficha_excel(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, escola=obter_escola_ativa(request))
@@ -295,7 +296,7 @@ def exportar_reservas_excel(request):
     workbook.save(response)
     return response
 
-@login_required
+@login_required_com_erro
 @admin_escola_required
 def painel_fichas(request):
     data_param = request.GET.get('data')
@@ -321,7 +322,7 @@ def painel_fichas(request):
     })
 
 
-@login_required
+@login_required_com_erro
 @admin_escola_required
 def ficha_detalhe_json(request, reserva_id):
     registros = RegistroUso.objects.filter(

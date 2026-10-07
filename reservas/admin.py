@@ -1,13 +1,64 @@
 from django.contrib import admin
+from django import forms
+from django.contrib.auth.hashers import make_password
+from django.core.validators import RegexValidator
 from django.utils.html import format_html
 from django.utils import timezone
 from .models import Equipamento, Reserva, Aluno, RegistroUso, PerfilAdm, NotificacaoFichaAusente,Escola
-from .models import GrupoEquipamento, EquipamentoInventario, Transferencia,Sala,PerfilProfessor, CodigoVerificacao, PerfilProfessorEscola, TelegramBotEscola, TelegramDestino, TelegramPareamento
+from .models import GrupoEquipamento, EquipamentoInventario, Transferencia,Sala,PerfilProfessor, CodigoVerificacao, PerfilProfessorEscola, PerfilAdmEscola, TelegramBotEscola, TelegramDestino, TelegramPareamento
 from django.utils.safestring import mark_safe
 
 
+class AdminPinMixin:
+    """Permite ao superuser definir um PIN novo sem expor o hash existente."""
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def get_fields(self, request, obj=None):
+        fields = list(super().get_fields(request, obj))
+        return [field for field in fields if field not in ('pin_envio', 'pin_novo')]
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = list(super().get_fieldsets(request, obj))
+        if not any('pin_novo' in options.get('fields', ()) for _, options in fieldsets):
+            fieldsets.append(('PIN de envio', {'fields': ('pin_novo',)}))
+        return fieldsets
+
+    def get_form(self, request, obj=None, **kwargs):
+        if 'fields' in kwargs and kwargs['fields']:
+            kwargs['fields'] = tuple(field for field in kwargs['fields'] if field != 'pin_novo')
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['pin_novo'] = forms.CharField(
+            label='Definir novo PIN de envio',
+            required=False,
+            max_length=4,
+            validators=[RegexValidator(r'^\d{4}$', 'Informe exatamente 4 dígitos numéricos.')],
+            widget=forms.PasswordInput(render_value=False),
+            help_text='Deixe em branco para manter o PIN atual. O PIN atual não pode ser exibido porque é armazenado com hash.',
+        )
+        return form
+
+    def save_model(self, request, obj, form, change):
+        pin = form.cleaned_data.get('pin_novo')
+        if pin:
+            obj.pin_envio = make_password(pin)
+        super().save_model(request, obj, form, change)
+
+
 @admin.register(PerfilAdm)
-class PerfilAdmAdmin(admin.ModelAdmin):
+class PerfilAdmAdmin(AdminPinMixin, admin.ModelAdmin):
     list_display = ('usuario', 'requer_aprovacao', 'email_usuario')
     list_filter = ('requer_aprovacao',)
     search_fields = ('usuario__username', 'usuario__email')
@@ -18,7 +69,7 @@ class PerfilAdmAdmin(admin.ModelAdmin):
     email_usuario.short_description = 'E-mail'
 
 @admin.register(PerfilProfessorEscola)
-class PerfilProfessorEscolaAdmin(admin.ModelAdmin):
+class PerfilProfessorEscolaAdmin(AdminPinMixin, admin.ModelAdmin):
     list_display = ('usuario', 'escola_ativa', 'total_escolas', 'criado_em')
     list_filter = ('escolas', 'criado_em')
     search_fields = ('usuario__username', 'escolas__nome')
@@ -33,6 +84,14 @@ class PerfilProfessorEscolaAdmin(admin.ModelAdmin):
     def total_escolas(self, obj):
         return obj.escolas.count()
     total_escolas.short_description = 'Total de Escolas'
+
+
+@admin.register(PerfilAdmEscola)
+class PerfilAdmEscolaAdmin(AdminPinMixin, admin.ModelAdmin):
+    list_display = ('usuario', 'escola_ativa', 'requer_aprovacao', 'atualizado_em')
+    list_filter = ('escolas', 'requer_aprovacao')
+    search_fields = ('usuario__username', 'escolas__nome')
+    filter_horizontal = ('escolas',)
     
 @admin.register(Equipamento)
 class EquipamentoAdmin(admin.ModelAdmin):
@@ -114,7 +173,7 @@ class SalaAdmin(admin.ModelAdmin):
     search_fields = ('nome',)
 
 @admin.register(PerfilProfessor)
-class PerfilProfessorAdmin(admin.ModelAdmin):
+class PerfilProfessorAdmin(AdminPinMixin, admin.ModelAdmin):
     list_display = ('usuario', 'whatsapp')
     search_fields = ('usuario__username', 'whatsapp')
 

@@ -3,6 +3,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ equipamento.tipo }} - Inventário</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; }
@@ -17,6 +18,18 @@
         .historico-item { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
         .historico-item:last-child { border-bottom: none; }
         .msg-sucesso { background: #d4edda; color: #155724; padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; }
+        *, *::before, *::after { box-sizing: border-box; }
+        @media (max-width: 640px) {
+            .header { padding: 12px 16px; }
+            .header h2 { margin: 8px 0; font-size: 1.2rem; }
+            .container { margin: 16px auto; padding: 0 12px; }
+            .card { padding: 16px; }
+            .info-row { gap: 12px; align-items: flex-start; }
+            .info-row span { min-width: 0; overflow-wrap: anywhere; }
+            .info-row span:last-child { text-align: right; }
+            .card > div[style*="margin-top"] { display: flex; flex-wrap: wrap; gap: 8px; }
+            .btn, .btn-voltar { margin-left: 0; flex: 1 1 135px; text-align: center; }
+        }
     </style>
 </head>
 <body>

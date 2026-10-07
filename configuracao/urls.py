@@ -8,3 +8,7 @@ urlpatterns = [
 
     
 ]
+
+handler403 = 'reservas.views.handler403'
+handler404 = 'reservas.views.handler404'
+handler500 = 'reservas.views.handler500'

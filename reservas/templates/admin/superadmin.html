@@ -116,12 +116,11 @@
                 <td>{{ escola.administradores.count }}</td>
 
                 <td class="acoes">
-                  <a
-                    href="{% url 'gerenciar_escola' escola.id %}"
-                    class="btn-secundario"
-                    >Gerenciar</a
-                  >
-                </td>
+  <form method="post" action="{% url 'trocar_escola' escola.id %}?next=/superadmin/">
+    {% csrf_token %}<button type="submit" class="btn-secundario">Selecionar</button>
+  </form>
+  <a href="{% url 'gerenciar_escola' escola.id %}" class="btn-secundario">Gerenciar</a>
+</td>
               </tr>
 
               {% empty %}

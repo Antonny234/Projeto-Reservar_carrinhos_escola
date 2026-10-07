@@ -1,92 +1,63 @@
-# -*- coding: utf-8 -*-
-
+﻿# -*- coding: utf-8 -*-
+from django.core.exceptions import PermissionDenied
 from django.utils.deprecation import MiddlewareMixin
-from .models import Escola
 
 
 class EscolaMiddleware(MiddlewareMixin):
+    """Resolve a escola ativa sem escolher uma escola implicitamente."""
 
     def process_request(self, request):
-
         request.escola_ativa = None
         request.perfil = None
 
-        # Usuário não está logado
         if not request.user.is_authenticated:
             return
 
-        if request.user.is_superuser:
-            request.escola_ativa = Escola.objects.first()
+        user = request.user
+        if request.path.startswith('/trocar-escola/') or request.path == '/superadmin/':
             return
 
-        # ==========================================================
-        # 1. ADMINISTRADOR DE UMA ESCOLA ESPECÍFICA
-        # ==========================================================
-        if hasattr(request.user, 'perfil_adm'):
-
-            perfil = request.user.perfil_adm
-            request.perfil = perfil
-
-            # A escola do ADM é a escola ativa
-            request.escola_ativa = perfil.escola
-
+        if user.is_superuser:
+            escola_id = request.session.get('escola_ativa_id')
+            if escola_id:
+                from .models import Escola
+                request.escola_ativa = Escola.objects.filter(pk=escola_id).first()
             return
 
-        # ==========================================================
-        # 2. PROFESSOR COM MÚLTIPLAS ESCOLAS
-        # ==========================================================
-        if hasattr(request.user, 'perfil_adm_escola'):
-            perfil = request.user.perfil_adm_escola
-            escola_ativa = perfil.escolas.filter(pk=perfil.escola_ativa_id).first() if perfil.escola_ativa_id else None
-            escola_ativa = escola_ativa or perfil.escolas.first()
-            if escola_ativa:
-                request.perfil = perfil
-                if perfil.escola_ativa_id != escola_ativa.id:
-                    perfil.escola_ativa = escola_ativa
-                    perfil.save(update_fields=['escola_ativa'])
-                request.escola_ativa = escola_ativa
-                return
-
-        if hasattr(request.user, 'perfil_escola'):
-
-            perfil = request.user.perfil_escola
-            request.perfil = perfil
-
-            # Já existe uma escola ativa
-            if perfil.escola_ativa_id and perfil.escolas.filter(pk=perfil.escola_ativa_id).exists():
-
-                request.escola_ativa = perfil.escola_ativa
-
-            # Ainda não existe escola ativa
-            else:
-
-                escola = perfil.escolas.first()
-
-                if escola:
-                    perfil.escola_ativa = escola
-                    perfil.save(update_fields=['escola_ativa'])
-                    request.escola_ativa = escola
-
+        perfil_adm = getattr(user, 'perfil_adm', None)
+        if perfil_adm is not None:
+            request.perfil = perfil_adm
+            request.escola_ativa = perfil_adm.escola
             return
 
-        # ==========================================================
-        # 3. PROFESSOR DE UMA ÚNICA ESCOLA
-        # ==========================================================
-        if hasattr(request.user, 'perfil_professor'):
-
-            perfil = request.user.perfil_professor
-            request.perfil = perfil
-
-            request.escola_ativa = perfil.escola
-
+        perfil_adm_escola = getattr(user, 'perfil_adm_escola', None)
+        if perfil_adm_escola is not None:
+            request.perfil = perfil_adm_escola
+            escola = perfil_adm_escola.escolas.filter(
+                pk=perfil_adm_escola.escola_ativa_id
+            ).first() if perfil_adm_escola.escola_ativa_id else None
+            if escola is None:
+                raise PermissionDenied('Selecione uma escola vinculada Ã  sua conta.')
+            request.escola_ativa = escola
             return
 
-        # ==========================================================
-        # 4. SUPERUSUÁRIO
-        # ==========================================================
-        if request.user.is_superuser:
-
-            # Superusuário pode começar pela primeira escola
-            request.escola_ativa = Escola.objects.first()
-
+        perfil_escola = getattr(user, 'perfil_escola', None)
+        if perfil_escola is not None:
+            request.perfil = perfil_escola
+            escola = perfil_escola.escolas.filter(
+                pk=perfil_escola.escola_ativa_id
+            ).first() if perfil_escola.escola_ativa_id else None
+            if escola is None:
+                raise PermissionDenied('Selecione uma escola vinculada Ã  sua conta.')
+            request.escola_ativa = escola
             return
+
+        perfil_professor = getattr(user, 'perfil_professor', None)
+        if perfil_professor is not None:
+            request.perfil = perfil_professor
+            request.escola_ativa = perfil_professor.escola
+            return
+
+        raise PermissionDenied('Sua conta nÃ£o estÃ¡ vinculada a uma escola.')
+
+

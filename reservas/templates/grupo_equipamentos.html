@@ -3,6 +3,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ grupo.nome }} - Inventário</title>
     <style>
         body { 
@@ -79,6 +80,18 @@
         th { background: #eef2f5; }
         .link-ver { color: #1f7299; font-weight: bold; text-decoration: none; }
         .tabela-wrapper { overflow-x: auto; }
+        .tabela-wrapper { -webkit-overflow-scrolling: touch; }
+        *, *::before, *::after { box-sizing: border-box; }
+        @media (max-width: 640px) {
+            .header { padding: 14px 12px; align-items: flex-start; }
+            .header h2 { font-size: 1.15rem; margin: 4px 0; overflow-wrap: anywhere; }
+            .btn-voltar-verde { padding: 9px 12px; font-size: 13px; }
+            .container { margin: 16px auto; padding: 0 12px; }
+            .filtros { gap: 8px; }
+            .filtros input { flex: 1 1 100%; min-width: 0; min-height: 42px; }
+            .filtros button { flex: 1 1 100%; min-height: 42px; }
+            .tabela-wrapper table { min-width: 560px; }
+        }
     </style>
 </head>
 <body>

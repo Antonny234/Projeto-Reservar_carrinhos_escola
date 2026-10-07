@@ -36,6 +36,35 @@ logger = logging.getLogger(__name__)
 def usuario_eh_admin(usuario):
     return usuario.is_staff or usuario.is_superuser or hasattr(usuario, 'perfil_adm') or hasattr(usuario, 'perfil_adm_escola')
 
+
+def _maior_quantidade_reservada_no_periodo(escola, equipamento, data_uso, horario_inicio, horario_fim):
+    """Calcula o pico simultâneo de unidades reservadas no intervalo solicitado."""
+    eventos = {}
+    reservas = Reserva.objects.filter(
+        escola=escola,
+        equipamento=equipamento,
+        data_uso=data_uso,
+        status__in=['confirmada', 'pendente'],
+        quantidade__isnull=False,
+        horario_inicio__lt=horario_fim,
+        horario_fim__gt=horario_inicio,
+    ).values_list('horario_inicio', 'horario_fim', 'quantidade')
+
+    for inicio, fim, quantidade in reservas:
+        inicio = max(inicio, horario_inicio)
+        fim = min(fim, horario_fim)
+        if inicio < fim:
+            eventos[inicio] = eventos.get(inicio, 0) + quantidade
+            eventos[fim] = eventos.get(fim, 0) - quantidade
+
+    reservadas = 0
+    maior_quantidade = 0
+    for horario in sorted(eventos):
+        reservadas += eventos[horario]
+        maior_quantidade = max(maior_quantidade, reservadas)
+    return maior_quantidade
+
+
 # Helper
 from .helpers import _professor_requer_aprovacao, _requer_aprovacao_para_reserva, _equipamentos_bloqueados, enviar_telegram
 
@@ -377,6 +406,10 @@ def listar_disponiveis(request):
                 for slot_map in reservado_por_slot
             ]
             qtd_disponivel = min(quantidades_por_slot) if quantidades_por_slot else e.quantidade_ativa()
+            # Reserva por quantidade consome unidades, sem indisponibilizar o
+            # carrinho inteiro enquanto ainda houver equipamento livre.
+            if qtd_disponivel <= 0:
+                continue
             data.append({
                 'id': e.id,
                 'nome': e.nome,
@@ -477,12 +510,24 @@ def mural(request):
             status__in=['confirmada', 'pendente'],
             horario_inicio__lt=horario_fim_obj,
             horario_fim__gt=horario_inicio_obj,
+            numero_notebook_unico__isnull=True,
+            quantidade__isnull=True,
         ).exists()
 
-        if carrinho_inteiro_ocupado:
+        quantidade_ativa = equipamento_reserva.quantidade_ativa()
+        quantidade_reservada_pico = _maior_quantidade_reservada_no_periodo(
+            escola,
+            equipamento_reserva,
+            data_reservae,
+            horario_inicio_obj,
+            horario_fim_obj,
+        )
+        todas_unidades_ocupadas = quantidade_ativa <= 0 or quantidade_reservada_pico >= quantidade_ativa
+
+        if carrinho_inteiro_ocupado or todas_unidades_ocupadas:
             messages.error(
                 request,
-                f"O carrinho '{equipamento_reserva.nome}' já está reservado inteiro para este horário!"
+                f"O carrinho '{equipamento_reserva.nome}' está indisponível: todas as unidades estão ocupadas neste horário."
             )
             return redirect(f"/Logar/?data={data_reserva_str}")
 
@@ -519,15 +564,28 @@ def mural(request):
                 pk=equipamento_reserva.pk,
                 escola=escola,
             )
-            concorrencia = Reserva.objects.filter(
+            carrinho_inteiro_concorrente = Reserva.objects.filter(
                 escola=escola,
                 equipamento=equipamento_reserva,
                 data_uso=data_reservae,
                 status__in=['confirmada', 'pendente'],
                 horario_inicio__lt=horario_fim_obj,
                 horario_fim__gt=horario_inicio_obj,
+                numero_notebook_unico__isnull=True,
+                quantidade__isnull=True,
             ).exists()
-            if concorrencia:
+            quantidade_reservada_concorrente = _maior_quantidade_reservada_no_periodo(
+                escola,
+                equipamento_reserva,
+                data_reservae,
+                horario_inicio_obj,
+                horario_fim_obj,
+            )
+            todas_unidades_ocupadas_concorrente = (
+                equipamento_reserva.quantidade_ativa() <= 0
+                or quantidade_reservada_concorrente >= equipamento_reserva.quantidade_ativa()
+            )
+            if carrinho_inteiro_concorrente or todas_unidades_ocupadas_concorrente:
                 messages.error(
                     request,
                     f"O carrinho '{equipamento_reserva.nome}' acabou de ser reservado para este horário.",
@@ -1889,3 +1947,4 @@ def preencher_numeracao_quantidade(request, reserva_id):
         'numeros_atuais': numeros_atuais,
         'range_quantidade': range(reserva.quantidade),
     })
+
