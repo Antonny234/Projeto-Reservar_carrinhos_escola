@@ -304,6 +304,7 @@
             <th>Professor</th>
             <th>Sala</th>
             <th>Equipamento</th>
+            <th>Dia da semana</th>
             <th>Horário</th>
             <th>Periodo</th>
             <th>Qtd. Reservas</th>
@@ -315,7 +316,8 @@
             <td>{{ g.professor }}</td>
             <td>{{ g.sala }}</td>
             <td>{{ g.equipamento }}</td>
-            <td>{{ g.horario_inicio }}</td>
+            <td>{{ g.dias_semana }}</td>
+            <td>{{ g.horario }}</td>
             <td>{{ g.periodo }}</td>
             <td>{{ g.qtd_reservas }}</td>
             <td>
@@ -327,7 +329,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="7">Nenhuma reserva fixa encontrada.</td>
+            <td colspan="8">Nenhuma reserva fixa encontrada.</td>
         </tr>
         {% endfor %}
     </table>

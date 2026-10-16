@@ -326,7 +326,6 @@
                             </td>
                             <td data-label="Ações:">
                                 <div class="acoes-tabela">
-                                    <a class="btn-icone btn-editar" href="{% url 'editar_horario' h.id %}" title="Editar">✏️</a>
                                     <form method="post" action="{% url 'excluir_horario' h.id %}" onsubmit="return confirm('Excluir o {{ h.numero }}º horário? Essa ação não pode ser desfeita.');" style="display:inline;">
                                         {% csrf_token %}
                                         <button type="submit" class="btn-icone btn-excluir" title="Excluir">🗑️</button>

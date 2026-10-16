@@ -1,4 +1,65 @@
 {% if mostra_seletor_escola %}
+<style>
+    /* Container do seletor */
+.seletor-escola {
+    position: relative;
+}
+
+.seletor-escola summary {
+    list-style: none;
+    cursor: pointer;
+}
+.seletor-escola summary::-webkit-details-marker { display: none; }
+
+/* Caixa que abre com as escolas */
+.opcoes-escola {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: 220px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    border: 1px solid #e3e8ee;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 1000;
+}
+
+.form-trocar-escola { margin: 0; }
+
+/* Os botões */
+.form-trocar-escola button {
+    all: unset;
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e3a5f;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.form-trocar-escola button:hover,
+.form-trocar-escola button:focus-visible {
+    background-color: #eef3f8;
+}
+
+/* Escola ativa */
+.form-trocar-escola button.ativa {
+    background-color: #1f7299;
+    color: #ffffff;
+    font-weight: 700;
+}
+.form-trocar-escola button.ativa:hover {
+    background-color: #1a6082;
+}
+</style>
 <details class="seletor-escola">
     <summary>🏫 {{ escola_ativa.nome }} <span aria-hidden="true">▾</span></summary>
     <div class="opcoes-escola">

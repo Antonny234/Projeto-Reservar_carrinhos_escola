@@ -31,6 +31,7 @@ from ..models import (
 )
 from ..forms import ReservaFixaForm
 import uuid
+NOMES_DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 
 
 def _adicionar_numero_horario(reservas, escola):
@@ -780,22 +781,31 @@ def reserva_fixas_web(request):
         form.fields['sala'].queryset = Sala.objects.filter(escola=escola)
         
     # monta os grupos para exibir na tabela
-    ids = Reserva.objects.filter(escola=escola, grupo_fixo__isnull=False).values_list('grupo_fixo', flat=True).distinct()
-    grupos = []
-    for grupo_id in ids:
-        qs = Reserva.objects.filter(escola=escola, grupo_fixo=grupo_id).select_related('professor', 'sala', 'equipamento').order_by('data_uso')
-        if not qs.exists():
-            continue
-        primeira, ultima = qs.first(), qs.last()
-        grupos.append({
-            'id': grupo_id,
-            'professor': primeira.professor.get_full_name() or primeira.professor.username,
-            'sala': primeira.sala.nome,
-            'equipamento': primeira.equipamento.nome,
-            'horario_inicio': primeira.horario_inicio.strftime('%H:%M'),
-            'periodo': f"{primeira.data_uso.strftime('%d/%m/%Y')} - {ultima.data_uso.strftime('%d/%m/%Y')}",
-            'qtd_reservas': qs.count(),
-        })
+        reservas_fixas = (
+            Reserva.objects
+            .filter(escola=escola, grupo_fixo__isnull=False)
+            .select_related('professor', 'sala', 'equipamento')
+            .order_by('data_uso')
+        )
+
+        por_grupo = {}
+        for r in reservas_fixas:
+            por_grupo.setdefault(r.grupo_fixo, []).append(r)
+
+        grupos = []
+        for grupo_id, reservas in por_grupo.items():
+            primeira, ultima = reservas[0], reservas[-1]
+            dias = sorted({r.data_uso.weekday() for r in reservas})
+            grupos.append({
+                'id': grupo_id,
+                'professor': primeira.professor.get_full_name() or primeira.professor.username,
+                'sala': primeira.sala.nome,
+                'equipamento': primeira.equipamento.nome,
+                'dias_semana': ", ".join(NOMES_DIAS[i] for i in dias),
+                'horario': f"{primeira.horario_inicio.strftime('%H:%M')} - {primeira.horario_fim.strftime('%H:%M')}",
+                'periodo': f"{primeira.data_uso.strftime('%d/%m/%Y')} - {ultima.data_uso.strftime('%d/%m/%Y')}",
+                'qtd_reservas': len(reservas),
+            })
 
     return render(request, 'reservas_fixas.html', {'form': form, 'grupos': grupos})
 @login_required
