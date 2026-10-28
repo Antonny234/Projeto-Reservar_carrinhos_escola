@@ -21,6 +21,7 @@ urlpatterns = [
     path('fichas/<int:reserva_id>/json/', views.ficha_detalhe_json, name='ficha_detalhe_json'),
     path('fichas/<int:reserva_id>/excel/', views.exportar_ficha_excel, name='exportar_ficha_excel'),
     path('fichas/excel-tudo/', views.exportar_todas_fichas, name='exportar_todas_excel'),
+    path('fichas-atrasadas/', views.fichas_atrasadas, name='fichas_atrasadas'),
     # Aprovação de reservas
     path('reserva/<int:reserva_id>/aprovar/', views.aprovar_reserva, name='aprovar_reserva'),
     path('reserva/<int:reserva_id>/recusar/', views.recusar_reserva, name='recusar_reserva'),

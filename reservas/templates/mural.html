@@ -156,6 +156,11 @@
                             Aula seguida: Não
                         </button>
 
+                        <label class="opcao-multiplos-carrinhos" for="permite_multiplos_carrinhos">
+                            <input type="checkbox" name="permite_multiplos_carrinhos" id="permite_multiplos_carrinhos">
+                            Vou utilizar mais de um carrinho nesta sala e horario
+                        </label>
+
                         <label for="carrinho">Carrinho:</label>
                         <select name="equipamento" id="carrinho" required>
                             {% for equip in equipamentos %}
@@ -238,8 +243,52 @@
 
     {% if usuario_eh_admin %}
     <script>
+    const URL_FICHAS_ATRASADAS = "{% url 'fichas_atrasadas' %}";
+
+    let idsAtrasados = [];
+
+    function aplicarAlertas() {
+        document.querySelectorAll('.alerta-ficha').forEach(function (el) {
+            const id = parseInt(el.id.replace('alerta-', ''), 10);
+            el.hidden = !idsAtrasados.includes(id);
+        });
+    }
+
+    function checarFichas() {
+        fetch(URL_FICHAS_ATRASADAS)
+            .then(r => r.json())
+            .then(data => {
+                idsAtrasados = data.ids;
+                aplicarAlertas();
+            })
+            .catch(() => {});
+    }
+
+    // Sempre que o mural for redesenhado, reaplica os avisos na hora
+    const gridMural = document.getElementById('grid-mural');
+    if (gridMural) {
+        new MutationObserver(aplicarAlertas)
+            .observe(gridMural, { childList: true, subtree: true });
+    }
+
+    checarFichas();
+    setInterval(checarFichas, 30 * 1000);
+
+    function obterCookie(nome) {
+        const prefixo = `${nome}=`;
+        const item = document.cookie.split(';').map(valor => valor.trim())
+            .find(valor => valor.startsWith(prefixo));
+        return item ? decodeURIComponent(item.slice(prefixo.length)) : '';
+    }
+
     function verificarFichasAusentes() {
-        fetch('/ajax/fichas-ausentes/')
+        const campoCsrf = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrf = campoCsrf ? campoCsrf.value : obterCookie('csrftoken');
+        if (!csrf) return;
+        fetch('{% url "fichas_ausentes" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf }
+        })
             .then(r => r.json())
             .then(data => {
                 if (data.pendencias && data.pendencias.length > 0) {

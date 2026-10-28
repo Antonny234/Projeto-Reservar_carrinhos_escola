@@ -28,7 +28,8 @@
 </body>
 <script>
     function autoAtualizarMuralConsulta() {
-        const dataHoje = new Date().toISOString().split('T')[0]; 
+        const agora = new Date();
+        const dataHoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
         fetch(`{% url 'carregar_mural_publico' escola.id %}?data=${dataHoje}`)
             .then(response => response.text())
             .then(html => {

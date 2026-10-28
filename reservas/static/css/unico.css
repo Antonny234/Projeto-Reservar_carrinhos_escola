@@ -223,3 +223,23 @@ body {
         min-height: 44px;
     }
 }
+.opcao-multiplos-carrinhos {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  margin: 14px 0 !important;
+  padding: 11px 12px;
+  border: 1px solid #d7e0e8;
+  border-radius: 8px;
+  background: #f7fafc;
+  color: #25445f !important;
+  cursor: pointer;
+}
+.opcao-multiplos-carrinhos input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 0;
+  padding: 0 !important;
+  accent-color: #1f7299;
+}

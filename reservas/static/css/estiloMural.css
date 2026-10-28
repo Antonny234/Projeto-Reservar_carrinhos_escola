@@ -457,6 +457,7 @@ aside.sidebar .equipment-search button:hover { background: #2563c7; transform: t
 .card .label { font-weight: bold; color: #7f8c8d; }
 
 .card.card-quantidade { background: #eef6fb; border-left: 6px solid #1f7299; }
+.card .alerta-ficha { background-color: rgba(252, 203, 110, 0.534); font-size: 13px; text-align: left; border-radius: 5px; padding: 15px;}
 
 .tag-quantidade {
     display: inline-block;
@@ -894,3 +895,23 @@ aside.sidebar .equipment-search button:hover { background: #2563c7; transform: t
 .opcoes-escola a:hover, .opcoes-escola a.ativa { background: #eef4fa; }
 .sidebar-escola { padding: 16px 12px 4px; color: #fff; }
 .sidebar-escola .nome-escola, .sidebar-escola .seletor-escola { margin-left: 0; }
+.opcao-multiplos-carrinhos {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  margin: 14px 0 !important;
+  padding: 11px 12px;
+  border: 1px solid #d7e0e8;
+  border-radius: 8px;
+  background: #f7fafc;
+  color: #25445f !important;
+  cursor: pointer;
+}
+.opcao-multiplos-carrinhos input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 0;
+  padding: 0 !important;
+  accent-color: #1f7299;
+}

@@ -43,15 +43,14 @@
                 {% with prof_nome=reserva.professor.get_full_name|default:reserva.professor.username %}
                 {% with inicial=prof_nome|slice:":1" %}
                 <div class="card-reserva {{ reserva.status }} {% if reserva.quantidade %}card-quantidade-vermelha{% endif %}"
-                        onclick="abrirModal(
-                        '{{ reserva.equipamento.nome }}',
-                        '{{ prof_nome }}',
-                        '{{ reserva.sala.nome }}',
-                        '{{ reserva.horario_inicio|time:"H:i" }}',
-                        '{{ reserva.horario_fim|time:"H:i" }}',
-                        '{{ reserva.status }}',
-                        '{{ reserva.data_uso|date:"d/m/Y" }}'
-                        )">
+                        role="button" tabindex="0"
+                        data-equipamento="{{ reserva.equipamento.nome }}"
+                        data-professor="{{ prof_nome }}"
+                        data-sala="{{ reserva.sala.nome }}"
+                        data-inicio="{{ reserva.horario_inicio|time:'H:i' }}"
+                        data-fim="{{ reserva.horario_fim|time:'H:i' }}"
+                        data-status="{{ reserva.status }}"
+                        data-data="{{ reserva.data_uso|date:'d/m/Y' }}">
                     <div class="reserva-avatar {{ reserva.status }}">{{ inicial }}</div>
                     <div class="reserva-info">
                         <span class="reserva-equipamento">{{ reserva.equipamento.nome }}</span>
@@ -128,6 +127,24 @@
 
         document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
 
+        document.querySelectorAll('.card-reserva[role="button"]').forEach(card => {
+            const abrir = () => abrirModal(
+                card.dataset.equipamento,
+                card.dataset.professor,
+                card.dataset.sala,
+                card.dataset.inicio,
+                card.dataset.fim,
+                card.dataset.status,
+                card.dataset.data
+            );
+            card.addEventListener('click', abrir);
+            card.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    abrir();
+                }
+            });
+        });
 
         // Menu lateral (mesmo comportamento das outras páginas do painel)
         const sidebar = document.getElementById('sidebar');

@@ -266,6 +266,9 @@ class Reserva(models.Model):
         verbose_name="Numeração dos notebooks preenchida"
     )
 
+    permite_multiplos_carrinhos = models.BooleanField(default=False)
+    ficha_enviada = models.BooleanField(default=False)
+
     grupo_fixo = models.UUIDField(null=True, blank=True, db_index=True)
 
     def clean(self):
@@ -380,6 +383,10 @@ class RegistroUso(models.Model):
     # Escola herdada via reserva.escola
     reserva = models.ForeignKey(Reserva, on_delete=models.CASCADE)
     aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE)
+    equipamento = models.ForeignKey(
+        Equipamento, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='registros_uso',
+    )
     numero_notebook = models.IntegerField(null=True, blank=True)
 
     class Meta:

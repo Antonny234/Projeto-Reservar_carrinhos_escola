@@ -40,16 +40,14 @@
     <div class="lista-alunos">
     {% for aluno in alunos %}
         <div class="item-aluno">
-            <label for="aluno_{{ aluno.id }}">{{ aluno.nome }}</label>
-            <input type="number"
-                    class="campo-notebook"
-                    name="aluno_{{ aluno.id }}"
-                    id="aluno_{{ aluno.id }}"
-                    placeholder="Nº Notebook"
-                    min="1"
-                    {% if dados_anteriores %}
-                        value="{{ dados_anteriores|get_item:aluno.id }}"
-                    {% endif %}>
+            <label for="equipamento_aluno_{{ aluno.id }}">{{ aluno.nome }} - carrinho usado</label>
+            <select name="equipamento_aluno_{{ aluno.id }}" id="equipamento_aluno_{{ aluno.id }}">
+                {% for eq in equipamentos_ficha %}
+                <option value="{{ eq.id }}" {% if dados_anteriores and equipamentos_anteriores|get_item:aluno.id == eq.id|stringformat:'s' %}selected{% elif not dados_anteriores and eq.id == reserva.equipamento_id %}selected{% endif %}>{{ eq.nome }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" class="campo-notebook" name="aluno_{{ aluno.id }}" id="aluno_{{ aluno.id }}" placeholder="Numero do notebook" min="1"
+                    {% if dados_anteriores %}value="{{ dados_anteriores|get_item:aluno.id }}"{% endif %}>
         </div>
     {% endfor %}
     </div>

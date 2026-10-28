@@ -18,6 +18,11 @@
             {% endif %}
         </div>
         <p><span class="label">Local:</span> {{ r.sala }}</p>
+        {% if r.ficha_atrasada %}
+            <p class="alerta-ficha-atrasada" role="status">&#9888;&#65039; Passaram 15 minutos e a ficha ainda n&#227;o foi entregue.</p>
+        {% elif r.ficha_enviada %}
+            <p class="status-ficha-entregue" role="status">&#9989; Ficha entregue.</p>
+        {% endif %}
     </div>
 
     <div class="card-footer-reserva">

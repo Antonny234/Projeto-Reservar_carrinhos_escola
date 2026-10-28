@@ -91,20 +91,16 @@ def buscar_uso_equipamento(request):
             fichas_relevantes = RegistroUso.objects.filter(
                 Q(numero_notebook=numero) | Q(numero_notebook__isnull=True),
                 aluno__sala__escola=escola,
-            ).select_related('aluno')
+            ).filter(Q(equipamento__in=equipamentos) | Q(equipamento__isnull=True, reserva__equipamento__in=equipamentos)).select_related('aluno')
+            reservas_ids = fichas_relevantes.values_list('reserva_id', flat=True).distinct()
             reservas = list(
                 Reserva.objects.filter(
+                    id__in=reservas_ids,
                     escola=escola,
-                    equipamento__in=equipamentos,
                     equipamento__escola=escola,
                     sala__escola=escola,
                     data_uso=data_busca,
                     status='confirmada',
-                )
-                .filter(
-                    Q(numero_notebook_unico=numero)
-                    | Q(numero_notebook_unico__isnull=True, quantidade__isnull=True)
-                    | Q(numeros_quantidade__numero=numero)
                 )
                 .select_related('professor', 'sala', 'equipamento')
                 .prefetch_related(
@@ -153,7 +149,7 @@ def exportar_todas_fichas(request):
         for reserva in reservas:
             registros = RegistroUso.objects.filter(
                 reserva=reserva
-            ).select_related('aluno__sala', 'reserva__professor')  
+            ).select_related('aluno__sala', 'reserva__professor', 'equipamento')
 
             if not registros.exists():
                 continue
@@ -162,6 +158,7 @@ def exportar_todas_fichas(request):
                 'Professor': reserva.professor.get_full_name() or reserva.professor.username,
                 'Sala': reg.aluno.sala.nome,       
                 'Aluno': reg.aluno.nome,
+                'Carrinho usado': reg.equipamento.nome if reg.equipamento_id else reserva.equipamento.nome,
                 'Nº Notebook': reg.numero_notebook,
                 'Data': reserva.data_uso,
             } for reg in registros]
@@ -185,12 +182,13 @@ def exportar_ficha_excel(request, reserva_id):
     reserva = get_object_or_404(Reserva, id=reserva_id, escola=obter_escola_ativa(request))
     registros = RegistroUso.objects.filter(
         reserva=reserva
-    ).select_related('aluno__sala', 'reserva__professor')
+    ).select_related('aluno__sala', 'reserva__professor', 'equipamento')
 
     data = [{
         'Professor': reserva.professor.get_full_name() or reserva.professor.username,
         'Sala': reserva.sala.nome,
         'Aluno': reg.aluno.nome,
+        'Carrinho usado': reg.equipamento.nome if reg.equipamento_id else reserva.equipamento.nome,
         'Nº Notebook': reg.numero_notebook,
         'Data': reserva.data_uso,
     } for reg in registros]
@@ -329,7 +327,7 @@ def ficha_detalhe_json(request, reserva_id):
     registros = RegistroUso.objects.filter(
         reserva_id=reserva_id,
         reserva__escola=obter_escola_ativa(request),
-    ).select_related('aluno__sala', 'reserva__professor')
+    ).select_related('aluno__sala', 'reserva__professor', 'equipamento')
 
     reserva = registros.first().reserva if registros.exists() else None
 
@@ -352,11 +350,29 @@ def ficha_detalhe_json(request, reserva_id):
                 'aluno': reg.aluno.nome,
                 'turma': reg.aluno.sala.nome,
                 'notebook': reg.numero_notebook or '-',
+                'equipamento': reg.equipamento.nome if reg.equipamento_id else reserva.equipamento.nome,
             }
             for reg in registros.order_by('aluno__nome')
         ]
     }
     return JsonResponse(data)
+
+@admin_escola_required
+def fichas_atrasadas(request):
+    agora = timezone.localtime(timezone.now())
+    limite = (agora - timedelta(minutes=15)).time()
+
+    ids = list(
+        Reserva.objects.filter(
+            escola=obter_escola_ativa(request),
+            data_uso=agora.date(),
+            status='confirmada',
+            ficha_enviada=False,
+            horario_inicio__lte=limite,   # começou há 15 min ou mais
+            registrouso__isnull=True,     # ainda sem ficha
+        ).values_list('id', flat=True).distinct()
+    )
+    return JsonResponse({'ids': ids})
 
 
 # Notificações de fichas ausentes (chamada via AJAX do frontend admin)
@@ -367,13 +383,15 @@ def ficha_detalhe_json(request, reserva_id):
 def verificar_fichas_ausentes(request):
     agora = timezone.localtime(timezone.now())
     hoje = agora.date()
-    hora_atual = agora.time()
+    limite = (agora - timedelta(minutes=15)).time()
 
+    # Avisar 15 minutos depois do início da reserva, se a ficha ainda não foi enviada.
     reservas_sem_ficha = Reserva.objects.filter(
         escola=obter_escola_ativa(request),
         data_uso=hoje,
-        horario_fim__lt=hora_atual,
+        horario_inicio__lte=limite,
         status='confirmada',
+        ficha_enviada=False,
         registrouso__isnull=True,
         notificacaofichaausente__isnull=True,   # ainda não tem notificação registrada
     ).select_related('professor', 'equipamento', 'sala').distinct()

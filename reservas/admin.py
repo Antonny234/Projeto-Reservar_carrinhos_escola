@@ -164,7 +164,7 @@ class AlunoAdmin(admin.ModelAdmin):
 
 @admin.register(RegistroUso)
 class RegistroUsoAdmin(admin.ModelAdmin):
-    list_display = ('aluno', 'reserva', 'numero_notebook')
+    list_display = ('aluno', 'reserva', 'equipamento', 'numero_notebook')
     list_filter = ('reserva', 'aluno__sala')
 
 @admin.register(Sala)
